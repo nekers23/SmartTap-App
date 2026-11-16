@@ -6,7 +6,8 @@ import {
   Phone, Mail, Globe, Share2, Download, Copy, Check, Camera, Image as ImageIcon,
   Pencil, Lock, LogOut, ArrowLeft, Smartphone, Building2, QrCode, Sparkles,
   ExternalLink, UserPlus, CheckCircle2, X, ShieldCheck, Music, Gamepad2, MapPin,
-  Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Sun, Moon, Play, Pause, Volume2, VolumeX
+  Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Sun, Moon, Play, Pause, Volume2, VolumeX,
+  ChevronDown, ChevronUp, MessageCircle
 } from "lucide-react";
 
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttap.ph?is_from_webapp=1&sender_device=pc";
@@ -72,7 +73,6 @@ const SOCIAL_PLATFORMS = [
   { id: "tiktok", name: "TikTok", placeholder: "https://tiktok.com/@username", badge: "TT" },
   { id: "youtube", name: "YouTube", placeholder: "https://youtube.com/@channel", badge: "YT" },
   { id: "x", name: "X (Twitter)", placeholder: "https://x.com/username", badge: "X" },
-  { id: "snapchat", name: "Snapchat", placeholder: "https://snapchat.com/add/username", badge: "SC" },
   { id: "whatsapp", name: "WhatsApp", placeholder: "https://wa.me/639123456789", badge: "WA" },
   { id: "telegram", name: "Telegram", placeholder: "https://t.me/username", badge: "TG" },
   { id: "discord", name: "Discord", placeholder: "https://discord.gg/invite", badge: "DC" },
@@ -81,11 +81,8 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const MUSIC_PLATFORMS = [
-  { id: "spotify", name: "Spotify", placeholder: "https://spotify.com/track/...", badge: "SP" },
-  { id: "applemusic", name: "Apple Music", placeholder: "https://music.apple.com/...", badge: "AM" },
-  { id: "youtubemusic", name: "YouTube Music", placeholder: "https://music.youtube.com/...", badge: "YM" },
-  { id: "soundcloud", name: "SoundCloud", placeholder: "https://soundcloud.com/...", badge: "SC" },
-  { id: "bandcamp", name: "Bandcamp", placeholder: "https://bandcamp.com/...", badge: "BC" },
+  { id: "spotify", name: "Spotify Link", placeholder: "https://spotify.com/track/...", badge: "SP" },
+  { id: "youtubemusic", name: "YouTube Music Link", placeholder: "https://music.youtube.com/...", badge: "YM" },
   { id: "music_other", name: "Other Music Link", placeholder: "https://...", badge: "♪" }
 ];
 
@@ -147,6 +144,14 @@ const compressImage = (file, maxWidth = 600, quality = 0.75) => {
   });
 };
 
+const fileToDataUri = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+};
+
 function BrandLogo({ size = "md" }) {
   const [imgError, setImgError] = useState(false);
   const dims = size === "lg" ? "w-14 h-14" : size === "sm" ? "w-6 h-6" : "w-9 h-9";
@@ -188,7 +193,7 @@ export default function SmartTapApp() {
     bio: "",
     avatar: "",
     photos: [],
-    featuredVideo: "",
+    featuredVideo: "", // Device video data URI
     phone: "",
     email: "",
     theme: "default",
@@ -200,8 +205,8 @@ export default function SmartTapApp() {
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedSubPlatform, setSelectedSubPlatform] = useState(null);
-  const [inputField1, setInputField1] = useState("");
-  const [inputField2, setInputField2] = useState("");
+  const [inputField1, setInputField1] = useState(""); // Custom title / URL
+  const [inputField2, setInputField2] = useState(""); // Audio file data URI or server url
   const [inputField3, setInputField3] = useState("");
   const [modalError, setModalError] = useState("");
   const [payQrImage, setPayQrImage] = useState("");
@@ -223,7 +228,6 @@ export default function SmartTapApp() {
   const [isEditingCreds, setIsEditingCreds] = useState(false);
   const [editUser, setEditUser] = useState("");
   const [editPass, setEditPass] = useState("");
-  const [showEditPass, setShowEditPass] = useState(false);
 
   const [messages, setMessages] = useState([]);
   const [contactForm, setContactForm] = useState({ name: "", contact: "", message: "" });
@@ -233,13 +237,21 @@ export default function SmartTapApp() {
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
 
-  // Music Player States
+  // Floating Bar state & scroll detection
+  const [showFloatingBar, setShowFloatingBar] = useState(false);
+  const [isFloatingMinimized, setIsFloatingMinimized] = useState(false);
+  const mainActionsRef = useRef(null);
+
+  // Audio Player states
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.8);
+  const audioRef = useRef(null);
 
   const avatarInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const videoInputRef = useRef(null);
+  const audioInputRef = useRef(null);
   const qrInputRef = useRef(null);
 
   useEffect(() => {
@@ -279,6 +291,37 @@ export default function SmartTapApp() {
     }
     setIsLoaded(true);
   }, []);
+
+  // Scroll listener for Floating Bottom Bar
+  useEffect(() => {
+    if (screen !== "view") return;
+    const handleScroll = () => {
+      if (!mainActionsRef.current) return;
+      const rect = mainActionsRef.current.getBoundingClientRect();
+      // If main actions scrolled past top of viewport, show floating bar
+      if (rect.bottom < 0) {
+        setShowFloatingBar(true);
+      } else {
+        setShowFloatingBar(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [screen]);
+
+  // Handle HTML5 Audio element play/pause and volume
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = musicVolume;
+    if (isPlayingMusic) {
+      audioRef.current.play().catch((err) => {
+        console.log("Audio autoplay prevented:", err);
+        setIsPlayingMusic(false);
+      });
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlayingMusic, musicVolume]);
 
   const theme = THEMES[profile.theme] || THEMES.default;
 
@@ -364,6 +407,26 @@ export default function SmartTapApp() {
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
+  };
+
+  const saveMusicItem = async (e) => {
+    e.preventDefault();
+    if (!inputField1.trim() || !inputField2) return; // inputField1 = Song Title, inputField2 = audio data uri
+
+    const newMusicItem = {
+      id: Date.now(),
+      type: "music",
+      platformId: selectedSubPlatform.id,
+      label: inputField1.trim(), // Song Title e.g. "Weng Weng"
+      badge: selectedSubPlatform.badge,
+      url: inputField2 // audio data uri
+    };
+
+    setProfile((prev) => ({ ...prev, links: [...prev.links, newMusicItem] }));
+    setActiveModal(null);
+    setSelectedSubPlatform(null);
+    setInputField1("");
+    setInputField2("");
   };
 
   const saveGamingItem = (e) => {
@@ -530,7 +593,7 @@ export default function SmartTapApp() {
               Claim & Setup Your SmartTap Card
             </h1>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Activate your personal digital profile. Share social links, music player, gaming IDs, video/GIF, locations, and payments.
+              Activate your personal digital profile. Share social links, audio player with song titles, gaming IDs, device video, and payments.
             </p>
           </div>
 
@@ -670,7 +733,7 @@ export default function SmartTapApp() {
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
-              Customize your info, verified badge, photos, video/GIF, links, music, gaming, locations, and payments.
+              Customize your info, verified badge, photos, device video, music tracks with custom titles, links, locations, and payments.
             </p>
           </div>
 
@@ -691,7 +754,6 @@ export default function SmartTapApp() {
 
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                 <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-                <input ref={cameraInputRef} type="file" accept="image/*" capture="user" onChange={handleAvatarUpload} className="hidden" />
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
@@ -799,11 +861,12 @@ export default function SmartTapApp() {
             </div>
           </section>
 
+          {/* Featured Photos & Device Video Upload */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
                 <ImageIcon className="w-5 h-5 text-indigo-400" />
-                <h2>Featured Photos & Video / GIF</h2>
+                <h2>Featured Photos & Device Video</h2>
               </div>
               <span className={`text-xs ${theme.subtext}`}>{profile.photos.length}/4 Photos</span>
             </div>
@@ -835,18 +898,46 @@ export default function SmartTapApp() {
             </div>
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
-            <div className="pt-2">
-              <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Featured Video / GIF Direct URL</label>
+            <div className="pt-3 border-t border-slate-800 space-y-2">
+              <label className={`block text-xs font-medium ${theme.subtext}`}>Featured Video (Direct Upload from Device)</label>
               <input
-                type="text"
-                value={profile.featuredVideo || ""}
-                onChange={(e) => setProfile({ ...profile, featuredVideo: e.target.value })}
-                placeholder="https://... (mp4 video or gif link)"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                ref={videoInputRef}
+                type="file"
+                accept="video/mp4,video/webm,image/gif"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const dataUri = await fileToDataUri(file);
+                    setProfile({ ...profile, featuredVideo: dataUri });
+                  }
+                }}
+                className="hidden"
               />
+              {profile.featuredVideo ? (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700">
+                  <video src={profile.featuredVideo} className="w-16 h-12 object-cover rounded" />
+                  <span className="text-xs text-slate-300 flex-1 truncate">Video uploaded successfully</span>
+                  <button
+                    type="button"
+                    onClick={() => setProfile({ ...profile, featuredVideo: "" })}
+                    className="text-xs text-rose-400 font-semibold hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  className={`w-full py-3 border border-dashed rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.accentSoft}`}
+                >
+                  <Plus className="w-4 h-4" /> Choose Video File from Device
+                </button>
+              )}
             </div>
           </section>
 
+          {/* Links & Categories */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -901,7 +992,7 @@ export default function SmartTapApp() {
                       <div className="truncate">
                         <p className="text-sm font-semibold truncate">{item.label}</p>
                         <p className={`text-xs truncate ${theme.subtext}`}>
-                          {item.url || `${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `• ${item.gameDetails.field2}` : ""}`}
+                          {item.type === "music" ? "Audio Track File" : (item.url || `${item.gameDetails?.field1}`)}
                         </p>
                       </div>
                     </div>
@@ -918,6 +1009,7 @@ export default function SmartTapApp() {
             )}
           </section>
 
+          {/* Locations */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -968,6 +1060,7 @@ export default function SmartTapApp() {
             )}
           </section>
 
+          {/* Themes */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <Palette className="w-5 h-5 text-indigo-400" />
@@ -994,6 +1087,7 @@ export default function SmartTapApp() {
             </div>
           </section>
 
+          {/* Payments */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -1127,6 +1221,54 @@ export default function SmartTapApp() {
                     </button>
                   ))}
                 </div>
+              ) : activeModal === "music" ? (
+                <form onSubmit={saveMusicItem} className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Song Title (e.g. Weng Weng)</label>
+                    <input
+                      type="text"
+                      required
+                      value={inputField1}
+                      onChange={(e) => setInputField1(e.target.value)}
+                      placeholder="Enter song title"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1.5">Upload Audio File (MP3)</label>
+                    <input
+                      ref={audioInputRef}
+                      type="file"
+                      accept="audio/mp3,audio/mpeg,audio/wav"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const dataUri = await fileToDataUri(file);
+                          setInputField2(dataUri);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    {inputField2 ? (
+                      <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-emerald-400 flex items-center justify-between">
+                        <span>Audio attached successfully</span>
+                        <button type="button" onClick={() => setInputField2("")} className="text-rose-400">Change</button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => audioInputRef.current?.click()}
+                        className="w-full py-3 border border-dashed border-slate-600 rounded-xl text-xs text-slate-300 flex items-center justify-center gap-2"
+                      >
+                        <Music className="w-4 h-4 text-emerald-400" /> Choose MP3 File from Device
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Back</button>
+                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Music Track</button>
+                  </div>
+                </form>
               ) : activeModal === "gaming" ? (
                 <form onSubmit={saveGamingItem} className="space-y-3.5">
                   {selectedSubPlatform.fields.map((fieldName, idx) => (
@@ -1244,7 +1386,7 @@ export default function SmartTapApp() {
 
   // --- SCREEN 4: VIEWERS PAGE ---
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4`}>
+    <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
       <div className="max-w-md w-full mx-auto space-y-5">
         <div className="flex items-center justify-between">
           <BrandLogo size="sm" />
@@ -1309,7 +1451,7 @@ export default function SmartTapApp() {
         </div>
 
         <div className={`rounded-3xl border p-6 space-y-6 shadow-xl ${theme.card}`}>
-          {/* Avatar & Name (Conditional avatar: if empty, no fallback circle) */}
+          {/* Avatar & Name */}
           <div className="text-center space-y-3">
             {profile.avatar && (
               <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-indigo-500/50 shadow-md bg-slate-800 flex items-center justify-center">
@@ -1354,7 +1496,7 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Featured Video / GIF Loop (with full mobile support) */}
+          {/* Featured Device Video / GIF Loop */}
           {profile.featuredVideo && (
             <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative shadow-inner">
               <video
@@ -1366,40 +1508,42 @@ export default function SmartTapApp() {
                 className="w-full aspect-video object-cover"
               />
               <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-slate-300 font-mono uppercase">
-                Featured Loop
+                Device Video Loop
               </div>
             </div>
           )}
 
-          {/* Contact buttons */}
-          {(profile.phone || profile.email) && (
-            <div className="space-y-2.5">
-              {profile.phone && (
-                <div className="grid grid-cols-2 gap-2.5">
-                  <a href={`tel:${profile.phone}`} className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
-                    <Phone className="w-4 h-4 text-emerald-400" />
-                    <span>Call</span>
-                  </a>
-                  <button type="button" onClick={handleSaveContactVCard} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.accent}`}>
-                    <UserPlus className="w-4 h-4" />
-                    <span>Save Contact</span>
-                  </button>
-                </div>
-              )}
-              {profile.email && (
-                <div className="grid grid-cols-2 gap-2.5">
-                  <a href={getGmailComposeUrl(profile.email)} target="_blank" rel="noopener noreferrer" className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
-                    <Mail className="w-4 h-4 text-rose-400" />
-                    <span>Email (Compose)</span>
-                  </a>
-                  <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
-                    {copiedId === "email_copy" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
-                    <span>{copiedId === "email_copy" ? "Copied" : "Save Email"}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Main Actions Ref for Floating Bar trigger */}
+          <div ref={mainActionsRef} className="space-y-2.5">
+            {(profile.phone || profile.email) && (
+              <div className="space-y-2.5">
+                {profile.phone && (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <a href={`tel:${profile.phone}`} className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                      <Phone className="w-4 h-4 text-emerald-400" />
+                      <span>Call</span>
+                    </a>
+                    <button type="button" onClick={handleSaveContactVCard} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.accent}`}>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Save Contact</span>
+                    </button>
+                  </div>
+                )}
+                {profile.email && (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <a href={getGmailComposeUrl(profile.email)} target="_blank" rel="noopener noreferrer" className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                      <Mail className="w-4 h-4 text-rose-400" />
+                      <span>Email (Compose)</span>
+                    </a>
+                    <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                      {copiedId === "email_copy" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
+                      <span>{copiedId === "email_copy" ? "Copied" : "Save Email"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Locations */}
           {profile.locations && profile.locations.length > 0 && (
@@ -1433,42 +1577,51 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Links & Categories */}
+          {/* Links & Categories (Including Working Audio Player with Song Title & Volume Adjuster) */}
           {profile.links.length > 0 && (
             <div className="space-y-4">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
                 Links & Categories
               </p>
 
-              {/* Dynamic Music Player Card with real title */}
+              {/* HTML5 Audio Player */}
               {profile.links.filter(l => l.type === "music").map(musicItem => (
-                <div key={musicItem.id} className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme.pill}`}>
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 ${isPlayingMusic ? "animate-spin" : ""}`}>
-                      <Music className="w-5 h-5" />
+                <div key={musicItem.id} className={`p-3.5 rounded-2xl border space-y-3 ${theme.pill}`}>
+                  <audio ref={audioRef} src={musicItem.url} loop preload="auto" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-md ${isPlayingMusic ? "animate-spin" : ""}`}>
+                        <Music className="w-5 h-5" />
+                      </div>
+                      <div className="truncate flex-1">
+                        <p className="text-xs font-extrabold truncate">{musicItem.label}</p>
+                        <p className={`text-[10px] truncate ${theme.subtext}`}>Audio Track Player</p>
+                      </div>
                     </div>
-                    <div className="truncate flex-1">
-                      <p className="text-xs font-bold truncate">{musicItem.label}</p>
-                      <p className={`text-[10px] truncate ${theme.subtext}`}>Audio Track Player</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
                     <button
                       type="button"
                       onClick={() => setIsPlayingMusic(!isPlayingMusic)}
-                      className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow"
+                      className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow shrink-0 ml-2"
                     >
                       {isPlayingMusic ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
-                    <a
-                      href={musicItem.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-400 transition"
-                      title="Open Link"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                  </div>
+
+                  {/* Volume Adjuster Slider */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
+                    <button type="button" onClick={() => setMusicVolume(musicVolume > 0 ? 0 : 0.8)} className="text-slate-400 hover:text-white">
+                      {musicVolume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-indigo-400" />}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={musicVolume}
+                      onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                    <span className="text-[10px] font-mono text-slate-400 w-8 text-right">{Math.round(musicVolume * 100)}%</span>
                   </div>
                 </div>
               ))}
@@ -1634,7 +1787,66 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      <footer className="max-w-md w-full mx-auto text-center pt-8 pb-2 space-y-1.5">
+      {/* FLOATING BOTTOM BAR NAVIGATION (With Hide/Show Toggle Arrow) */}
+      {showFloatingBar && (
+        <div className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto transition-all duration-300">
+          <div className={`bg-[#111827]/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 shadow-2xl flex items-center justify-between gap-2 ${isFloatingMinimized ? "w-14 h-14 rounded-full ml-auto p-0 justify-center" : ""}`}>
+            {isFloatingMinimized ? (
+              <button
+                type="button"
+                onClick={() => setIsFloatingMinimized(false)}
+                className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg"
+                title="Show Quick Actions"
+              >
+                <ChevronUp className="w-6 h-6" />
+              </button>
+            ) : (
+              <>
+                <a
+                  href={profile.phone ? `tel:${profile.phone}` : "#"}
+                  className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition"
+                >
+                  <Phone className="w-4 h-4 text-emerald-400" />
+                  <span>Call/Chat</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleSaveContactVCard}
+                  className="flex-1 py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition shadow"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Save</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstPay = profile.payments?.[0];
+                    if (firstPay && firstPay.qrImage) {
+                      setActiveQrModal(firstPay);
+                    } else {
+                      alert("No payment QR code available.");
+                    }
+                  }}
+                  className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition"
+                >
+                  <CreditCard className="w-4 h-4 text-cyan-400" />
+                  <span>Pay QR</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFloatingMinimized(true)}
+                  className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition"
+                  title="Hide Bar"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <footer className="max-w-md w-full mx-auto text-center pt-8 pb-4 space-y-1.5">
         <div className="flex justify-center opacity-80"><BrandLogo size="sm" /></div>
         <p className={`text-xs ${theme.subtext}`}>Tap smarter. Share your world in one touch.</p>
         <p className={`text-[11px] ${theme.subtext}`}>
@@ -1645,7 +1857,7 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
-      {/* SHARE PROFILE QR MODAL (Fixed display) */}
+      {/* SHARE PROFILE QR MODAL */}
       {showShareQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
