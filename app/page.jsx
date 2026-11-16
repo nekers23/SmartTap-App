@@ -3,14 +3,99 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   User, Link as LinkIcon, CreditCard, Palette, Save, Plus, Trash2,
-  Phone, Mail, Globe, Share2, Download, Copy, Check, Camera, Image as ImageIcon,
-  Pencil, Lock, LogOut, ArrowLeft, Smartphone, Building2, QrCode, Sparkles,
-  ExternalLink, UserPlus, CheckCircle2, X, ShieldCheck, Music, Gamepad2, MapPin,
-  Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Sun, Moon, Play, Pause, Volume2, VolumeX,
-  ChevronDown, ChevronUp, MessageCircle
+  Phone, Mail, Globe, Share2, Download, Copy, Check, Image as ImageIcon,
+  Pencil, Lock, ArrowLeft, Building2, QrCode, Sparkles,
+  ExternalLink, UserPlus, X, ShieldCheck, Music, Gamepad2, MapPin,
+  Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Play, Pause, Volume2, VolumeX,
+  ChevronDown, ChevronUp, RefreshCw, WifiOff
 } from "lucide-react";
 
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttap.ph?is_from_webapp=1&sender_device=pc";
+
+// --- INDEXEDDB HELPER FOR LARGE MEDIA (VIDEO & AUDIO) ---
+const DB_NAME = "SmartTapMediaDB";
+const STORE_NAME = "mediaFiles";
+
+const openMediaDB = () => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined") return reject("No window");
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const saveMediaBlob = async (key, blob) => {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(blob, key);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+};
+
+const getMediaBlob = async (key) => {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const req = tx.objectStore(STORE_NAME).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+const deleteMediaBlob = async (key) => {
+  const db = await openMediaDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(key);
+    tx.oncomplete = () => resolve(true);
+  });
+};
+
+// --- NATIVE APP DEEP LINK HANDLER ---
+const openWithNativeDeepLink = (e, platformId, webUrl) => {
+  if (!webUrl || typeof window === "undefined") return;
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (!isMobile) return; // Desktop uses standard target="_blank"
+
+  let appScheme = null;
+  try {
+    const urlObj = new URL(webUrl.startsWith("http") ? webUrl : `https://${webUrl}`);
+    const pathParts = urlObj.pathname.split("/").filter(Boolean);
+    const handle = pathParts[0]?.replace("@", "") || "";
+
+    if (platformId === "instagram" && handle) {
+      appScheme = `instagram://user?username=${handle}`;
+    } else if (platformId === "tiktok" && handle) {
+      appScheme = `snssdk1233://user/profile/${handle}`;
+    } else if (platformId === "facebook") {
+      appScheme = `fb://facewebmodal/f?href=${encodeURIComponent(webUrl)}`;
+    } else if (platformId === "youtube") {
+      appScheme = `vnd.youtube://${urlObj.hostname}${urlObj.pathname}`;
+    }
+  } catch (err) {
+    return;
+  }
+
+  if (appScheme) {
+    e.preventDefault();
+    const start = Date.now();
+    window.location.href = appScheme;
+    setTimeout(() => {
+      if (Date.now() - start < 1500 && !document.hidden) {
+        window.open(webUrl, "_blank", "noopener,noreferrer");
+      }
+    }, 900);
+  }
+};
 
 const THEMES = {
   default: {
@@ -81,9 +166,7 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const MUSIC_PLATFORMS = [
-  { id: "spotify", name: "Spotify Link", placeholder: "https://spotify.com/track/...", badge: "SP" },
-  { id: "youtubemusic", name: "YouTube Music Link", placeholder: "https://music.youtube.com/...", badge: "YM" },
-  { id: "music_other", name: "Other Music Link", placeholder: "https://...", badge: "♪" }
+  { id: "audio_upload", name: "Device Audio File (MP3/WAV)", placeholder: "Song Title", badge: "♪" }
 ];
 
 const GAMING_PLATFORMS = [
@@ -144,14 +227,6 @@ const compressImage = (file, maxWidth = 600, quality = 0.75) => {
   });
 };
 
-const fileToDataUri = (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.readAsDataURL(file);
-  });
-};
-
 function BrandLogo({ size = "md" }) {
   const [imgError, setImgError] = useState(false);
   const dims = size === "lg" ? "w-14 h-14" : size === "sm" ? "w-6 h-6" : "w-9 h-9";
@@ -180,6 +255,7 @@ function BrandLogo({ size = "md" }) {
 export default function SmartTapApp() {
   const [screen, setScreen] = useState("claim");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const [account, setAccount] = useState(null);
   const [authMode, setAuthMode] = useState("signup");
@@ -193,7 +269,7 @@ export default function SmartTapApp() {
     bio: "",
     avatar: "",
     photos: [],
-    featuredVideo: "", // Device video data URI
+    hasFeaturedVideo: false,
     phone: "",
     email: "",
     theme: "default",
@@ -203,11 +279,16 @@ export default function SmartTapApp() {
     locations: []
   });
 
+  // Live Object URLs loaded from IndexedDB (prevents black screen & QuotaExceededError)
+  const [videoObjectUrl, setVideoObjectUrl] = useState("");
+  const [audioObjectUrls, setAudioObjectUrls] = useState({});
+
   const [activeModal, setActiveModal] = useState(null);
   const [selectedSubPlatform, setSelectedSubPlatform] = useState(null);
-  const [inputField1, setInputField1] = useState(""); // Custom title / URL
-  const [inputField2, setInputField2] = useState(""); // Audio file data URI or server url
+  const [inputField1, setInputField1] = useState("");
+  const [inputField2, setInputField2] = useState("");
   const [inputField3, setInputField3] = useState("");
+  const [pendingAudioFile, setPendingAudioFile] = useState(null);
   const [modalError, setModalError] = useState("");
   const [payQrImage, setPayQrImage] = useState("");
 
@@ -218,6 +299,12 @@ export default function SmartTapApp() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showShareQrModal, setShowShareQrModal] = useState(false);
+  const [showPaySelectionModal, setShowPaySelectionModal] = useState(false);
+
+  // Two-Way Contact Exchange Modal
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
+  const [exchangeForm, setExchangeForm] = useState({ name: "", phone: "", email: "", social: "" });
+  const [exchangeSuccess, setExchangeSuccess] = useState(false);
 
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [analyticsPin, setAnalyticsPin] = useState("");
@@ -237,24 +324,86 @@ export default function SmartTapApp() {
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
 
-  // Floating Bar state & scroll detection
+  // Floating Bar state
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isFloatingMinimized, setIsFloatingMinimized] = useState(false);
   const mainActionsRef = useRef(null);
 
   // Audio Player states
-  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.8);
+  const [activeAudioId, setActiveAudioId] = useState(null);
+  const [musicVolume, setMusicVolume] = useState(0.85);
   const audioRef = useRef(null);
 
   const avatarInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const audioInputRef = useRef(null);
   const qrInputRef = useRef(null);
 
+  // Load media blobs from IndexedDB
+  const reloadMediaFromDB = async (currentProfile) => {
+    try {
+      if (currentProfile?.hasFeaturedVideo) {
+        const vBlob = await getMediaBlob("featured_video");
+        if (vBlob) {
+          const url = URL.createObjectURL(vBlob);
+          setVideoObjectUrl(url);
+        }
+      } else {
+        setVideoObjectUrl("");
+      }
+
+      const musicLinks = (currentProfile?.links || []).filter((l) => l.type === "music");
+      const urlMap = {};
+      for (const m of musicLinks) {
+        const aBlob = await getMediaBlob(`audio_${m.id}`);
+        if (aBlob) {
+          urlMap[m.id] = URL.createObjectURL(aBlob);
+        }
+      }
+      setAudioObjectUrls(urlMap);
+    } catch (err) {
+      console.error("IndexedDB media load error:", err);
+    }
+  };
+
   useEffect(() => {
+    // Offline-Ready PWA Caching: Service Worker & Offline status listener
+    if (typeof window !== "undefined") {
+      setIsOffline(!navigator.onLine);
+      const goOnline = () => setIsOffline(false);
+      const goOffline = () => setIsOffline(true);
+      window.addEventListener("online", goOnline);
+      window.addEventListener("offline", goOffline);
+
+      if ("serviceWorker" in navigator) {
+        const swCode = `
+          const CACHE_NAME = 'smarttap-offline-v1';
+          self.addEventListener('install', (e) => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', (e) => {
+            e.waitUntil(clients.claim());
+          });
+          self.addEventListener('fetch', (e) => {
+            if (e.request.method !== 'GET') return;
+            e.respondWith(
+              fetch(e.request)
+                .then((res) => {
+                  const clone = res.clone();
+                  caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+                  return res;
+                })
+                .catch(() => caches.match(e.request))
+            );
+          });
+        `;
+        const blob = new Blob([swCode], { type: "application/javascript" });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).catch(() => {});
+      }
+    }
+
     try {
       const savedAccount = localStorage.getItem("smarttap_v32_account");
       const savedProfile = localStorage.getItem("smarttap_v32_profile");
@@ -268,7 +417,11 @@ export default function SmartTapApp() {
         setEditUser(acc.identifier || "");
         setEditPass(acc.password || "");
       }
-      if (savedProfile) setProfile(JSON.parse(savedProfile));
+      if (savedProfile) {
+        const parsedProf = JSON.parse(savedProfile);
+        setProfile(parsedProf);
+        reloadMediaFromDB(parsedProf);
+      }
       if (savedMessages) setMessages(JSON.parse(savedMessages));
 
       const currentAnalytics = savedAnalytics ? JSON.parse(savedAnalytics) : { taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 };
@@ -298,30 +451,41 @@ export default function SmartTapApp() {
     const handleScroll = () => {
       if (!mainActionsRef.current) return;
       const rect = mainActionsRef.current.getBoundingClientRect();
-      // If main actions scrolled past top of viewport, show floating bar
       if (rect.bottom < 0) {
         setShowFloatingBar(true);
       } else {
         setShowFloatingBar(false);
       }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [screen]);
 
-  // Handle HTML5 Audio element play/pause and volume
-  useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.volume = musicVolume;
-    if (isPlayingMusic) {
-      audioRef.current.play().catch((err) => {
-        console.log("Audio autoplay prevented:", err);
-        setIsPlayingMusic(false);
-      });
-    } else {
+  // Audio playback control
+  const togglePlayAudio = (trackId) => {
+    const src = audioObjectUrls[trackId];
+    if (!src || !audioRef.current) return;
+
+    if (activeAudioId === trackId) {
       audioRef.current.pause();
+      setActiveAudioId(null);
+    } else {
+      audioRef.current.src = src;
+      audioRef.current.volume = musicVolume;
+      audioRef.current.play()
+        .then(() => setActiveAudioId(trackId))
+        .catch((err) => {
+          console.error("Playback failed:", err);
+          setActiveAudioId(null);
+        });
     }
-  }, [isPlayingMusic, musicVolume]);
+  };
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicVolume;
+    }
+  }, [musicVolume]);
 
   const theme = THEMES[profile.theme] || THEMES.default;
 
@@ -329,23 +493,40 @@ export default function SmartTapApp() {
     e.preventDefault();
     setAuthError("");
 
-    if (!authIdentifier.trim() || !authPassword.trim()) {
+    const enteredUser = authIdentifier.trim().toLowerCase();
+    const enteredPass = authPassword.trim();
+
+    if (!enteredUser || !enteredPass) {
       setAuthError("Please enter username and password.");
       return;
     }
 
     if (authMode === "signup") {
-      const newAcc = { identifier: authIdentifier.trim(), password: authPassword.trim() };
+      const existingAccounts = JSON.parse(localStorage.getItem("smarttap_registry") || "[]");
+      const isTaken = existingAccounts.some((acc) => acc.identifier.toLowerCase() === enteredUser);
+
+      if (isTaken) {
+        setAuthError("Username is already taken. Please choose another unique username.");
+        return;
+      }
+
+      const newAcc = { identifier: authIdentifier.trim(), password: enteredPass };
+      existingAccounts.push(newAcc);
+      localStorage.setItem("smarttap_registry", JSON.stringify(existingAccounts));
+      localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
+
       setAccount(newAcc);
       setEditUser(newAcc.identifier);
       setEditPass(newAcc.password);
-      localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
       setScreen("edit");
     } else {
+      const savedAcc = localStorage.getItem("smarttap_v32_account");
+      const parsedAcc = savedAcc ? JSON.parse(savedAcc) : null;
+
       if (
-        account &&
-        account.identifier.toLowerCase() === authIdentifier.trim().toLowerCase() &&
-        account.password === authPassword.trim()
+        parsedAcc &&
+        parsedAcc.identifier.toLowerCase() === enteredUser &&
+        parsedAcc.password === enteredPass
       ) {
         setAuthIdentifier("");
         setAuthPassword("");
@@ -385,12 +566,31 @@ export default function SmartTapApp() {
     }));
   };
 
+  const handleVideoFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await saveMediaBlob("featured_video", file);
+      const objUrl = URL.createObjectURL(file);
+      setVideoObjectUrl(objUrl);
+      setProfile((prev) => ({ ...prev, hasFeaturedVideo: true }));
+    } catch (err) {
+      alert("Failed to save video to browser storage.");
+    }
+  };
+
+  const handleRemoveVideo = async () => {
+    await deleteMediaBlob("featured_video");
+    setVideoObjectUrl("");
+    setProfile((prev) => ({ ...prev, hasFeaturedVideo: false }));
+  };
+
   const saveLinkItem = (e) => {
     e.preventDefault();
     if (!inputField1.trim()) return;
 
     let finalUrl = inputField1.trim();
-    if (activeModal !== "music" && activeModal !== "business" && activeModal !== "social" && !/^https?:\/\//i.test(finalUrl)) {
+    if (!/^https?:\/\//i.test(finalUrl)) {
       finalUrl = `https://${finalUrl}`;
     }
 
@@ -411,22 +611,27 @@ export default function SmartTapApp() {
 
   const saveMusicItem = async (e) => {
     e.preventDefault();
-    if (!inputField1.trim() || !inputField2) return; // inputField1 = Song Title, inputField2 = audio data uri
+    if (!inputField1.trim() || !pendingAudioFile) return;
+
+    const trackId = Date.now();
+    await saveMediaBlob(`audio_${trackId}`, pendingAudioFile);
+    const objUrl = URL.createObjectURL(pendingAudioFile);
+    setAudioObjectUrls((prev) => ({ ...prev, [trackId]: objUrl }));
 
     const newMusicItem = {
-      id: Date.now(),
+      id: trackId,
       type: "music",
-      platformId: selectedSubPlatform.id,
-      label: inputField1.trim(), // Song Title e.g. "Weng Weng"
-      badge: selectedSubPlatform.badge,
-      url: inputField2 // audio data uri
+      platformId: "audio_upload",
+      label: inputField1.trim(),
+      badge: "♪",
+      url: ""
     };
 
     setProfile((prev) => ({ ...prev, links: [...prev.links, newMusicItem] }));
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
-    setInputField2("");
+    setPendingAudioFile(null);
   };
 
   const saveGamingItem = (e) => {
@@ -492,35 +697,47 @@ export default function SmartTapApp() {
     setShowLocModal(false);
   };
 
-  const removeItem = (id, category) => {
+  const removeItem = async (id, category) => {
     if (category === "payment") {
       setProfile((prev) => ({ ...prev, payments: prev.payments.filter((p) => p.id !== id) }));
     } else if (category === "location") {
       setProfile((prev) => ({ ...prev, locations: prev.locations.filter((l) => l.id !== id) }));
     } else {
+      if (category === "music") {
+        await deleteMediaBlob(`audio_${id}`);
+      }
       setProfile((prev) => ({ ...prev, links: prev.links.filter((l) => l.id !== id) }));
     }
   };
 
   const handleSaveProfile = () => {
-    localStorage.setItem("smarttap_v32_profile", JSON.stringify(profile));
-    localStorage.setItem("smarttap_v32_setup_done", "true");
-    setSaveToast(true);
-    setTimeout(() => {
-      setSaveToast(false);
-      setScreen("view");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 600);
+    try {
+      localStorage.setItem("smarttap_v32_profile", JSON.stringify(profile));
+      localStorage.setItem("smarttap_v32_setup_done", "true");
+      setSaveToast(true);
+      setTimeout(() => {
+        setSaveToast(false);
+        setScreen("view");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 450);
+    } catch (err) {
+      alert("Storage limit warning: Try reducing gallery image sizes.");
+    }
   };
 
-  const handleSaveContactVCard = () => {
+  const handleSaveContactVCard = (customName, customPhone, customEmail, customNote) => {
+    const fn = customName || profile.name || "SmartTap User";
+    const tel = customPhone !== undefined ? customPhone : profile.phone;
+    const mail = customEmail !== undefined ? customEmail : profile.email;
+    const note = customNote !== undefined ? customNote : profile.bio;
+
     const vcard = [
       "BEGIN:VCARD",
       "VERSION:3.0",
-      `FN:${profile.name || "SmartTap User"}`,
-      profile.phone ? `TEL;TYPE=CELL:${profile.phone}` : "",
-      profile.email ? `EMAIL:${profile.email}` : "",
-      profile.bio ? `NOTE:${profile.bio}` : "",
+      `FN:${fn}`,
+      tel ? `TEL;TYPE=CELL:${tel}` : "",
+      mail ? `EMAIL:${mail}` : "",
+      note ? `NOTE:${note}` : "",
       "END:VCARD"
     ]
       .filter(Boolean)
@@ -530,9 +747,29 @@ export default function SmartTapApp() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${(profile.name || "contact").replace(/\s+/g, "_")}.vcf`;
+    a.download = `${fn.replace(/\s+/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExchangeContactSubmit = (e) => {
+    e.preventDefault();
+    if (!exchangeForm.name.trim() || !exchangeForm.phone.trim()) return;
+
+    const newExchangeMsg = {
+      id: Date.now(),
+      isExchange: true,
+      name: exchangeForm.name.trim(),
+      contact: exchangeForm.phone.trim(),
+      email: exchangeForm.email.trim(),
+      message: `🤝 Shared Contact Back!${exchangeForm.social ? ` Social/Notes: ${exchangeForm.social}` : ""}`,
+      date: new Date().toLocaleString()
+    };
+
+    const updatedMsgs = [newExchangeMsg, ...messages];
+    setMessages(updatedMsgs);
+    localStorage.setItem("smarttap_v32_messages", JSON.stringify(updatedMsgs));
+    setExchangeSuccess(true);
   };
 
   const getGmailComposeUrl = (emailAddress) => {
@@ -579,7 +816,7 @@ export default function SmartTapApp() {
         <header className="max-w-md w-full mx-auto pt-2 flex justify-between items-center">
           <BrandLogo size="md" />
           <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-medium">
-            NFC Digital Card
+            Offline-Ready NFC
           </span>
         </header>
 
@@ -593,7 +830,7 @@ export default function SmartTapApp() {
               Claim & Setup Your SmartTap Card
             </h1>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Activate your personal digital profile. Share social links, audio player with song titles, gaming IDs, device video, and payments.
+              Activate your personal digital profile with Native App Deep Links, Offline PWA Caching, Two-Way Contact Exchange, and HD Video Loops.
             </p>
           </div>
 
@@ -603,7 +840,7 @@ export default function SmartTapApp() {
                 setAuthMode("signup");
                 setScreen("auth");
               }}
-              className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               Get Started — Claim Card
             </button>
@@ -614,7 +851,7 @@ export default function SmartTapApp() {
                   setAuthMode("login");
                   setScreen("login_to_edit");
                 }}
-                className="w-full py-3 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition"
+                className="w-full py-3 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer"
               >
                 Already claimed? Sign in to Edit
               </button>
@@ -638,7 +875,7 @@ export default function SmartTapApp() {
         <header className="max-w-md w-full mx-auto pt-2 flex items-center justify-between">
           <button
             onClick={() => setScreen(isOwnerLock ? "view" : "claim")}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -655,11 +892,14 @@ export default function SmartTapApp() {
               <h2 className="text-xl font-bold">
                 {isOwnerLock ? "Owner Verification" : "Create SmartTap Account"}
               </h2>
+              {!isOwnerLock && (
+                <p className="text-xs text-slate-400">Each username must be unique.</p>
+              )}
             </div>
 
             <form onSubmit={handleManualAuth} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Username or Email</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Unique Username</label>
                 <input
                   type="text"
                   required
@@ -684,7 +924,7 @@ export default function SmartTapApp() {
                   <button
                     type="button"
                     onClick={() => setShowAuthPass(!showAuthPass)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white cursor-pointer"
                   >
                     {showAuthPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -699,7 +939,7 @@ export default function SmartTapApp() {
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition cursor-pointer"
               >
                 {isOwnerLock ? "Verify & Open Editor" : "Create Account & Start Setup"}
               </button>
@@ -714,14 +954,14 @@ export default function SmartTapApp() {
   // --- SCREEN 3: EDIT PROFILE ---
   if (screen === "edit") {
     return (
-      <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-24`}>
+      <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-28`}>
         <header className={`sticky top-0 z-30 border-b backdrop-blur-md ${theme.card}`}>
           <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between">
             <BrandLogo size="sm" />
             <button
               type="button"
               onClick={() => setScreen("view")}
-              className="px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
             >
               <Eye className="w-3.5 h-3.5" />
               <span>Preview View</span>
@@ -733,7 +973,7 @@ export default function SmartTapApp() {
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
-              Customize your info, verified badge, photos, device video, music tracks with custom titles, links, locations, and payments.
+              Customize your info, verified badge, photos, direct device video (IndexedDB powered), audio tracks, links, and payments.
             </p>
           </div>
 
@@ -757,7 +997,7 @@ export default function SmartTapApp() {
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
-                  className={`px-3 py-2 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 transition ${theme.pill}`}
+                  className={`px-3 py-2 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 transition cursor-pointer ${theme.pill}`}
                 >
                   <ImageIcon className="w-4 h-4 text-indigo-400" />
                   Select Photo
@@ -766,7 +1006,7 @@ export default function SmartTapApp() {
                   <button
                     type="button"
                     onClick={() => setProfile({ ...profile, avatar: "" })}
-                    className="px-3 py-2 rounded-xl border border-rose-500/30 text-rose-400 text-xs font-medium hover:bg-rose-500/10 transition"
+                    className="px-3 py-2 rounded-xl border border-rose-500/30 text-rose-400 text-xs font-medium hover:bg-rose-500/10 transition cursor-pointer"
                   >
                     Remove Photo
                   </button>
@@ -798,7 +1038,7 @@ export default function SmartTapApp() {
                       ...profile,
                       verifiedBadge: { ...profile.verifiedBadge, enabled: e.target.checked }
                     })}
-                    className="w-4 h-4 accent-indigo-600 rounded"
+                    className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
                   />
                 </div>
                 {profile.verifiedBadge?.enabled && (
@@ -817,7 +1057,7 @@ export default function SmartTapApp() {
                           ...profile,
                           verifiedBadge: { ...profile.verifiedBadge, color: c.id }
                         })}
-                        className={`w-6 h-6 rounded-full ${c.bg} border-2 ${profile.verifiedBadge?.color === c.id ? "border-white scale-110" : "border-transparent"} transition`}
+                        className={`w-6 h-6 rounded-full ${c.bg} border-2 ${profile.verifiedBadge?.color === c.id ? "border-white scale-110" : "border-transparent"} transition cursor-pointer`}
                         title={c.name}
                       />
                     ))}
@@ -861,7 +1101,7 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Featured Photos & Device Video Upload */}
+          {/* Featured Photos & Direct Device Video */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -878,7 +1118,7 @@ export default function SmartTapApp() {
                   <button
                     type="button"
                     onClick={() => removeGalleryPhoto(idx)}
-                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 text-white flex items-center justify-center hover:bg-rose-600 transition"
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 text-white flex items-center justify-center hover:bg-rose-600 transition cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -889,7 +1129,7 @@ export default function SmartTapApp() {
                 <button
                   type="button"
                   onClick={() => galleryInputRef.current?.click()}
-                  className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs font-medium transition ${theme.accentSoft}`}
+                  className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs font-medium transition cursor-pointer ${theme.accentSoft}`}
                 >
                   <Plus className="w-5 h-5" />
                   <span>Add Photo</span>
@@ -899,28 +1139,22 @@ export default function SmartTapApp() {
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
             <div className="pt-3 border-t border-slate-800 space-y-2">
-              <label className={`block text-xs font-medium ${theme.subtext}`}>Featured Video (Direct Upload from Device)</label>
+              <label className={`block text-xs font-medium ${theme.subtext}`}>Featured Video (Direct Upload from Device — No Black Screen)</label>
               <input
                 ref={videoInputRef}
                 type="file"
-                accept="video/mp4,video/webm,image/gif"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const dataUri = await fileToDataUri(file);
-                    setProfile({ ...profile, featuredVideo: dataUri });
-                  }
-                }}
+                accept="video/*"
+                onChange={handleVideoFileUpload}
                 className="hidden"
               />
-              {profile.featuredVideo ? (
+              {videoObjectUrl ? (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700">
-                  <video src={profile.featuredVideo} className="w-16 h-12 object-cover rounded" />
-                  <span className="text-xs text-slate-300 flex-1 truncate">Video uploaded successfully</span>
+                  <video src={videoObjectUrl} muted loop autoPlay playsInline className="w-20 h-12 object-cover rounded bg-black" />
+                  <span className="text-xs text-emerald-400 font-semibold flex-1 truncate">Video ready & cached!</span>
                   <button
                     type="button"
-                    onClick={() => setProfile({ ...profile, featuredVideo: "" })}
-                    className="text-xs text-rose-400 font-semibold hover:underline"
+                    onClick={handleRemoveVideo}
+                    className="text-xs text-rose-400 font-semibold hover:underline cursor-pointer"
                   >
                     Remove
                   </button>
@@ -929,7 +1163,7 @@ export default function SmartTapApp() {
                 <button
                   type="button"
                   onClick={() => videoInputRef.current?.click()}
-                  className={`w-full py-3 border border-dashed rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.accentSoft}`}
+                  className={`w-full py-3 border border-dashed rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${theme.accentSoft}`}
                 >
                   <Plus className="w-4 h-4" /> Choose Video File from Device
                 </button>
@@ -942,7 +1176,7 @@ export default function SmartTapApp() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
                 <LinkIcon className="w-5 h-5 text-indigo-400" />
-                <h2>Links & Categories</h2>
+                <h2>Links & Categories (Native App Deep Links)</h2>
               </div>
             </div>
 
@@ -950,15 +1184,18 @@ export default function SmartTapApp() {
               <button
                 type="button"
                 onClick={() => setActiveModal("social")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${theme.pill}`}
+                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
               >
                 <Share2 className="w-4 h-4 text-blue-400" />
                 <span className="text-xs font-semibold">Add Social</span>
               </button>
               <button
                 type="button"
-                onClick={() => setActiveModal("music")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${theme.pill}`}
+                onClick={() => {
+                  setSelectedSubPlatform(MUSIC_PLATFORMS[0]);
+                  setActiveModal("music");
+                }}
+                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
               >
                 <Music className="w-4 h-4 text-emerald-400" />
                 <span className="text-xs font-semibold">Add Music</span>
@@ -966,7 +1203,7 @@ export default function SmartTapApp() {
               <button
                 type="button"
                 onClick={() => setActiveModal("gaming")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${theme.pill}`}
+                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
               >
                 <Gamepad2 className="w-4 h-4 text-amber-400" />
                 <span className="text-xs font-semibold">Add Gaming</span>
@@ -974,7 +1211,7 @@ export default function SmartTapApp() {
               <button
                 type="button"
                 onClick={() => setActiveModal("business")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${theme.pill}`}
+                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
               >
                 <Building2 className="w-4 h-4 text-cyan-400" />
                 <span className="text-xs font-semibold">Add Business</span>
@@ -992,14 +1229,14 @@ export default function SmartTapApp() {
                       <div className="truncate">
                         <p className="text-sm font-semibold truncate">{item.label}</p>
                         <p className={`text-xs truncate ${theme.subtext}`}>
-                          {item.type === "music" ? "Audio Track File" : (item.url || `${item.gameDetails?.field1}`)}
+                          {item.type === "music" ? "Device Audio Track" : (item.url || `${item.gameDetails?.field1}`)}
                         </p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeItem(item.id, item.type)}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1023,7 +1260,7 @@ export default function SmartTapApp() {
                   setLocMapUrl("");
                   setShowLocModal(true);
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition ${theme.accent}`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
               >
                 <Plus className="w-4 h-4" />
                 Add Location
@@ -1050,7 +1287,7 @@ export default function SmartTapApp() {
                     <button
                       type="button"
                       onClick={() => removeItem(loc.id, "location")}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1075,7 +1312,7 @@ export default function SmartTapApp() {
                     key={t.id}
                     type="button"
                     onClick={() => setProfile({ ...profile, theme: t.id })}
-                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-2 ${
+                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-2 cursor-pointer ${
                       isSelected ? "border-indigo-500 ring-2 ring-indigo-500/30 bg-indigo-500/10" : theme.pill
                     }`}
                   >
@@ -1100,7 +1337,7 @@ export default function SmartTapApp() {
                   setSelectedSubPlatform(null);
                   setActiveModal("payment");
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition ${theme.accent}`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
               >
                 <Plus className="w-4 h-4" />
                 Add Payment
@@ -1127,7 +1364,7 @@ export default function SmartTapApp() {
                     <button
                       type="button"
                       onClick={() => removeItem(pay.id, "payment")}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1138,12 +1375,12 @@ export default function SmartTapApp() {
           </section>
         </main>
 
-        <div className={`fixed bottom-0 inset-x-0 p-4 border-t backdrop-blur-md ${theme.card}`}>
+        <div className={`fixed bottom-0 inset-x-0 p-4 border-t backdrop-blur-md z-30 ${theme.card}`}>
           <div className="max-w-xl mx-auto">
             <button
               type="button"
               onClick={handleSaveProfile}
-              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition"
+              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <Save className="w-4 h-4" />
               {saveToast ? "Saved & Published!" : "Save & Publish SmartTap Profile"}
@@ -1157,7 +1394,7 @@ export default function SmartTapApp() {
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-base">Add Location / Store</h3>
-                <button onClick={() => setShowLocModal(false)} className="p-1 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={() => setShowLocModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={saveLocationItem} className="space-y-3.5">
                 <div>
@@ -1182,8 +1419,8 @@ export default function SmartTapApp() {
                   />
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button type="button" onClick={() => setShowLocModal(false)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Cancel</button>
-                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Location</button>
+                  <button type="button" onClick={() => setShowLocModal(false)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Location</button>
                 </div>
               </form>
             </div>
@@ -1197,7 +1434,7 @@ export default function SmartTapApp() {
                 <h3 className="font-bold text-base capitalize">
                   {selectedSubPlatform ? `Add ${selectedSubPlatform.name}` : `Select ${activeModal} Platform`}
                 </h3>
-                <button onClick={() => { setActiveModal(null); setSelectedSubPlatform(null); }} className="p-1 text-slate-400 hover:text-white">
+                <button onClick={() => { setActiveModal(null); setSelectedSubPlatform(null); setPendingAudioFile(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1212,7 +1449,7 @@ export default function SmartTapApp() {
                       key={item.id}
                       type="button"
                       onClick={() => setSelectedSubPlatform(item)}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-left transition"
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-left transition cursor-pointer"
                     >
                       <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                         {item.badge || "•"}
@@ -1230,43 +1467,40 @@ export default function SmartTapApp() {
                       required
                       value={inputField1}
                       onChange={(e) => setInputField1(e.target.value)}
-                      placeholder="Enter song title"
+                      placeholder="Enter exact song title"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1.5">Upload Audio File (MP3)</label>
+                    <label className="block text-xs text-slate-400 mb-1.5">Upload Audio File (MP3 / WAV)</label>
                     <input
                       ref={audioInputRef}
                       type="file"
-                      accept="audio/mp3,audio/mpeg,audio/wav"
-                      onChange={async (e) => {
+                      accept="audio/*"
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          const dataUri = await fileToDataUri(file);
-                          setInputField2(dataUri);
-                        }
+                        if (file) setPendingAudioFile(file);
                       }}
                       className="hidden"
                     />
-                    {inputField2 ? (
+                    {pendingAudioFile ? (
                       <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-emerald-400 flex items-center justify-between">
-                        <span>Audio attached successfully</span>
-                        <button type="button" onClick={() => setInputField2("")} className="text-rose-400">Change</button>
+                        <span className="truncate pr-2">{pendingAudioFile.name}</span>
+                        <button type="button" onClick={() => setPendingAudioFile(null)} className="text-rose-400 shrink-0 cursor-pointer">Change</button>
                       </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => audioInputRef.current?.click()}
-                        className="w-full py-3 border border-dashed border-slate-600 rounded-xl text-xs text-slate-300 flex items-center justify-center gap-2"
+                        className="w-full py-3 border border-dashed border-slate-600 rounded-xl text-xs text-slate-300 flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        <Music className="w-4 h-4 text-emerald-400" /> Choose MP3 File from Device
+                        <Music className="w-4 h-4 text-emerald-400" /> Choose Audio File from Device
                       </button>
                     )}
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Back</button>
-                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Music Track</button>
+                    <button type="button" onClick={() => { setActiveModal(null); setSelectedSubPlatform(null); }} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Cancel</button>
+                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Music Track</button>
                   </div>
                 </form>
               ) : activeModal === "gaming" ? (
@@ -1289,8 +1523,8 @@ export default function SmartTapApp() {
                     </div>
                   ))}
                   <div className="flex gap-2 pt-2">
-                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Back</button>
-                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Gaming ID</button>
+                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Back</button>
+                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Gaming ID</button>
                   </div>
                 </form>
               ) : activeModal === "payment" ? (
@@ -1342,10 +1576,10 @@ export default function SmartTapApp() {
                       <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#090d16] border border-slate-700">
                         <img src={payQrImage} alt="QR" className="w-12 h-12 rounded object-cover bg-white" />
                         <span className="text-xs text-slate-300 flex-1">QR attached</span>
-                        <button type="button" onClick={() => setPayQrImage("")} className="text-xs text-rose-400">Remove</button>
+                        <button type="button" onClick={() => setPayQrImage("")} className="text-xs text-rose-400 cursor-pointer">Remove</button>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => qrInputRef.current?.click()} className="w-full py-2.5 border border-dashed border-slate-600 rounded-xl text-xs text-slate-300 flex items-center justify-center gap-2">
+                      <button type="button" onClick={() => qrInputRef.current?.click()} className="w-full py-2.5 border border-dashed border-slate-600 rounded-xl text-xs text-slate-300 flex items-center justify-center gap-2 cursor-pointer">
                         <QrCode className="w-4 h-4 text-indigo-400" /> Upload QR Image
                       </button>
                     )}
@@ -1354,8 +1588,8 @@ export default function SmartTapApp() {
                   {modalError && <p className="text-xs text-rose-400">{modalError}</p>}
 
                   <div className="flex gap-2 pt-2">
-                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Back</button>
-                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Payment</button>
+                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Back</button>
+                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Payment</button>
                   </div>
                 </form>
               ) : (
@@ -1372,8 +1606,8 @@ export default function SmartTapApp() {
                     />
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Back</button>
-                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Link</button>
+                    <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Back</button>
+                    <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Link</button>
                   </div>
                 </form>
               )}
@@ -1385,9 +1619,22 @@ export default function SmartTapApp() {
   }
 
   // --- SCREEN 4: VIEWERS PAGE ---
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "https://smarttapapp.vercel.app/";
+  const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(shareUrl)}`;
+
   return (
     <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
+      {/* Hidden Global Audio Element */}
+      <audio ref={audioRef} loop onEnded={() => setActiveAudioId(null)} />
+
       <div className="max-w-md w-full mx-auto space-y-5">
+        {isOffline && (
+          <div className="px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-center gap-2 font-medium">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>Offline Mode Active — Instant Cached Profile Loaded</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <BrandLogo size="sm" />
           <div className="flex items-center gap-2">
@@ -1398,7 +1645,7 @@ export default function SmartTapApp() {
                 const nextIdx = (keys.indexOf(profile.theme) + 1) % keys.length;
                 setProfile({ ...profile, theme: keys[nextIdx] });
               }}
-              className={`p-2 rounded-full border transition ${theme.pill}`}
+              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
               title="Quick Theme Toggle"
             >
               <Palette className="w-4 h-4 text-indigo-400" />
@@ -1406,7 +1653,7 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={() => setShowShareQrModal(true)}
-              className={`p-2 rounded-full border transition ${theme.pill}`}
+              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
               title="Share Profile QR"
             >
               <Share2 className="w-4 h-4 text-cyan-400" />
@@ -1414,7 +1661,7 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={() => setShowSearchModal(true)}
-              className={`p-2 rounded-full border transition ${theme.pill}`}
+              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
               title="Search Profile"
             >
               <Search className="w-4 h-4 text-indigo-400" />
@@ -1428,7 +1675,7 @@ export default function SmartTapApp() {
                 setIsEditingCreds(false);
                 setShowAnalyticsModal(true);
               }}
-              className={`p-2 rounded-full border transition ${theme.pill}`}
+              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
               title="Owner Analytics & Account"
             >
               <BarChart3 className="w-4 h-4 text-emerald-400" />
@@ -1441,7 +1688,7 @@ export default function SmartTapApp() {
                 setAuthError("");
                 setScreen("login_to_edit");
               }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition ${theme.pill}`}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer ${theme.pill}`}
               title="Owner Edit Profile"
             >
               <Pencil className="w-3.5 h-3.5 text-indigo-400" />
@@ -1475,14 +1722,29 @@ export default function SmartTapApp() {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => copyToClipboard(typeof window !== "undefined" ? window.location.href : "", "profile_url")}
-              className={`px-3 py-1.5 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 mx-auto transition ${theme.pill}`}
-            >
-              {copiedId === "profile_url" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
-              <span>{copiedId === "profile_url" ? "Profile Link Copied!" : "Copy Profile Link"}</span>
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => copyToClipboard(shareUrl, "profile_url")}
+                className={`px-3 py-1.5 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.pill}`}
+              >
+                {copiedId === "profile_url" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+                <span>{copiedId === "profile_url" ? "Link Copied!" : "Copy Link"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setExchangeSuccess(false);
+                  setExchangeForm({ name: "", phone: "", email: "", social: "" });
+                  setShowExchangeModal(true);
+                }}
+                className="px-3.5 py-1.5 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Share My Contact Back</span>
+              </button>
+            </div>
           </div>
 
           {/* Gallery Pictures */}
@@ -1496,20 +1758,19 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Featured Device Video / GIF Loop */}
-          {profile.featuredVideo && (
+          {/* Featured Device Video (Powered by IndexedDB Blob ObjectURL) */}
+          {videoObjectUrl && (
             <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative shadow-inner">
               <video
-                src={profile.featuredVideo}
+                key={videoObjectUrl}
+                src={videoObjectUrl}
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="w-full aspect-video object-cover"
+                controls
+                className="w-full aspect-video object-cover bg-black"
               />
-              <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-slate-300 font-mono uppercase">
-                Device Video Loop
-              </div>
             </div>
           )}
 
@@ -1523,7 +1784,7 @@ export default function SmartTapApp() {
                       <Phone className="w-4 h-4 text-emerald-400" />
                       <span>Call</span>
                     </a>
-                    <button type="button" onClick={handleSaveContactVCard} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.accent}`}>
+                    <button type="button" onClick={() => handleSaveContactVCard()} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${theme.accent}`}>
                       <UserPlus className="w-4 h-4" />
                       <span>Save Contact</span>
                     </button>
@@ -1535,7 +1796,7 @@ export default function SmartTapApp() {
                       <Mail className="w-4 h-4 text-rose-400" />
                       <span>Email (Compose)</span>
                     </a>
-                    <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                    <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${theme.pill}`}>
                       {copiedId === "email_copy" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
                       <span>{copiedId === "email_copy" ? "Copied" : "Save Email"}</span>
                     </button>
@@ -1577,58 +1838,64 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Links & Categories (Including Working Audio Player with Song Title & Volume Adjuster) */}
+          {/* Links & Categories (Working Audio Player + Native App Deep Links) */}
           {profile.links.length > 0 && (
             <div className="space-y-4">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
                 Links & Categories
               </p>
 
-              {/* HTML5 Audio Player */}
-              {profile.links.filter(l => l.type === "music").map(musicItem => (
-                <div key={musicItem.id} className={`p-3.5 rounded-2xl border space-y-3 ${theme.pill}`}>
-                  <audio ref={audioRef} src={musicItem.url} loop preload="auto" />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-md ${isPlayingMusic ? "animate-spin" : ""}`}>
-                        <Music className="w-5 h-5" />
+              {/* Audio Player Tracks */}
+              {profile.links.filter(l => l.type === "music").map(musicItem => {
+                const isThisPlaying = activeAudioId === musicItem.id;
+                const hasAudioSrc = Boolean(audioObjectUrls[musicItem.id]);
+
+                return (
+                  <div key={musicItem.id} className={`p-3.5 rounded-2xl border space-y-3 ${theme.pill}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-md ${isThisPlaying ? "animate-spin" : ""}`}>
+                          <Music className="w-5 h-5" />
+                        </div>
+                        <div className="truncate flex-1">
+                          <p className="text-xs font-extrabold truncate">{musicItem.label}</p>
+                          <p className={`text-[10px] truncate ${theme.subtext}`}>
+                            {hasAudioSrc ? (isThisPlaying ? "Now Playing..." : "Ready to Play") : "Audio File"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="truncate flex-1">
-                        <p className="text-xs font-extrabold truncate">{musicItem.label}</p>
-                        <p className={`text-[10px] truncate ${theme.subtext}`}>Audio Track Player</p>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => togglePlayAudio(musicItem.id)}
+                        className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow shrink-0 ml-2 cursor-pointer"
+                      >
+                        {isThisPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsPlayingMusic(!isPlayingMusic)}
-                      className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow shrink-0 ml-2"
-                    >
-                      {isPlayingMusic ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    </button>
-                  </div>
 
-                  {/* Volume Adjuster Slider */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
-                    <button type="button" onClick={() => setMusicVolume(musicVolume > 0 ? 0 : 0.8)} className="text-slate-400 hover:text-white">
-                      {musicVolume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-indigo-400" />}
-                    </button>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={musicVolume}
-                      onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                    />
-                    <span className="text-[10px] font-mono text-slate-400 w-8 text-right">{Math.round(musicVolume * 100)}%</span>
+                    {/* Volume Adjuster Slider */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
+                      <button type="button" onClick={() => setMusicVolume(musicVolume > 0 ? 0 : 0.85)} className="text-slate-400 hover:text-white cursor-pointer">
+                        {musicVolume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-indigo-400" />}
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={musicVolume}
+                        onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <span className="text-[10px] font-mono text-slate-400 w-8 text-right">{Math.round(musicVolume * 100)}%</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
-              {["social", "music", "gaming", "business"].map((catKey) => {
-                const catLinks = profile.links.filter(l => l.type === catKey && l.type !== "music");
-                if (catKey === "music" || catLinks.length === 0) return null;
+              {["social", "gaming", "business"].map((catKey) => {
+                const catLinks = profile.links.filter(l => l.type === catKey);
+                if (catLinks.length === 0) return null;
 
                 return (
                   <div key={catKey} className="space-y-2 pt-1 border-t border-slate-700/50 first:border-t-0 first:pt-0">
@@ -1654,35 +1921,25 @@ export default function SmartTapApp() {
 
                           <div className="flex items-center gap-1.5 ml-2">
                             {item.type === "gaming" ? (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
-                                  className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
-                                  title="Copy ID"
-                                >
-                                  {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                  <span>{copiedId === item.id ? "Copied" : "Copy"}</span>
-                                </button>
-                                <a
-                                  href={item.url || "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
-                                  title="Open App"
-                                >
-                                  <span>Open</span>
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
+                                className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0 cursor-pointer"
+                              >
+                                {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                <span>{copiedId === item.id ? "Copied" : "Copy ID"}</span>
+                              </button>
                             ) : (
                               <a
                                 href={item.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 transition shrink-0"
+                                onClick={(e) => openWithNativeDeepLink(e, item.platformId, item.url)}
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
+                                title="Open in Native App"
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                <span>Open App</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             )}
                           </div>
@@ -1718,7 +1975,7 @@ export default function SmartTapApp() {
                         <button
                           type="button"
                           onClick={() => setActiveQrModal(pay)}
-                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 text-xs font-semibold inline-flex items-center gap-1 transition"
+                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer"
                         >
                           <QrCode className="w-3.5 h-3.5" />
                           <span>View QR</span>
@@ -1730,7 +1987,7 @@ export default function SmartTapApp() {
                       <button
                         type="button"
                         onClick={() => copyToClipboard(pay.accountNumber, pay.id)}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1 transition"
+                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer"
                       >
                         {copiedId === pay.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedId === pay.id ? "Copied" : "Copy"}</span>
@@ -1776,7 +2033,7 @@ export default function SmartTapApp() {
                 />
                 <button
                   type="submit"
-                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Send Message</span>
@@ -1787,61 +2044,189 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      {/* FLOATING BOTTOM BAR NAVIGATION (With Hide/Show Toggle Arrow) */}
-      {showFloatingBar && (
-        <div className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto transition-all duration-300">
-          <div className={`bg-[#111827]/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-2.5 shadow-2xl flex items-center justify-between gap-2 ${isFloatingMinimized ? "w-14 h-14 rounded-full ml-auto p-0 justify-center" : ""}`}>
-            {isFloatingMinimized ? (
+      {/* FLOATING BOTTOM BAR NAVIGATION (Smooth Slide Animation & Minimize/Maximize) */}
+      <div
+        className={`fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto transition-all duration-500 ease-out ${
+          showFloatingBar
+            ? "translate-y-0 opacity-100 pointer-events-auto"
+            : "translate-y-24 opacity-0 pointer-events-none"
+        }`}
+      >
+        <div
+          className={`bg-[#111827]/95 backdrop-blur-md border border-slate-700/80 shadow-2xl flex items-center justify-between gap-2 transition-all duration-300 ease-in-out ${
+            isFloatingMinimized
+              ? "w-14 h-14 rounded-full ml-auto p-0 justify-center"
+              : "w-full rounded-2xl p-2.5"
+          }`}
+        >
+          {isFloatingMinimized ? (
+            <button
+              type="button"
+              onClick={() => setIsFloatingMinimized(false)}
+              className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg transition transform hover:scale-105 cursor-pointer"
+              title="Show Quick Actions"
+            >
+              <ChevronUp className="w-6 h-6" />
+            </button>
+          ) : (
+            <>
+              <a
+                href={profile.phone ? `tel:${profile.phone}` : "#"}
+                className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition"
+              >
+                <Phone className="w-4 h-4 text-emerald-400" />
+                <span>Call/Chat</span>
+              </a>
               <button
                 type="button"
-                onClick={() => setIsFloatingMinimized(false)}
-                className="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg"
-                title="Show Quick Actions"
+                onClick={() => handleSaveContactVCard()}
+                className="flex-1 py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition shadow cursor-pointer"
               >
-                <ChevronUp className="w-6 h-6" />
+                <UserPlus className="w-4 h-4" />
+                <span>Save</span>
               </button>
-            ) : (
-              <>
-                <a
-                  href={profile.phone ? `tel:${profile.phone}` : "#"}
-                  className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition"
-                >
-                  <Phone className="w-4 h-4 text-emerald-400" />
-                  <span>Call/Chat</span>
-                </a>
+              <button
+                type="button"
+                onClick={() => {
+                  const paymentsList = profile.payments || [];
+                  if (paymentsList.length === 0) {
+                    alert("No payment methods added yet.");
+                  } else if (paymentsList.length === 1) {
+                    if (paymentsList[0].qrImage) setActiveQrModal(paymentsList[0]);
+                    else copyToClipboard(paymentsList[0].accountNumber, paymentsList[0].id);
+                  } else {
+                    setShowPaySelectionModal(true);
+                  }
+                }}
+                className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4 text-cyan-400" />
+                <span>Pay QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFloatingMinimized(true)}
+                className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+                title="Hide Bar"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* TWO-WAY CONTACT EXCHANGE MODAL ("Share My Contact Back") */}
+      {showExchangeModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm font-bold">Share My Contact Back</span>
+              </div>
+              <button onClick={() => setShowExchangeModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {exchangeSuccess ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm">Contact Shared!</h4>
+                <p className="text-xs text-slate-400">
+                  Your contact details have been sent directly to {profile.name || "the card owner"}.
+                </p>
                 <button
                   type="button"
-                  onClick={handleSaveContactVCard}
-                  className="flex-1 py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition shadow"
+                  onClick={() => setShowExchangeModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer"
                 >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Save</span>
+                  Done
                 </button>
+              </div>
+            ) : (
+              <form onSubmit={handleExchangeContactSubmit} className="space-y-3">
+                <p className="text-xs text-slate-400">
+                  Send your number or social handle back to {profile.name || "the owner"} in one tap.
+                </p>
+                <input
+                  type="text"
+                  required
+                  value={exchangeForm.name}
+                  onChange={(e) => setExchangeForm({ ...exchangeForm, name: e.target.value })}
+                  placeholder="Your Full Name *"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+                <input
+                  type="tel"
+                  required
+                  value={exchangeForm.phone}
+                  onChange={(e) => setExchangeForm({ ...exchangeForm, phone: e.target.value })}
+                  placeholder="Your Mobile Number *"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+                <input
+                  type="email"
+                  value={exchangeForm.email}
+                  onChange={(e) => setExchangeForm({ ...exchangeForm, email: e.target.value })}
+                  placeholder="Your Email (Optional)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  value={exchangeForm.social}
+                  onChange={(e) => setExchangeForm({ ...exchangeForm, social: e.target.value })}
+                  placeholder="IG / FB / Company Note (Optional)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
                 <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Send Contact Info</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MULTIPLE PAYMENT METHOD SELECTION MODAL */}
+      {showPaySelectionModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold">Select Payment Method</span>
+              <button onClick={() => setShowPaySelectionModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {profile.payments.map((pay) => (
+                <button
+                  key={pay.id}
                   type="button"
                   onClick={() => {
-                    const firstPay = profile.payments?.[0];
-                    if (firstPay && firstPay.qrImage) {
-                      setActiveQrModal(firstPay);
+                    setShowPaySelectionModal(false);
+                    if (pay.qrImage) {
+                      setActiveQrModal(pay);
                     } else {
-                      alert("No payment QR code available.");
+                      copyToClipboard(pay.accountNumber, pay.id);
+                      alert(`Copied ${pay.bankName} Account Number: ${pay.accountNumber}`);
                     }
                   }}
-                  className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition"
+                  className="w-full p-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-left flex items-center justify-between transition cursor-pointer"
                 >
-                  <CreditCard className="w-4 h-4 text-cyan-400" />
-                  <span>Pay QR</span>
+                  <div>
+                    <p className="text-xs font-bold text-white">{pay.bankName}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{pay.accountNumber}</p>
+                  </div>
+                  <QrCode className="w-4 h-4 text-indigo-400" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsFloatingMinimized(true)}
-                  className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition"
-                  title="Hide Bar"
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </>
-            )}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -1857,26 +2242,28 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
-      {/* SHARE PROFILE QR MODAL */}
+      {/* SHARE PROFILE QR MODAL (FIXED REAL QR RENDERING) */}
       {showShareQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">Share Profile</span>
-              <button onClick={() => setShowShareQrModal(false)} className="p-1 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <span className="text-sm font-bold">Share Profile QR</span>
+              <button onClick={() => setShowShareQrModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
-            <div className="bg-white p-4 rounded-2xl inline-block mx-auto">
-              <div className="w-48 h-48 bg-slate-900 rounded-xl flex items-center p-3 justify-center text-center text-xs text-white font-mono break-all overflow-hidden">
-                {typeof window !== "undefined" ? window.location.href : "SmartTap Profile"}
-              </div>
+            <div className="bg-white p-4 rounded-2xl inline-block mx-auto shadow-lg">
+              <img
+                src={qrImageSrc}
+                alt="SmartTap Profile QR Code"
+                className="w-48 h-48 object-contain"
+              />
             </div>
-            <p className="text-xs text-slate-400">Scan or copy link to share this profile instantly.</p>
+            <p className="text-xs text-slate-400">Scan camera to open this SmartTap profile instantly.</p>
             <button
               type="button"
-              onClick={() => copyToClipboard(typeof window !== "undefined" ? window.location.href : "", "qr_url")}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs inline-flex items-center justify-center gap-2 transition"
+              onClick={() => copyToClipboard(shareUrl, "qr_url")}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs inline-flex items-center justify-center gap-2 transition cursor-pointer"
             >
-              <Copy className="w-4 h-4" /> {copiedId === "qr_url" ? "Link Copied!" : "Copy Link"}
+              <Copy className="w-4 h-4" /> {copiedId === "qr_url" ? "Link Copied!" : "Copy Profile Link"}
             </button>
           </div>
         </div>
@@ -1898,7 +2285,7 @@ export default function SmartTapApp() {
                   className="bg-transparent text-xs text-white focus:outline-none w-full"
                 />
               </div>
-              <button onClick={() => setShowSearchModal(false)} className="ml-2 p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setShowSearchModal(false)} className="ml-2 p-1 text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1906,13 +2293,17 @@ export default function SmartTapApp() {
               {profile.links.filter(l => l.label.toLowerCase().includes(searchQuery.toLowerCase())).map(l => (
                 <div key={l.id} className="p-2.5 rounded-xl bg-slate-800/80 text-xs flex justify-between items-center">
                   <span>{l.label}</span>
-                  <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-semibold">Open</a>
+                  {l.type === "music" ? (
+                    <button onClick={() => { setShowSearchModal(false); togglePlayAudio(l.id); }} className="text-emerald-400 font-semibold cursor-pointer">Play</button>
+                  ) : (
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" onClick={(e) => openWithNativeDeepLink(e, l.platformId, l.url)} className="text-indigo-400 font-semibold">Open</a>
+                  )}
                 </div>
               ))}
               {profile.payments.filter(p => p.bankName.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
                 <div key={p.id} className="p-2.5 rounded-xl bg-slate-800/80 text-xs flex justify-between items-center">
                   <span>{p.bankName} ({p.accountNumber})</span>
-                  <button onClick={() => copyToClipboard(p.accountNumber, p.id)} className="text-indigo-400 font-semibold">Copy</button>
+                  <button onClick={() => copyToClipboard(p.accountNumber, p.id)} className="text-indigo-400 font-semibold cursor-pointer">Copy</button>
                 </div>
               ))}
             </div>
@@ -1929,7 +2320,7 @@ export default function SmartTapApp() {
                 <BarChart3 className="w-5 h-5 text-indigo-400" />
                 <h3 className="font-bold text-base">Owner Analytics & Inbox</h3>
               </div>
-              <button onClick={() => setShowAnalyticsModal(false)} className="p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setShowAnalyticsModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1941,7 +2332,7 @@ export default function SmartTapApp() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">Owner Access Required</h4>
-                  <p className="text-xs text-slate-400 mt-1">Enter your password to view analytics and inbox messages.</p>
+                  <p className="text-xs text-slate-400 mt-1">Enter your password to view analytics and exchanged contacts.</p>
                 </div>
                 <div className="space-y-2">
                   <input
@@ -1964,7 +2355,7 @@ export default function SmartTapApp() {
                       setAnalyticsPinError("Incorrect password. Access denied.");
                     }
                   }}
-                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer"
                 >
                   Unlock Owner Dashboard
                 </button>
@@ -2000,7 +2391,7 @@ export default function SmartTapApp() {
                       <button
                         type="button"
                         onClick={() => setIsEditingCreds(true)}
-                        className="text-xs text-indigo-400 hover:underline font-semibold"
+                        className="text-xs text-indigo-400 hover:underline font-semibold cursor-pointer"
                       >
                         Change Username / Password
                       </button>
@@ -2008,7 +2399,7 @@ export default function SmartTapApp() {
                       <button
                         type="button"
                         onClick={() => setIsEditingCreds(false)}
-                        className="text-xs text-slate-400 hover:underline"
+                        className="text-xs text-slate-400 hover:underline cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -2023,7 +2414,7 @@ export default function SmartTapApp() {
                   ) : (
                     <div className="space-y-3 pt-1">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">New Username</label>
+                        <label className="block text-[11px] text-slate-400 mb-1">New Unique Username</label>
                         <input
                           type="text"
                           value={editUser}
@@ -2049,7 +2440,7 @@ export default function SmartTapApp() {
                           setIsEditingCreds(false);
                           alert("Credentials updated successfully!");
                         }}
-                        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
                       >
                         Save New Credentials
                       </button>
@@ -2060,22 +2451,31 @@ export default function SmartTapApp() {
                 <div className="space-y-2">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                     <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-                    Viewer Messages Inbox ({messages.length})
+                    Inbox & Exchanged Contacts ({messages.length})
                   </p>
                   {messages.length === 0 ? (
                     <p className="text-xs py-4 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">
-                      No messages received yet.
+                      No messages or contacts received yet.
                     </p>
                   ) : (
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {messages.map((m) => (
-                        <div key={m.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                        <div key={m.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-bold text-white">{m.name}</span>
                             <span className="text-[10px] text-slate-500">{m.date}</span>
                           </div>
-                          {m.contact && <p className="text-[11px] text-indigo-400 font-mono">Contact: {m.contact}</p>}
+                          {m.contact && <p className="text-[11px] text-indigo-400 font-mono">Phone: {m.contact}</p>}
                           <p className="text-xs text-slate-300">{m.message}</p>
+                          {m.isExchange && (
+                            <button
+                              type="button"
+                              onClick={() => handleSaveContactVCard(m.name, m.contact, m.email || "", m.message)}
+                              className="mt-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <UserPlus className="w-3 h-3" /> Save to Phone Contacts (.vcf)
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2084,7 +2484,7 @@ export default function SmartTapApp() {
 
                 <button
                   onClick={() => setShowAnalyticsModal(false)}
-                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition cursor-pointer"
                 >
                   Close Dashboard
                 </button>
@@ -2094,13 +2494,13 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* QR MODAL */}
+      {/* PAYMENT QR MODAL */}
       {activeQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold">{activeQrModal.bankName} QR</span>
-              <button onClick={() => setActiveQrModal(null)} className="p-1 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setActiveQrModal(null)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
             <div className="bg-white p-3 rounded-2xl inline-block mx-auto">
               <img src={activeQrModal.qrImage} alt="QR" className="w-56 h-56 object-contain" />
@@ -2112,7 +2512,7 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={() => downloadQrPhoto(activeQrModal.qrImage, activeQrModal.bankName)}
-              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2 transition"
+              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <Download className="w-4 h-4" /> Save QR to Photos
             </button>
