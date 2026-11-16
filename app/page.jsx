@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   User, Link as LinkIcon, CreditCard, Palette, Save, Plus, Trash2,
-  Phone, Mail, Globe, Share2, Download, Copy, Check, Image as ImageIcon,
+  Phone, Mail, Share2, Download, Copy, Check, Image as ImageIcon,
   Pencil, Lock, ArrowLeft, Building2, QrCode, Sparkles,
   ExternalLink, UserPlus, X, ShieldCheck, Music, Gamepad2, MapPin,
   Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Play, Pause, Volume2, VolumeX,
-  ChevronDown, ChevronUp, RefreshCw, WifiOff
+  ChevronLeft, ChevronRight, RefreshCw, WifiOff, Calendar, Receipt, AlertTriangle,
+  CheckCircle2, Clock, Navigation, Smartphone
 } from "lucide-react";
 
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttap.ph?is_from_webapp=1&sender_device=pc";
@@ -60,12 +61,20 @@ const deleteMediaBlob = async (key) => {
   });
 };
 
-// --- NATIVE APP DEEP LINK HANDLER (SOCIALS & GAMES) ---
+// --- SMART DEVICE DETECTION & NATIVE APP DEEP LINKS (iOS & ANDROID) ---
+const getDeviceOS = () => {
+  if (typeof window === "undefined") return "desktop";
+  const ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "desktop";
+};
+
 const openWithNativeDeepLink = (e, platformId, webUrl) => {
   if (typeof window === "undefined") return;
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const os = getDeviceOS();
+  const isMobile = os === "ios" || os === "android";
 
-  // Game deep links
   const gameSchemes = {
     mlbb: { app: "mobilelegends://", web: "https://m.mobilelegends.com/" },
     valorant: { app: "riotclient://", web: "https://playvalorant.com/" },
@@ -102,11 +111,11 @@ const openWithNativeDeepLink = (e, platformId, webUrl) => {
     if (platformId === "instagram" && handle) {
       appScheme = `instagram://user?username=${handle}`;
     } else if (platformId === "tiktok" && handle) {
-      appScheme = `snssdk1233://user/profile/${handle}`;
+      appScheme = os === "ios" ? `snssdk1233://user/profile/${handle}` : `tiktok://user/profile/${handle}`;
     } else if (platformId === "facebook") {
       appScheme = `fb://facewebmodal/f?href=${encodeURIComponent(webUrl)}`;
     } else if (platformId === "youtube") {
-      appScheme = `vnd.youtube://${urlObj.hostname}${urlObj.pathname}`;
+      appScheme = os === "ios" ? `youtube://${urlObj.hostname}${urlObj.pathname}` : `vnd.youtube://${urlObj.hostname}${urlObj.pathname}`;
     }
   } catch (err) {
     return;
@@ -124,6 +133,125 @@ const openWithNativeDeepLink = (e, platformId, webUrl) => {
   }
 };
 
+// --- BANK & E-WALLET APP LAUNCHER (iOS & ANDROID) ---
+const openBankMobileApp = (providerId) => {
+  const os = getDeviceOS();
+  const bankApps = {
+    gcash: {
+      scheme: "gcash://",
+      iosStore: "https://apps.apple.com/ph/app/gcash/id520020791",
+      androidStore: "https://play.google.com/store/apps/details?id=com.globe.gcash.android"
+    },
+    maya: {
+      scheme: "paymaya://",
+      iosStore: "https://apps.apple.com/ph/app/maya-savings-loans-cards/id991673877",
+      androidStore: "https://play.google.com/store/apps/details?id=com.paymaya"
+    },
+    mayabusiness: {
+      scheme: "paymaya://",
+      iosStore: "https://apps.apple.com/ph/app/maya-business/id1555517890",
+      androidStore: "https://play.google.com/store/apps/details?id=com.paymaya.business"
+    },
+    bdo: {
+      scheme: "bdoonline://",
+      iosStore: "https://apps.apple.com/ph/app/bdo-online/id1552490339",
+      androidStore: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail"
+    },
+    bpi: {
+      scheme: "bpi://",
+      iosStore: "https://apps.apple.com/ph/app/bpi/id1551722854",
+      androidStore: "https://play.google.com/store/apps/details?id=com.bpi.ng.app"
+    },
+    gotyme: {
+      scheme: "gotyme://",
+      iosStore: "https://apps.apple.com/ph/app/gotyme-bank/id1630117912",
+      androidStore: "https://play.google.com/store/apps/details?id=ph.gotyme.app"
+    },
+    maribank: {
+      scheme: "seabankph://",
+      iosStore: "https://apps.apple.com/ph/app/seabank-ph-a-rural-bank/id1604481696",
+      androidStore: "https://play.google.com/store/apps/details?id=ph.seabank.seabank"
+    },
+    landbank: {
+      scheme: "landbank://",
+      iosStore: "https://apps.apple.com/ph/app/landbank-mobile-banking/id480098878",
+      androidStore: "https://play.google.com/store/apps/details?id=com.landbank.mobilebanking"
+    },
+    metrobank: {
+      scheme: "metrobank://",
+      iosStore: "https://apps.apple.com/ph/app/metrobank-app/id1546348573",
+      androidStore: "https://play.google.com/store/apps/details?id=ph.com.metrobank.mcc.mbonline"
+    },
+    chinabank: {
+      scheme: "chinabank://",
+      iosStore: "https://apps.apple.com/ph/app/my-cbc/id6444061504",
+      androidStore: "https://play.google.com/store/apps/details?id=com.chinabank.mobile"
+    }
+  };
+
+  const target = bankApps[providerId];
+  if (!target) {
+    alert("Account number copied! Open your preferred banking or e-wallet app to paste and transfer.");
+    return;
+  }
+
+  const fallbackUrl = os === "ios" ? target.iosStore : target.androidStore;
+  if (os === "desktop") {
+    window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  const start = Date.now();
+  window.location.href = target.scheme;
+  setTimeout(() => {
+    if (Date.now() - start < 1600 && !document.hidden) {
+      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+    }
+  }, 1000);
+};
+
+// --- LIVE PH BUSINESS HOURS EVALUATOR (Asia/Manila) ---
+const evaluatePhBusinessStatus = (schedule) => {
+  if (!schedule || !schedule.enabled) return null;
+  try {
+    const now = new Date();
+    const phTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    const day = phTime.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
+    const currentMins = phTime.getHours() * 60 + phTime.getMinutes();
+
+    let isOpenDay = true;
+    if (schedule.days === "mon_fri") isOpenDay = day >= 1 && day <= 5;
+    else if (schedule.days === "mon_sat") isOpenDay = day >= 1 && day <= 6;
+
+    const [openH, openM] = (schedule.openTime || "09:00").split(":").map(Number);
+    const [closeH, closeM] = (schedule.closeTime || "18:00").split(":").map(Number);
+    const openMins = openH * 60 + openM;
+    const closeMins = closeH * 60 + closeM;
+
+    const format12h = (timeStr) => {
+      const [h, m] = timeStr.split(":").map(Number);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 || 12;
+      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    };
+
+    if (isOpenDay && currentMins >= openMins && currentMins < closeMins) {
+      return {
+        isOpen: true,
+        label: `Open Now • Closes at ${format12h(schedule.closeTime)}`
+      };
+    } else {
+      return {
+        isOpen: false,
+        label: `Closed • Opens at ${format12h(schedule.openTime)}`
+      };
+    }
+  } catch (e) {
+    return null;
+  }
+};
+
+// --- FULL DYNAMIC THEMES (INCLUDING EXECUTIVE ELEGANT THEME & FULL BUTTON SYNC) ---
 const THEMES = {
   default: {
     id: "default",
@@ -133,10 +261,31 @@ const THEMES = {
     input: "bg-[#090d16] border-slate-700 text-white placeholder-slate-500",
     text: "text-slate-100",
     subtext: "text-slate-400",
-    accent: "bg-indigo-600 hover:bg-indigo-500 text-white",
-    accentSoft: "bg-indigo-500/10 text-indigo-400 border-indigo-500/30",
-    pill: "bg-slate-800/90 hover:bg-slate-700 text-slate-200 border-slate-700/60",
+    accent: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25",
+    accentText: "text-indigo-400",
+    accentSoft: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
+    pill: "bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border-slate-700/70",
+    actionBtn: "bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700/70",
+    floatingBar: "bg-[#111827]/95 border-slate-700/80",
+    badgeIcon: "bg-indigo-600 text-white",
     swatch: "bg-[#090d16] border-indigo-500"
+  },
+  elegant: {
+    id: "elegant",
+    name: "Executive Gold",
+    bg: "bg-[#12100e]",
+    card: "bg-[#1b1815] border-[#3d3326] shadow-2xl",
+    input: "bg-[#12100e] border-[#4a3e2e] text-[#f5efe6] placeholder-[#8c7b65]",
+    text: "text-[#f5efe6]",
+    subtext: "text-[#b8a68e]",
+    accent: "bg-gradient-to-r from-[#c59b49] to-[#a87e32] hover:from-[#d4aa57] hover:to-[#b88b3a] text-[#12100e] font-bold shadow-amber-900/30",
+    accentText: "text-[#dcb76b]",
+    accentSoft: "bg-[#c59b49]/15 text-[#e6c681] border-[#c59b49]/40",
+    pill: "bg-[#24201c] hover:bg-[#2e2823] text-[#f5efe6] border-[#3d3326]",
+    actionBtn: "bg-[#2c2620] hover:bg-[#383028] text-[#e6c681] border border-[#4a3e2e]",
+    floatingBar: "bg-[#1b1815]/95 border-[#4a3e2e]",
+    badgeIcon: "bg-gradient-to-br from-[#c59b49] to-[#997024] text-[#12100e]",
+    swatch: "bg-[#1b1815] border-[#c59b49]"
   },
   black: {
     id: "black",
@@ -146,35 +295,47 @@ const THEMES = {
     input: "bg-black border-neutral-800 text-white placeholder-neutral-600",
     text: "text-white",
     subtext: "text-neutral-400",
-    accent: "bg-white hover:bg-neutral-200 text-black font-semibold",
-    accentSoft: "bg-white/10 text-white border-white/20",
+    accent: "bg-white hover:bg-neutral-200 text-black font-bold",
+    accentText: "text-white",
+    accentSoft: "bg-white/10 text-white border-white/25",
     pill: "bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800",
+    actionBtn: "bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700",
+    floatingBar: "bg-[#0a0a0a]/95 border-neutral-800",
+    badgeIcon: "bg-white text-black",
     swatch: "bg-black border-white"
   },
   white: {
     id: "white",
     name: "Clean White",
     bg: "bg-slate-100",
-    card: "bg-white border-slate-200 shadow-sm",
+    card: "bg-white border-slate-200/90 shadow-md",
     input: "bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400",
     text: "text-slate-900",
     subtext: "text-slate-500",
-    accent: "bg-slate-900 hover:bg-slate-800 text-white",
+    accent: "bg-slate-900 hover:bg-slate-800 text-white font-semibold",
+    accentText: "text-slate-900",
     accentSoft: "bg-slate-900/5 text-slate-800 border-slate-300",
-    pill: "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200",
+    pill: "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200",
+    actionBtn: "bg-slate-200/80 hover:bg-slate-300/80 text-slate-900 border border-slate-300",
+    floatingBar: "bg-white/95 border-slate-300",
+    badgeIcon: "bg-slate-900 text-white",
     swatch: "bg-white border-slate-400"
   },
   pink: {
     id: "pink",
     name: "Blush Pink",
     bg: "bg-[#fdf2f8]",
-    card: "bg-white/90 border-pink-200 shadow-sm",
-    input: "bg-pink-50/50 border-pink-200 text-pink-950 placeholder-pink-300",
+    card: "bg-white/95 border-pink-200 shadow-md",
+    input: "bg-pink-50/70 border-pink-300 text-pink-950 placeholder-pink-400",
     text: "text-pink-950",
-    subtext: "text-pink-600/80",
-    accent: "bg-pink-600 hover:bg-pink-500 text-white",
-    accentSoft: "bg-pink-500/10 text-pink-700 border-pink-300",
-    pill: "bg-pink-50 hover:bg-pink-100 text-pink-900 border-pink-200",
+    subtext: "text-pink-700/80",
+    accent: "bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white font-semibold shadow-pink-500/25",
+    accentText: "text-pink-600",
+    accentSoft: "bg-pink-500/15 text-pink-700 border-pink-300",
+    pill: "bg-pink-50/90 hover:bg-pink-100/90 text-pink-950 border-pink-200",
+    actionBtn: "bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-300",
+    floatingBar: "bg-white/95 border-pink-300",
+    badgeIcon: "bg-gradient-to-br from-pink-500 to-rose-500 text-white",
     swatch: "bg-pink-400 border-pink-600"
   }
 };
@@ -228,6 +389,18 @@ const PAYMENT_PROVIDERS = [
   { id: "chinabank", name: "China Bank", digits: 12, label: "12-digit Account Number", placeholder: "123456789012", badge: "CBC" },
   { id: "others", name: "Others (Bank / E-Wallet)", digits: null, label: "Account / Mobile Number", placeholder: "Enter account number", badge: "OTH" }
 ];
+
+const TIME_OPTIONS = [
+  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
+  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00",
+  "20:00", "21:00", "22:00", "23:00"
+];
+
+const formatTime12 = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
+};
 
 const compressImage = (file, maxWidth = 600, quality = 0.75) => {
   return new Promise((resolve) => {
@@ -284,6 +457,9 @@ export default function SmartTapApp() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
+  // High-Contrast / Large Text Accessibility Mode
+  const [largeTextMode, setLargeTextMode] = useState(false);
+
   const [account, setAccount] = useState(null);
   const [authMode, setAuthMode] = useState("signup");
   const [authIdentifier, setAuthIdentifier] = useState("");
@@ -301,6 +477,23 @@ export default function SmartTapApp() {
     email: "",
     theme: "default",
     verifiedBadge: { enabled: true, color: "text-blue-500" },
+    privacy: {
+      contact: true,
+      media: true,
+      locations: true,
+      links: true,
+      booking: true,
+      payments: true
+    },
+    booking: {
+      enabled: false,
+      title: "Book a Meeting / Appointment",
+      availableDays: "mon_sat",
+      startTime: "09:00",
+      endTime: "18:00",
+      duration: "30 mins",
+      location: ""
+    },
     links: [],
     payments: [],
     locations: []
@@ -318,36 +511,72 @@ export default function SmartTapApp() {
   const [modalError, setModalError] = useState("");
   const [payQrImage, setPayQrImage] = useState("");
 
+  // Location & Business Hours Modal
   const [showLocModal, setShowLocModal] = useState(false);
   const [locAddress, setLocAddress] = useState("");
+  const [locLandmark, setLocLandmark] = useState("");
   const [locMapUrl, setLocMapUrl] = useState("");
+  const [locHoursEnabled, setLocHoursEnabled] = useState(false);
+  const [locDays, setLocDays] = useState("mon_sun");
+  const [locOpenTime, setLocOpenTime] = useState("09:00");
+  const [locCloseTime, setLocCloseTime] = useState("18:00");
 
+  // Search, Share & Payment Modals
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showShareQrModal, setShowShareQrModal] = useState(false);
   const [showPaySelectionModal, setShowPaySelectionModal] = useState(false);
 
+  // Payment Receipt Upload Modal
+  const [receiptModalPay, setReceiptModalPay] = useState(null);
+  const [receiptSenderName, setReceiptSenderName] = useState("");
+  const [receiptRefNo, setReceiptRefNo] = useState("");
+  const [receiptImage, setReceiptImage] = useState("");
+  const [receiptSuccess, setReceiptSuccess] = useState(false);
+  const [viewingReceiptImg, setViewingReceiptImg] = useState(null);
+
+  // Two-Way Contact Exchange Modal + Post-Save Prompt
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [exchangeForm, setExchangeForm] = useState({ name: "", phone: "", email: "", social: "" });
   const [exchangeSuccess, setExchangeSuccess] = useState(false);
+  const [showPostSavePrompt, setShowPostSavePrompt] = useState(false);
 
+  // Booking Modal (Preset Dropdowns + Automatic .ics Calendar Download)
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingForm, setBookingForm] = useState({
+    clientName: "",
+    clientPhone: "",
+    dayChoice: "Tomorrow",
+    timeChoice: "10:00 AM",
+    notes: ""
+  });
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  // Owner Analytics & 4-Tab Inbox Modal
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [analyticsPin, setAnalyticsPin] = useState("");
   const [analyticsUnlocked, setAnalyticsUnlocked] = useState(false);
   const [analyticsPinError, setAnalyticsPinError] = useState("");
   const [analytics, setAnalytics] = useState({ taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 });
+  const [inboxTab, setInboxTab] = useState("messages"); // "messages" | "contacts" | "receipts" | "bookings"
 
   const [isEditingCreds, setIsEditingCreds] = useState(false);
   const [editUser, setEditUser] = useState("");
   const [editPass, setEditPass] = useState("");
 
+  // 4 Separate Inbox Lists
   const [messages, setMessages] = useState([]);
+  const [exchangedContacts, setExchangedContacts] = useState([]);
+  const [paymentReceipts, setPaymentReceipts] = useState([]);
+  const [bookingsList, setBookingsList] = useState([]);
+
   const [contactForm, setContactForm] = useState({ name: "", contact: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
 
   const [copiedId, setCopiedId] = useState(null);
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
+  const [themeToast, setThemeToast] = useState("");
 
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isFloatingMinimized, setIsFloatingMinimized] = useState(false);
@@ -362,14 +591,45 @@ export default function SmartTapApp() {
   const videoInputRef = useRef(null);
   const audioInputRef = useRef(null);
   const qrInputRef = useRef(null);
+  const receiptInputRef = useRef(null);
+
+  // --- INTERACTIVE LINK HEALTH & BROKEN URL CHECKER ---
+  const scanBrokenLinks = (linksArr) => {
+    const issues = [];
+    (linksArr || []).forEach((item) => {
+      if (item.type === "music" || item.type === "gaming") return;
+      const u = (item.url || "").trim();
+      if (!u) {
+        issues.push(`${item.label}: Missing URL`);
+        return;
+      }
+      try {
+        const parsed = new URL(u);
+        if (!parsed.hostname.includes(".")) {
+          issues.push(`${item.label}: Invalid domain format`);
+        } else if (
+          u.includes("private") ||
+          u.includes("deleted") ||
+          u.includes("404") ||
+          parsed.pathname === "/" && ["instagram", "tiktok", "facebook", "youtube"].includes(item.platformId)
+        ) {
+          issues.push(`${item.label}: Profile handle missing or unreachable (${u})`);
+        }
+      } catch {
+        issues.push(`${item.label}: Broken or malformed URL`);
+      }
+    });
+    return issues;
+  };
+
+  const linkHealthIssues = scanBrokenLinks(profile.links);
 
   const reloadMediaFromDB = async (currentProfile) => {
     try {
       if (currentProfile?.hasFeaturedVideo) {
         const vBlob = await getMediaBlob("featured_video");
         if (vBlob) {
-          const url = URL.createObjectURL(vBlob);
-          setVideoObjectUrl(url);
+          setVideoObjectUrl(URL.createObjectURL(vBlob));
         }
       } else {
         setVideoObjectUrl("");
@@ -399,7 +659,7 @@ export default function SmartTapApp() {
 
       if ("serviceWorker" in navigator) {
         const swCode = `
-          const CACHE_NAME = 'smarttap-offline-v1';
+          const CACHE_NAME = 'smarttap-offline-v4';
           self.addEventListener('install', (e) => self.skipWaiting());
           self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
           self.addEventListener('fetch', (e) => {
@@ -416,8 +676,7 @@ export default function SmartTapApp() {
           });
         `;
         const blob = new Blob([swCode], { type: "application/javascript" });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(() => {});
+        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
       }
     }
 
@@ -427,6 +686,9 @@ export default function SmartTapApp() {
       const savedSetupDone = localStorage.getItem("smarttap_v32_setup_done");
       const savedAnalytics = localStorage.getItem("smarttap_v32_analytics");
       const savedMessages = localStorage.getItem("smarttap_v32_messages");
+      const savedContacts = localStorage.getItem("smarttap_v32_contacts");
+      const savedReceipts = localStorage.getItem("smarttap_v32_receipts");
+      const savedBookings = localStorage.getItem("smarttap_v32_bookings");
 
       if (savedAccount) {
         const acc = JSON.parse(savedAccount);
@@ -436,10 +698,18 @@ export default function SmartTapApp() {
       }
       if (savedProfile) {
         const parsedProf = JSON.parse(savedProfile);
-        setProfile(parsedProf);
+        setProfile((prev) => ({
+          ...prev,
+          ...parsedProf,
+          privacy: { ...prev.privacy, ...(parsedProf.privacy || {}) },
+          booking: { ...prev.booking, ...(parsedProf.booking || {}) }
+        }));
         reloadMediaFromDB(parsedProf);
       }
       if (savedMessages) setMessages(JSON.parse(savedMessages));
+      if (savedContacts) setExchangedContacts(JSON.parse(savedContacts));
+      if (savedReceipts) setPaymentReceipts(JSON.parse(savedReceipts));
+      if (savedBookings) setBookingsList(JSON.parse(savedBookings));
 
       const currentAnalytics = savedAnalytics ? JSON.parse(savedAnalytics) : { taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 };
 
@@ -467,11 +737,7 @@ export default function SmartTapApp() {
     const handleScroll = () => {
       if (!mainActionsRef.current) return;
       const rect = mainActionsRef.current.getBoundingClientRect();
-      if (rect.bottom < 0) {
-        setShowFloatingBar(true);
-      } else {
-        setShowFloatingBar(false);
-      }
+      setShowFloatingBar(rect.bottom < 0);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -489,10 +755,7 @@ export default function SmartTapApp() {
       audioRef.current.volume = musicVolume;
       audioRef.current.play()
         .then(() => setActiveAudioId(trackId))
-        .catch((err) => {
-          console.error("Playback failed:", err);
-          setActiveAudioId(null);
-        });
+        .catch(() => setActiveAudioId(null));
     }
   };
 
@@ -504,7 +767,6 @@ export default function SmartTapApp() {
 
   const theme = THEMES[profile.theme] || THEMES.default;
 
-  // --- FIXED AUTHENTICATION (SEPARATE LOGIN VS SIGNUP FLOW) ---
   const handleManualAuth = (e) => {
     e.preventDefault();
     setAuthError("");
@@ -517,7 +779,6 @@ export default function SmartTapApp() {
       return;
     }
 
-    // Check if we are in Owner Login mode ("login" or "login_to_edit")
     if (authMode === "login" || screen === "login_to_edit") {
       const savedAccStr = localStorage.getItem("smarttap_v32_account");
       const parsedAcc = savedAccStr ? JSON.parse(savedAccStr) : account;
@@ -536,7 +797,6 @@ export default function SmartTapApp() {
       return;
     }
 
-    // Signup Mode: Enforce unique username check
     const existingAccounts = JSON.parse(localStorage.getItem("smarttap_registry") || "[]");
     const isTaken = existingAccounts.some((acc) => acc.identifier.toLowerCase() === enteredUser);
 
@@ -567,10 +827,8 @@ export default function SmartTapApp() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     const remainingSlots = 4 - profile.photos.length;
-    const filesToProcess = files.slice(0, remainingSlots);
-
     const compressedList = await Promise.all(
-      filesToProcess.map((f) => compressImage(f, 700, 0.75))
+      files.slice(0, remainingSlots).map((f) => compressImage(f, 700, 0.75))
     );
     setProfile((prev) => ({
       ...prev,
@@ -590,10 +848,9 @@ export default function SmartTapApp() {
     if (!file) return;
     try {
       await saveMediaBlob("featured_video", file);
-      const objUrl = URL.createObjectURL(file);
-      setVideoObjectUrl(objUrl);
+      setVideoObjectUrl(URL.createObjectURL(file));
       setProfile((prev) => ({ ...prev, hasFeaturedVideo: true }));
-    } catch (err) {
+    } catch {
       alert("Failed to save video to browser storage.");
     }
   };
@@ -634,8 +891,7 @@ export default function SmartTapApp() {
 
     const trackId = Date.now();
     await saveMediaBlob(`audio_${trackId}`, pendingAudioFile);
-    const objUrl = URL.createObjectURL(pendingAudioFile);
-    setAudioObjectUrls((prev) => ({ ...prev, [trackId]: objUrl }));
+    setAudioObjectUrls((prev) => ({ ...prev, [trackId]: URL.createObjectURL(pendingAudioFile) }));
 
     const newMusicItem = {
       id: trackId,
@@ -710,10 +966,20 @@ export default function SmartTapApp() {
   const saveLocationItem = (e) => {
     e.preventDefault();
     if (!locAddress.trim()) return;
-    const newLoc = { id: Date.now(), address: locAddress.trim(), mapUrl: locMapUrl.trim() };
+    const newLoc = {
+      id: Date.now(),
+      address: locAddress.trim(),
+      landmark: locLandmark.trim(),
+      mapUrl: locMapUrl.trim(),
+      schedule: locHoursEnabled
+        ? { enabled: true, days: locDays, openTime: locOpenTime, closeTime: locCloseTime }
+        : { enabled: false }
+    };
     setProfile((prev) => ({ ...prev, locations: [...prev.locations, newLoc] }));
     setLocAddress("");
+    setLocLandmark("");
     setLocMapUrl("");
+    setLocHoursEnabled(false);
     setShowLocModal(false);
   };
 
@@ -740,12 +1006,12 @@ export default function SmartTapApp() {
         setScreen("view");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }, 450);
-    } catch (err) {
+    } catch {
       alert("Storage limit warning: Try reducing gallery image sizes.");
     }
   };
 
-  const handleSaveContactVCard = (customName, customPhone, customEmail, customNote) => {
+  const handleSaveContactVCard = (customName, customPhone, customEmail, customNote, triggerPrompt = false) => {
     const fn = customName || profile.name || "SmartTap User";
     const tel = customPhone !== undefined ? customPhone : profile.phone;
     const mail = customEmail !== undefined ? customEmail : profile.email;
@@ -770,26 +1036,124 @@ export default function SmartTapApp() {
     a.download = `${fn.replace(/\s+/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
+
+    if (triggerPrompt) {
+      setShowPostSavePrompt(true);
+    }
   };
 
+  // --- SUBMIT TWO-WAY CONTACT EXCHANGE ---
   const handleExchangeContactSubmit = (e) => {
     e.preventDefault();
     if (!exchangeForm.name.trim() || !exchangeForm.phone.trim()) return;
 
-    const newExchangeMsg = {
+    const newContactEntry = {
       id: Date.now(),
-      isExchange: true,
       name: exchangeForm.name.trim(),
-      contact: exchangeForm.phone.trim(),
+      phone: exchangeForm.phone.trim(),
       email: exchangeForm.email.trim(),
-      message: `🤝 Shared Contact Back!${exchangeForm.social ? ` Social/Notes: ${exchangeForm.social}` : ""}`,
+      social: exchangeForm.social.trim(),
       date: new Date().toLocaleString()
     };
 
-    const updatedMsgs = [newExchangeMsg, ...messages];
-    setMessages(updatedMsgs);
-    localStorage.setItem("smarttap_v32_messages", JSON.stringify(updatedMsgs));
+    const updatedContacts = [newContactEntry, ...exchangedContacts];
+    setExchangedContacts(updatedContacts);
+    localStorage.setItem("smarttap_v32_contacts", JSON.stringify(updatedContacts));
     setExchangeSuccess(true);
+  };
+
+  // --- SUBMIT PAYMENT RECEIPT ---
+  const handleReceiptSubmit = (e) => {
+    e.preventDefault();
+    if (!receiptSenderName.trim() || !receiptImage || !receiptModalPay) return;
+
+    const newReceipt = {
+      id: Date.now(),
+      bankName: receiptModalPay.bankName,
+      senderName: receiptSenderName.trim(),
+      refNo: receiptRefNo.trim(),
+      image: receiptImage,
+      date: new Date().toLocaleString()
+    };
+
+    const updatedReceipts = [newReceipt, ...paymentReceipts];
+    setPaymentReceipts(updatedReceipts);
+    localStorage.setItem("smarttap_v32_receipts", JSON.stringify(updatedReceipts));
+    setReceiptSuccess(true);
+  };
+
+  // --- GENERATE .ICS CALENDAR EVENT & SUBMIT BOOKING ---
+  const handleBookingSubmit = (e) => {
+    e.preventDefault();
+    if (!bookingForm.clientName.trim() || !bookingForm.clientPhone.trim()) return;
+
+    const eventTitle = `${profile.booking?.title || "Meeting"} with ${profile.name || "SmartTap Owner"}`;
+    const eventLoc = profile.booking?.location || "Online / To be confirmed";
+    const eventDesc = `Client: ${bookingForm.clientName} (${bookingForm.clientPhone}) | Notes: ${bookingForm.notes || "None"}`;
+
+    // Build start/end ISO strings for tomorrow/selected day
+    const startDate = new Date();
+    if (bookingForm.dayChoice === "Tomorrow") startDate.setDate(startDate.getDate() + 1);
+    else if (bookingForm.dayChoice === "In 2 Days") startDate.setDate(startDate.getDate() + 2);
+    else if (bookingForm.dayChoice === "Next Monday") {
+      const diff = (1 + 7 - startDate.getDay()) % 7 || 7;
+      startDate.setDate(startDate.getDate() + diff);
+    }
+
+    const [timePart, meridiem] = bookingForm.timeChoice.split(" ");
+    let [hr, min] = timePart.split(":").map(Number);
+    if (meridiem === "PM" && hr !== 12) hr += 12;
+    if (meridiem === "AM" && hr === 12) hr = 0;
+    startDate.setHours(hr, min, 0, 0);
+
+    const endDate = new Date(startDate.getTime() + 30 * 60000);
+    const toICSDate = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+    const icsContent = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//SmartTap PH//Booking//EN",
+      "BEGIN:VEVENT",
+      `UID:smarttap-${Date.now()}@smarttap.ph`,
+      `DTSTAMP:${toICSDate(new Date())}`,
+      `DTSTART:${toICSDate(startDate)}`,
+      `DTEND:${toICSDate(endDate)}`,
+      `SUMMARY:${eventTitle}`,
+      `LOCATION:${eventLoc}`,
+      `DESCRIPTION:${eventDesc}`,
+      "BEGIN:VALARM",
+      "TRIGGER:-PT15M",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:Reminder",
+      "END:VALARM",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].join("\r\n");
+
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SmartTap_Booking_${bookingForm.clientName.replace(/\s+/g, "_")}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    const newBooking = {
+      id: Date.now(),
+      title: profile.booking?.title || "Meeting / Appointment",
+      clientName: bookingForm.clientName.trim(),
+      clientPhone: bookingForm.clientPhone.trim(),
+      dayChoice: bookingForm.dayChoice,
+      timeChoice: bookingForm.timeChoice,
+      location: eventLoc,
+      notes: bookingForm.notes.trim(),
+      date: new Date().toLocaleString()
+    };
+
+    const updatedBookings = [newBooking, ...bookingsList];
+    setBookingsList(updatedBookings);
+    localStorage.setItem("smarttap_v32_bookings", JSON.stringify(updatedBookings));
+    setBookingSuccess(true);
   };
 
   const getGmailComposeUrl = (emailAddress) => {
@@ -827,6 +1191,22 @@ export default function SmartTapApp() {
     setTimeout(() => setContactSent(false), 4000);
   };
 
+  const handleNativeShare = async (shareUrl) => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${profile.name || "SmartTap"} — Digital Profile`,
+          text: profile.bio || "Connect with me via SmartTap!",
+          url: shareUrl
+        });
+      } catch {
+        // User cancelled share sheet
+      }
+    } else {
+      copyToClipboard(shareUrl, "qr_url");
+    }
+  };
+
   if (!isLoaded) return null;
 
   // --- SCREEN 1: CLAIM ---
@@ -836,7 +1216,7 @@ export default function SmartTapApp() {
         <header className="max-w-md w-full mx-auto pt-2 flex justify-between items-center">
           <BrandLogo size="md" />
           <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-medium">
-            Offline-Ready NFC
+            SmartTap v4.0
           </span>
         </header>
 
@@ -850,7 +1230,7 @@ export default function SmartTapApp() {
               Claim & Setup Your SmartTap Card
             </h1>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Activate your personal digital profile with Native App Deep Links, Offline PWA Caching, Two-Way Contact Exchange, and HD Video Loops.
+              Your luxury digital identity—complete with Native App Deep Links, Payment Receipt Uploads, One-Tap Calendar Bookings, and Offline PWA Support.
             </p>
           </div>
 
@@ -861,7 +1241,7 @@ export default function SmartTapApp() {
                 setAuthError("");
                 setScreen("auth");
               }}
-              className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               Get Started — Claim Card
             </button>
@@ -873,7 +1253,7 @@ export default function SmartTapApp() {
                   setAuthError("");
                   setScreen("login_to_edit");
                 }}
-                className="w-full py-3 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer"
+                className="w-full py-3 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer active:scale-95"
               >
                 Already claimed? Sign in to Edit
               </button>
@@ -888,7 +1268,7 @@ export default function SmartTapApp() {
     );
   }
 
-  // --- SCREEN 2: AUTH (SIGNUP & OWNER LOGIN) ---
+  // --- SCREEN 2: AUTH ---
   if (screen === "auth" || screen === "login_to_edit") {
     const isOwnerLogin = authMode === "login" || screen === "login_to_edit";
 
@@ -963,7 +1343,7 @@ export default function SmartTapApp() {
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition cursor-pointer"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition cursor-pointer active:scale-95"
               >
                 {isOwnerLogin ? "Log In & Open Editor" : "Create Account & Start Setup"}
               </button>
@@ -977,6 +1357,13 @@ export default function SmartTapApp() {
 
   // --- SCREEN 3: EDIT PROFILE ---
   if (screen === "edit") {
+    const togglePrivacy = (key) => {
+      setProfile((prev) => ({
+        ...prev,
+        privacy: { ...prev.privacy, [key]: !prev.privacy[key] }
+      }));
+    };
+
     return (
       <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-28`}>
         <header className={`sticky top-0 z-30 border-b backdrop-blur-md ${theme.card}`}>
@@ -985,7 +1372,7 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={() => setScreen("view")}
-              className="px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-400 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer active:scale-95 ${theme.accentSoft} border`}
             >
               <Eye className="w-3.5 h-3.5" />
               <span>Preview View</span>
@@ -997,18 +1384,47 @@ export default function SmartTapApp() {
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
-              Customize your info, verified badge, photos, direct device video, audio tracks, links, and payments.
+              Use the eye icons on each block to hide/show sections on demand without deleting your saved info.
             </p>
           </div>
 
+          {/* LINK HEALTH CHECKER ALERT */}
+          {linkHealthIssues.length > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Link Health Scanner Alert ({linkHealthIssues.length} issue found)</span>
+              </div>
+              <ul className="text-[11px] text-amber-200/90 list-disc pl-5 space-y-0.5">
+                {linkHealthIssues.map((iss, i) => (
+                  <li key={i}>{iss}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* SECTION 1: PROFILE INFO & CONTACT PRIVACY */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
-            <div className="flex items-center gap-2 font-semibold text-base">
-              <User className="w-5 h-5 text-indigo-400" />
-              <h2>Profile Information & Badge</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold text-base">
+                <User className={`w-5 h-5 ${theme.accentText}`} />
+                <h2>Profile & Contact Info</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => togglePrivacy("contact")}
+                className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer ${
+                  profile.privacy.contact ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                }`}
+                title="Toggle Contact Buttons Visibility"
+              >
+                {profile.privacy.contact ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span>{profile.privacy.contact ? "Contact Visible" : "Contact Hidden"}</span>
+              </button>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-indigo-500/40 bg-slate-800 flex items-center justify-center shrink-0">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-current/30 bg-slate-800 flex items-center justify-center shrink-0">
                 {profile.avatar ? (
                   <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -1023,7 +1439,7 @@ export default function SmartTapApp() {
                   onClick={() => avatarInputRef.current?.click()}
                   className={`px-3 py-2 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 transition cursor-pointer ${theme.pill}`}
                 >
-                  <ImageIcon className="w-4 h-4 text-indigo-400" />
+                  <ImageIcon className={`w-4 h-4 ${theme.accentText}`} />
                   Select Photo
                 </button>
                 {profile.avatar && (
@@ -1046,11 +1462,11 @@ export default function SmartTapApp() {
                   value={profile.name}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   placeholder="Juan Dela Cruz"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
                 />
               </div>
 
-              <div className="p-3.5 rounded-xl border bg-slate-900/50 space-y-2">
+              <div className={`p-3.5 rounded-xl border space-y-2 ${theme.pill}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-blue-400" /> Verified Checkmark Badge
@@ -1062,7 +1478,7 @@ export default function SmartTapApp() {
                       ...profile,
                       verifiedBadge: { ...profile.verifiedBadge, enabled: e.target.checked }
                     })}
-                    className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
+                    className="w-4 h-4 rounded cursor-pointer"
                   />
                 </div>
                 {profile.verifiedBadge?.enabled && (
@@ -1096,7 +1512,7 @@ export default function SmartTapApp() {
                   value={profile.bio}
                   onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                   placeholder="Entrepreneur | Gamer | Manila, PH"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
                 />
               </div>
 
@@ -1108,7 +1524,7 @@ export default function SmartTapApp() {
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                     placeholder="09171234567"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
                   />
                 </div>
                 <div>
@@ -1118,26 +1534,35 @@ export default function SmartTapApp() {
                     value={profile.email}
                     onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                     placeholder="you@gmail.com"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
                   />
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Featured Photos & Direct Device Video */}
+          {/* SECTION 2: FEATURED PHOTOS & DEVICE VIDEO */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
-                <ImageIcon className="w-5 h-5 text-indigo-400" />
-                <h2>Featured Photos & Device Video</h2>
+                <ImageIcon className={`w-5 h-5 ${theme.accentText}`} />
+                <h2>Photos & Video ({profile.photos.length}/4)</h2>
               </div>
-              <span className={`text-xs ${theme.subtext}`}>{profile.photos.length}/4 Photos</span>
+              <button
+                type="button"
+                onClick={() => togglePrivacy("media")}
+                className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer ${
+                  profile.privacy.media ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                }`}
+              >
+                {profile.privacy.media ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span>{profile.privacy.media ? "Visible" : "Hidden"}</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {profile.photos.map((photo, idx) => (
-                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-700 group">
+                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-700/60 group">
                   <img src={photo} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -1162,24 +1587,14 @@ export default function SmartTapApp() {
             </div>
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
-            <div className="pt-3 border-t border-slate-800 space-y-2">
+            <div className="pt-3 border-t border-slate-700/40 space-y-2">
               <label className={`block text-xs font-medium ${theme.subtext}`}>Featured Video (Direct Upload from Device)</label>
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                onChange={handleVideoFileUpload}
-                className="hidden"
-              />
+              <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFileUpload} className="hidden" />
               {videoObjectUrl ? (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900 border border-slate-700">
+                <div className={`flex items-center gap-3 p-3 rounded-xl border ${theme.pill}`}>
                   <video src={videoObjectUrl} muted loop autoPlay playsInline className="w-20 h-12 object-cover rounded bg-black" />
                   <span className="text-xs text-emerald-400 font-semibold flex-1 truncate">Video ready & cached!</span>
-                  <button
-                    type="button"
-                    onClick={handleRemoveVideo}
-                    className="text-xs text-rose-400 font-semibold hover:underline cursor-pointer"
-                  >
+                  <button type="button" onClick={handleRemoveVideo} className="text-xs text-rose-400 font-semibold hover:underline cursor-pointer">
                     Remove
                   </button>
                 </div>
@@ -1195,49 +1610,127 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Links & Categories */}
+          {/* SECTION 3: ONE-TAP CALENDAR BOOKING SETUP (PRESET DROPDOWNS) */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
-                <LinkIcon className="w-5 h-5 text-indigo-400" />
-                <h2>Links & Categories (Native App Deep Links)</h2>
+                <Calendar className={`w-5 h-5 ${theme.accentText}`} />
+                <h2>Appointment / Meeting Booking</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => togglePrivacy("booking")}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    profile.privacy.booking ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                  }`}
+                  title="Hide/Show Booking Section"
+                >
+                  {profile.privacy.booking ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                </button>
+                <input
+                  type="checkbox"
+                  checked={profile.booking?.enabled || false}
+                  onChange={(e) => setProfile({
+                    ...profile,
+                    booking: { ...profile.booking, enabled: e.target.checked }
+                  })}
+                  className="w-4 h-4 cursor-pointer"
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {profile.booking?.enabled && (
+              <div className="space-y-3 pt-1">
+                <div>
+                  <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Booking Button Label</label>
+                  <select
+                    value={profile.booking.title}
+                    onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, title: e.target.value } })}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-medium ${theme.input}`}
+                  >
+                    <option value="Book a Meeting / Appointment">Book a Meeting / Appointment</option>
+                    <option value="Schedule a Consultation">Schedule a Consultation</option>
+                    <option value="Reserve a Table / Visit">Reserve a Table / Visit</option>
+                    <option value="Book a Discovery Call">Book a Discovery Call</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Available Days</label>
+                    <select
+                      value={profile.booking.availableDays}
+                      onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, availableDays: e.target.value } })}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                    >
+                      <option value="mon_sun">Monday – Sunday</option>
+                      <option value="mon_sat">Monday – Saturday</option>
+                      <option value="mon_fri">Monday – Friday</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Session Duration</label>
+                    <select
+                      value={profile.booking.duration}
+                      onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, duration: e.target.value } })}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                    >
+                      <option value="15 mins">15 Minutes</option>
+                      <option value="30 mins">30 Minutes</option>
+                      <option value="1 hour">1 Hour</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Meeting Location / Link (Optional)</label>
+                  <input
+                    type="text"
+                    value={profile.booking.location || ""}
+                    onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, location: e.target.value } })}
+                    placeholder="e.g. Starbucks BGC / Google Meet"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* SECTION 4: LINKS & CATEGORIES */}
+          <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold text-base">
+                <LinkIcon className={`w-5 h-5 ${theme.accentText}`} />
+                <h2>Links & Categories</h2>
+              </div>
               <button
                 type="button"
-                onClick={() => setActiveModal("social")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
+                onClick={() => togglePrivacy("links")}
+                className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer ${
+                  profile.privacy.links ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                }`}
               >
-                <Share2 className="w-4 h-4 text-blue-400" />
+                {profile.privacy.links ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span>{profile.privacy.links ? "Visible" : "Hidden"}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <button type="button" onClick={() => setActiveModal("social")} className={`p-3 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${theme.pill}`}>
+                <Share2 className={`w-4 h-4 ${theme.accentText}`} />
                 <span className="text-xs font-semibold">Add Social</span>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedSubPlatform(MUSIC_PLATFORMS[0]);
-                  setActiveModal("music");
-                }}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
-              >
-                <Music className="w-4 h-4 text-emerald-400" />
+              <button type="button" onClick={() => { setSelectedSubPlatform(MUSIC_PLATFORMS[0]); setActiveModal("music"); }} className={`p-3 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${theme.pill}`}>
+                <Music className={`w-4 h-4 ${theme.accentText}`} />
                 <span className="text-xs font-semibold">Add Music</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveModal("gaming")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
-              >
-                <Gamepad2 className="w-4 h-4 text-amber-400" />
+              <button type="button" onClick={() => setActiveModal("gaming")} className={`p-3 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${theme.pill}`}>
+                <Gamepad2 className={`w-4 h-4 ${theme.accentText}`} />
                 <span className="text-xs font-semibold">Add Gaming</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveModal("business")}
-                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${theme.pill}`}
-              >
-                <Building2 className="w-4 h-4 text-cyan-400" />
+              <button type="button" onClick={() => setActiveModal("business")} className={`p-3 rounded-xl border text-left transition flex items-center gap-2 cursor-pointer ${theme.pill}`}>
+                <Building2 className={`w-4 h-4 ${theme.accentText}`} />
                 <span className="text-xs font-semibold">Add Business</span>
               </button>
             </div>
@@ -1247,7 +1740,7 @@ export default function SmartTapApp() {
                 {profile.links.map((item) => (
                   <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0 uppercase shadow">
+                      <span className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 uppercase shadow ${theme.badgeIcon}`}>
                         {item.badge || item.type.slice(0, 2)}
                       </span>
                       <div className="truncate">
@@ -1257,11 +1750,7 @@ export default function SmartTapApp() {
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.id, item.type)}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                    >
+                    <button type="button" onClick={() => removeItem(item.id, item.type)} className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -1270,25 +1759,38 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* Locations */}
+          {/* SECTION 5: LOCATIONS & OPERATING HOURS */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
-                <MapPin className="w-5 h-5 text-indigo-400" />
-                <h2>Locations / Pickup Stores ({profile.locations.length})</h2>
+                <MapPin className={`w-5 h-5 ${theme.accentText}`} />
+                <h2>Locations ({profile.locations.length})</h2>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setLocAddress("");
-                  setLocMapUrl("");
-                  setShowLocModal(true);
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
-              >
-                <Plus className="w-4 h-4" />
-                Add Location
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => togglePrivacy("locations")}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    profile.privacy.locations ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                  }`}
+                >
+                  {profile.privacy.locations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLocAddress("");
+                    setLocLandmark("");
+                    setLocMapUrl("");
+                    setLocHoursEnabled(false);
+                    setShowLocModal(true);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Location
+                </button>
+              </div>
             </div>
 
             {profile.locations.length === 0 ? (
@@ -1300,19 +1802,19 @@ export default function SmartTapApp() {
                 {profile.locations.map((loc) => (
                   <div key={loc.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                      <span className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${theme.badgeIcon}`}>
                         <MapPin className="w-4 h-4" />
                       </span>
                       <div className="truncate">
                         <p className="text-sm font-semibold truncate">{loc.address}</p>
-                        {loc.mapUrl && <p className={`text-xs truncate ${theme.subtext}`}>{loc.mapUrl}</p>}
+                        {loc.schedule?.enabled && (
+                          <p className={`text-[11px] truncate ${theme.accentText}`}>
+                            Hours: {formatTime12(loc.schedule.openTime)} – {formatTime12(loc.schedule.closeTime)}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(loc.id, "location")}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                    >
+                    <button type="button" onClick={() => removeItem(loc.id, "location")} className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -1321,14 +1823,14 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* Themes */}
+          {/* SECTION 6: PROFILE THEMES (INCLUDING EXECUTIVE GOLD) */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
-              <Palette className="w-5 h-5 text-indigo-400" />
+              <Palette className={`w-5 h-5 ${theme.accentText}`} />
               <h2>Profile Theme Default</h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {Object.values(THEMES).map((t) => {
                 const isSelected = profile.theme === t.id;
                 return (
@@ -1337,7 +1839,7 @@ export default function SmartTapApp() {
                     type="button"
                     onClick={() => setProfile({ ...profile, theme: t.id })}
                     className={`p-3 rounded-xl border text-left transition flex flex-col gap-2 cursor-pointer ${
-                      isSelected ? "border-indigo-500 ring-2 ring-indigo-500/30 bg-indigo-500/10" : theme.pill
+                      isSelected ? `ring-2 ring-current ${theme.accentSoft}` : theme.pill
                     }`}
                   >
                     <span className={`w-6 h-6 rounded-full border-2 ${t.swatch}`} />
@@ -1348,24 +1850,32 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Payments */}
+          {/* SECTION 7: PAYMENT & BANK ACCOUNTS */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
-                <CreditCard className="w-5 h-5 text-indigo-400" />
-                <h2>Payment & Bank Accounts</h2>
+                <CreditCard className={`w-5 h-5 ${theme.accentText}`} />
+                <h2>Payments & Banks</h2>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedSubPlatform(null);
-                  setActiveModal("payment");
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
-              >
-                <Plus className="w-4 h-4" />
-                Add Payment
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => togglePrivacy("payments")}
+                  className={`p-1.5 rounded-lg border cursor-pointer ${
+                    profile.privacy.payments ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
+                  }`}
+                >
+                  {profile.privacy.payments ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedSubPlatform(null); setActiveModal("payment"); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Payment
+                </button>
+              </div>
             </div>
 
             {profile.payments.length === 0 ? (
@@ -1385,11 +1895,7 @@ export default function SmartTapApp() {
                         <p className={`text-xs truncate ${theme.subtext}`}>{pay.accountName} • {pay.accountNumber}</p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(pay.id, "payment")}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                    >
+                    <button type="button" onClick={() => removeItem(pay.id, "payment")} className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -1404,7 +1910,7 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={handleSaveProfile}
-              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition cursor-pointer"
+              className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 ${theme.accent}`}
             >
               <Save className="w-4 h-4" />
               {saveToast ? "Saved & Published!" : "Save & Publish SmartTap Profile"}
@@ -1412,23 +1918,33 @@ export default function SmartTapApp() {
           </div>
         </div>
 
-        {/* MODALS */}
+        {/* LOCATION & BUSINESS HOURS MODAL (PRESET OPTIONS) */}
         {showLocModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-            <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4">
+            <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-base">Add Location / Store</h3>
                 <button onClick={() => setShowLocModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={saveLocationItem} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Store Address / Name</label>
+                  <label className="block text-xs text-slate-400 mb-1">Exact Pinned Address / Store Name</label>
                   <input
                     type="text"
                     required
                     value={locAddress}
                     onChange={(e) => setLocAddress(e.target.value)}
-                    placeholder="e.g. Balai Seafood Restaurant, Boracay"
+                    placeholder="e.g. Balai Seafood Restaurant, Station 2, Boracay"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Landmark Notes for Grab / Angkas (Optional)</label>
+                  <input
+                    type="text"
+                    value={locLandmark}
+                    onChange={(e) => setLocLandmark(e.target.value)}
+                    placeholder="e.g. Beside D'Mall entrance, green signage"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
                   />
                 </div>
@@ -1442,6 +1958,64 @@ export default function SmartTapApp() {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
                   />
                 </div>
+
+                {/* Live Business Operating Hours Option (Preset Dropdowns) */}
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold flex items-center gap-1.5 text-emerald-400">
+                      <Clock className="w-4 h-4" /> Live Open/Closed Indicator (PH Time)
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={locHoursEnabled}
+                      onChange={(e) => setLocHoursEnabled(e.target.checked)}
+                      className="w-4 h-4 accent-indigo-600 cursor-pointer"
+                    />
+                  </div>
+                  {locHoursEnabled && (
+                    <div className="space-y-2.5 pt-1">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">Operating Days</label>
+                        <select
+                          value={locDays}
+                          onChange={(e) => setLocDays(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                        >
+                          <option value="mon_sun">Open Daily (Monday – Sunday)</option>
+                          <option value="mon_sat">Monday – Saturday</option>
+                          <option value="mon_fri">Monday – Friday (Weekdays)</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] text-slate-400 mb-1">Opening Time</label>
+                          <select
+                            value={locOpenTime}
+                            onChange={(e) => setLocOpenTime(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                          >
+                            {TIME_OPTIONS.map((t) => (
+                              <option key={t} value={t}>{formatTime12(t)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-slate-400 mb-1">Closing Time</label>
+                          <select
+                            value={locCloseTime}
+                            onChange={(e) => setLocCloseTime(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                          >
+                            {TIME_OPTIONS.map((t) => (
+                              <option key={t} value={t}>{formatTime12(t)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <button type="button" onClick={() => setShowLocModal(false)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Cancel</button>
                   <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Location</button>
@@ -1451,6 +2025,7 @@ export default function SmartTapApp() {
           </div>
         )}
 
+        {/* PLATFORM ADD MODAL */}
         {activeModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
@@ -1645,9 +2220,10 @@ export default function SmartTapApp() {
   // --- SCREEN 4: VIEWERS PAGE ---
   const shareUrl = typeof window !== "undefined" ? window.location.href : "https://smarttapapp.vercel.app/";
   const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(shareUrl)}`;
+  const totalInboxCount = messages.length + exchangedContacts.length + paymentReceipts.length + bookingsList.length;
 
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
+    <div className={`min-h-screen ${theme.bg} ${theme.text} ${largeTextMode ? "text-base" : "text-sm"} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
       <audio ref={audioRef} loop onEnded={() => setActiveAudioId(null)} />
 
       <div className="max-w-md w-full mx-auto space-y-5">
@@ -1658,36 +2234,56 @@ export default function SmartTapApp() {
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        {themeToast && (
+          <div className={`px-3.5 py-1.5 rounded-full text-center text-xs font-semibold mx-auto w-fit border shadow-md ${theme.accentSoft}`}>
+            {themeToast}
+          </div>
+        )}
+
+        {/* TOP BAR WITH HIGH-CONTRAST / LARGE TEXT Aa TOGGLE */}
+        <div className="flex items-center justify-between gap-1.5">
           <BrandLogo size="sm" />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setLargeTextMode(!largeTextMode)}
+              className={`px-2.5 py-1.5 rounded-full border text-xs font-extrabold transition cursor-pointer active:scale-95 ${
+                largeTextMode ? theme.accent : theme.pill
+              }`}
+              title="Toggle Large Text & High Contrast"
+            >
+              Aa
+            </button>
             <button
               type="button"
               onClick={() => {
                 const keys = Object.keys(THEMES);
                 const nextIdx = (keys.indexOf(profile.theme) + 1) % keys.length;
-                setProfile({ ...profile, theme: keys[nextIdx] });
+                const nextTheme = THEMES[keys[nextIdx]];
+                setProfile({ ...profile, theme: nextTheme.id });
+                setThemeToast(`Theme: ${nextTheme.name}`);
+                setTimeout(() => setThemeToast(""), 1800);
               }}
-              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
-              title="Quick Theme Toggle"
+              className={`p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              title="Switch Theme"
             >
-              <Palette className="w-4 h-4 text-indigo-400" />
+              <Palette className={`w-4 h-4 ${theme.accentText}`} />
             </button>
             <button
               type="button"
               onClick={() => setShowShareQrModal(true)}
-              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
-              title="Share Profile QR"
+              className={`p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              title="Share Profile"
             >
-              <Share2 className="w-4 h-4 text-cyan-400" />
+              <Share2 className={`w-4 h-4 ${theme.accentText}`} />
             </button>
             <button
               type="button"
               onClick={() => setShowSearchModal(true)}
-              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
+              className={`p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Search Profile"
             >
-              <Search className="w-4 h-4 text-indigo-400" />
+              <Search className={`w-4 h-4 ${theme.accentText}`} />
             </button>
             <button
               type="button"
@@ -1698,10 +2294,15 @@ export default function SmartTapApp() {
                 setIsEditingCreds(false);
                 setShowAnalyticsModal(true);
               }}
-              className={`p-2 rounded-full border transition cursor-pointer ${theme.pill}`}
-              title="Owner Analytics & Account"
+              className={`relative p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              title="Owner Analytics & Inbox"
             >
-              <BarChart3 className="w-4 h-4 text-emerald-400" />
+              <BarChart3 className={`w-4 h-4 ${theme.accentText}`} />
+              {totalInboxCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  {totalInboxCount > 9 ? "9+" : totalInboxCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -1712,27 +2313,28 @@ export default function SmartTapApp() {
                 setAuthError("");
                 setScreen("login_to_edit");
               }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer ${theme.pill}`}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Owner Edit Profile"
             >
-              <Pencil className="w-3.5 h-3.5 text-indigo-400" />
+              <Pencil className={`w-3.5 h-3.5 ${theme.accentText}`} />
               <span>Edit</span>
             </button>
           </div>
         </div>
 
+        {/* MAIN PROFILE CARD */}
         <div className={`rounded-3xl border p-6 space-y-6 shadow-xl ${theme.card}`}>
-          {/* Avatar & Name */}
+          {/* Avatar & Header */}
           <div className="text-center space-y-3">
             {profile.avatar && (
-              <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-indigo-500/50 shadow-md bg-slate-800 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-current/30 shadow-md bg-slate-800 flex items-center justify-center">
                 <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
               </div>
             )}
 
             <div>
               <div className="inline-flex items-center justify-center gap-1.5">
-                <h1 className="text-xl font-extrabold tracking-tight">
+                <h1 className={`${largeTextMode ? "text-2xl" : "text-xl"} font-extrabold tracking-tight`}>
                   {profile.name || "SmartTap User"}
                 </h1>
                 {profile.verifiedBadge?.enabled && (
@@ -1740,7 +2342,7 @@ export default function SmartTapApp() {
                 )}
               </div>
               {profile.bio && (
-                <p className={`text-xs mt-1 leading-relaxed ${theme.subtext}`}>
+                <p className={`${largeTextMode ? "text-sm" : "text-xs"} mt-1 leading-relaxed ${theme.subtext}`}>
                   {profile.bio}
                 </p>
               )}
@@ -1750,9 +2352,9 @@ export default function SmartTapApp() {
               <button
                 type="button"
                 onClick={() => copyToClipboard(shareUrl, "profile_url")}
-                className={`px-3 py-1.5 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.pill}`}
+                className={`px-3.5 py-2 rounded-full border ${largeTextMode ? "text-sm" : "text-xs"} font-semibold inline-flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.pill}`}
               >
-                {copiedId === "profile_url" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+                {copiedId === "profile_url" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className={`w-3.5 h-3.5 ${theme.accentText}`} />}
                 <span>{copiedId === "profile_url" ? "Link Copied!" : "Copy Link"}</span>
               </button>
 
@@ -1763,7 +2365,7 @@ export default function SmartTapApp() {
                   setExchangeForm({ name: "", phone: "", email: "", social: "" });
                   setShowExchangeModal(true);
                 }}
-                className="px-3.5 py-1.5 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer"
+                className={`px-3.5 py-2 rounded-full border ${largeTextMode ? "text-sm" : "text-xs"} font-semibold inline-flex items-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.accentSoft}`}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Share My Contact Back</span>
@@ -1771,44 +2373,51 @@ export default function SmartTapApp() {
             </div>
           </div>
 
-          {/* Gallery Pictures */}
-          {profile.photos.length > 0 && (
-            <div className={`grid gap-2 ${profile.photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-              {profile.photos.map((photo, index) => (
-                <div key={index} className={`rounded-2xl overflow-hidden border border-slate-700/40 ${profile.photos.length === 1 ? "aspect-video" : "aspect-square"}`}>
-                  <img src={photo} alt={`Featured ${index + 1}`} className="w-full h-full object-cover" />
+          {/* Gallery & Featured Video (Respects Privacy Toggle) */}
+          {profile.privacy.media && (
+            <>
+              {profile.photos.length > 0 && (
+                <div className={`grid gap-2 ${profile.photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                  {profile.photos.map((photo, index) => (
+                    <div key={index} className={`rounded-2xl overflow-hidden border border-slate-700/40 ${profile.photos.length === 1 ? "aspect-video" : "aspect-square"}`}>
+                      <img src={photo} alt={`Featured ${index + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+
+              {videoObjectUrl && (
+                <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative shadow-inner">
+                  <video
+                    key={videoObjectUrl}
+                    src={videoObjectUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    controls
+                    className="w-full aspect-video object-cover bg-black"
+                  />
+                </div>
+              )}
+            </>
           )}
 
-          {/* Featured Device Video */}
-          {videoObjectUrl && (
-            <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative shadow-inner">
-              <video
-                key={videoObjectUrl}
-                src={videoObjectUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                controls
-                className="w-full aspect-video object-cover bg-black"
-              />
-            </div>
-          )}
-
-          {/* Main Actions Ref */}
+          {/* Main Contact Actions (Respects Privacy Toggle) */}
           <div ref={mainActionsRef} className="space-y-2.5">
-            {(profile.phone || profile.email) && (
+            {profile.privacy.contact && (profile.phone || profile.email) && (
               <div className="space-y-2.5">
                 {profile.phone && (
                   <div className="grid grid-cols-2 gap-2.5">
-                    <a href={`tel:${profile.phone}`} className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                    <a href={`tel:${profile.phone}`} className={`py-3 px-3 rounded-xl border ${largeTextMode ? "text-sm" : "text-xs"} font-semibold flex items-center justify-center gap-2 transition active:scale-95 ${theme.pill}`}>
                       <Phone className="w-4 h-4 text-emerald-400" />
                       <span>Call</span>
                     </a>
-                    <button type="button" onClick={() => handleSaveContactVCard()} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${theme.accent}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveContactVCard(undefined, undefined, undefined, undefined, true)}
+                      className={`py-3 px-3 rounded-xl ${largeTextMode ? "text-sm" : "text-xs"} font-semibold flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 ${theme.accent}`}
+                    >
                       <UserPlus className="w-4 h-4" />
                       <span>Save Contact</span>
                     </button>
@@ -1816,55 +2425,95 @@ export default function SmartTapApp() {
                 )}
                 {profile.email && (
                   <div className="grid grid-cols-2 gap-2.5">
-                    <a href={getGmailComposeUrl(profile.email)} target="_blank" rel="noopener noreferrer" className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
-                      <Mail className="w-4 h-4 text-rose-400" />
-                      <span>Email (Compose)</span>
+                    <a href={getGmailComposeUrl(profile.email)} target="_blank" rel="noopener noreferrer" className={`py-3 px-3 rounded-xl border ${largeTextMode ? "text-sm" : "text-xs"} font-semibold flex items-center justify-center gap-2 transition active:scale-95 ${theme.pill}`}>
+                      <Mail className={`w-4 h-4 ${theme.accentText}`} />
+                      <span>Email</span>
                     </a>
-                    <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${theme.pill}`}>
-                      {copiedId === "email_copy" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
-                      <span>{copiedId === "email_copy" ? "Copied" : "Save Email"}</span>
+                    <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-3 px-3 rounded-xl border ${largeTextMode ? "text-sm" : "text-xs"} font-semibold flex items-center justify-center gap-2 transition cursor-pointer active:scale-95 ${theme.pill}`}>
+                      {copiedId === "email_copy" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className={`w-4 h-4 ${theme.accentText}`} />}
+                      <span>{copiedId === "email_copy" ? "Copied" : "Copy Email"}</span>
                     </button>
                   </div>
                 )}
               </div>
             )}
+
+            {/* ONE-TAP CALENDAR BOOKING CTA */}
+            {profile.privacy.booking && profile.booking?.enabled && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBookingSuccess(false);
+                  setShowBookingModal(true);
+                }}
+                className={`w-full py-3.5 px-4 rounded-xl ${largeTextMode ? "text-sm" : "text-xs"} font-bold flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95 ${theme.accent}`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>{profile.booking.title || "Book a Meeting / Appointment"}</span>
+              </button>
+            )}
           </div>
 
-          {/* Locations */}
-          {profile.locations && profile.locations.length > 0 && (
-            <div className="space-y-2.5">
+          {/* LOCATIONS + LIVE PH STATUS + RIDE-HAILING COPY */}
+          {profile.privacy.locations && profile.locations && profile.locations.length > 0 && (
+            <div className="space-y-2.5 pt-2 border-t border-slate-700/30">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
-                Locations / Stores
+                Locations & Navigation
               </p>
-              <div className="space-y-2">
-                {profile.locations.map((loc) => (
-                  <div key={loc.id} className={`p-3.5 rounded-2xl border space-y-2 ${theme.pill}`}>
-                    <div className="flex items-center gap-2.5">
-                      <MapPin className="w-5 h-5 text-indigo-400 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold">{loc.address}</p>
+              <div className="space-y-2.5">
+                {profile.locations.map((loc) => {
+                  const status = evaluatePhBusinessStatus(loc.schedule);
+                  const fullPinText = loc.landmark ? `${loc.address} (Landmark: ${loc.landmark})` : loc.address;
+
+                  return (
+                    <div key={loc.id} className={`p-3.5 rounded-2xl border space-y-2.5 ${theme.pill}`}>
+                      {status && (
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/25 text-[11px] font-semibold">
+                          <span className={`w-2 h-2 rounded-full ${status.isOpen ? "bg-emerald-400 animate-ping" : "bg-rose-500"}`} />
+                          <span className={status.isOpen ? "text-emerald-400" : "text-rose-400"}>{status.label}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-start gap-2.5">
+                        <MapPin className={`w-5 h-5 shrink-0 mt-0.5 ${theme.accentText}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className={`${largeTextMode ? "text-sm" : "text-xs"} font-bold`}>{loc.address}</p>
+                          {loc.landmark && (
+                            <p className={`text-[11px] mt-0.5 ${theme.subtext}`}>Landmark: {loc.landmark}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <a
+                          href={loc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 ${theme.actionBtn}`}
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span>Open Maps</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(fullPinText, `loc_${loc.id}`)}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.actionBtn}`}
+                          title="Copy Address for Grab / Angkas / JoyRide"
+                        >
+                          {copiedId === `loc_${loc.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedId === `loc_${loc.id}` ? "Address Copied" : "Copy for Grab"}</span>
+                        </button>
                       </div>
                     </div>
-                    {loc.mapUrl && (
-                      <a
-                        href={loc.mapUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-2 rounded-xl bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Open in Google Maps / Waze</span>
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Links & Categories (Audio Player + Games Copy & Open App + Socials) */}
-          {profile.links.length > 0 && (
-            <div className="space-y-4">
+          {/* LINKS & CATEGORIES */}
+          {profile.privacy.links && profile.links.length > 0 && (
+            <div className="space-y-4 pt-2 border-t border-slate-700/30">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
                 Links & Categories
               </p>
@@ -1878,11 +2527,11 @@ export default function SmartTapApp() {
                   <div key={musicItem.id} className={`p-3.5 rounded-2xl border space-y-3 ${theme.pill}`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-md ${isThisPlaying ? "animate-spin" : ""}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-md ${theme.badgeIcon} ${isThisPlaying ? "animate-spin" : ""}`}>
                           <Music className="w-5 h-5" />
                         </div>
                         <div className="truncate flex-1">
-                          <p className="text-xs font-extrabold truncate">{musicItem.label}</p>
+                          <p className={`${largeTextMode ? "text-sm" : "text-xs"} font-extrabold truncate`}>{musicItem.label}</p>
                           <p className={`text-[10px] truncate ${theme.subtext}`}>
                             {hasAudioSrc ? (isThisPlaying ? "Now Playing..." : "Ready to Play") : "Audio File"}
                           </p>
@@ -1891,15 +2540,15 @@ export default function SmartTapApp() {
                       <button
                         type="button"
                         onClick={() => togglePlayAudio(musicItem.id)}
-                        className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow shrink-0 ml-2 cursor-pointer"
+                        className={`p-2.5 rounded-xl transition shadow shrink-0 ml-2 cursor-pointer active:scale-95 ${theme.accent}`}
                       >
                         {isThisPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
-                      <button type="button" onClick={() => setMusicVolume(musicVolume > 0 ? 0 : 0.85)} className="text-slate-400 hover:text-white cursor-pointer">
-                        {musicVolume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-indigo-400" />}
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-700/20">
+                      <button type="button" onClick={() => setMusicVolume(musicVolume > 0 ? 0 : 0.85)} className={`cursor-pointer ${theme.subtext}`}>
+                        {musicVolume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className={`w-4 h-4 ${theme.accentText}`} />}
                       </button>
                       <input
                         type="range"
@@ -1908,9 +2557,9 @@ export default function SmartTapApp() {
                         step="0.05"
                         value={musicVolume}
                         onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
-                        className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                        className="w-full h-1.5 bg-slate-600/40 rounded-lg appearance-none cursor-pointer"
                       />
-                      <span className="text-[10px] font-mono text-slate-400 w-8 text-right">{Math.round(musicVolume * 100)}%</span>
+                      <span className={`text-[10px] font-mono w-8 text-right ${theme.subtext}`}>{Math.round(musicVolume * 100)}%</span>
                     </div>
                   </div>
                 );
@@ -1921,17 +2570,17 @@ export default function SmartTapApp() {
                 if (catLinks.length === 0) return null;
 
                 return (
-                  <div key={catKey} className="space-y-2 pt-1 border-t border-slate-700/50 first:border-t-0 first:pt-0">
-                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{catKey}</p>
+                  <div key={catKey} className="space-y-2 pt-1">
+                    <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.accentText}`}>{catKey}</p>
                     <div className="space-y-2">
                       {catLinks.map((item) => (
                         <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 uppercase shadow">
+                            <span className={`w-8 h-8 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 uppercase shadow ${theme.badgeIcon}`}>
                               {item.badge || item.type.slice(0, 2)}
                             </span>
                             <div className="truncate flex-1">
-                              <span className="text-sm font-semibold truncate block">{item.label}</span>
+                              <span className={`${largeTextMode ? "text-base" : "text-sm"} font-semibold truncate block`}>{item.label}</span>
                               {item.type === "gaming" ? (
                                 <span className={`text-xs truncate block font-mono ${theme.subtext}`}>
                                   {item.gameDetails?.field1} {item.gameDetails?.field2 ? `• ${item.gameDetails.field2}` : ""}
@@ -1948,7 +2597,7 @@ export default function SmartTapApp() {
                                 <button
                                   type="button"
                                   onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold inline-flex items-center gap-1 transition cursor-pointer"
+                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 transition cursor-pointer active:scale-95 ${theme.accent}`}
                                 >
                                   {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                   <span>{copiedId === item.id ? "Copied" : "Copy"}</span>
@@ -1958,8 +2607,7 @@ export default function SmartTapApp() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => openWithNativeDeepLink(e, item.platformId, item.url)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition"
-                                  title="Launch Game App"
+                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 transition active:scale-95 ${theme.actionBtn}`}
                                 >
                                   <span>Open App</span>
                                   <ExternalLink className="w-3 h-3" />
@@ -1971,8 +2619,7 @@ export default function SmartTapApp() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => openWithNativeDeepLink(e, item.platformId, item.url)}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition"
-                                title="Open in Native App"
+                                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 transition active:scale-95 ${theme.actionBtn}`}
                               >
                                 <span>Open App</span>
                                 <ExternalLink className="w-3.5 h-3.5" />
@@ -1988,56 +2635,99 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Payments */}
-          {profile.payments.length > 0 && (
-            <div className="space-y-2.5 pt-2 border-t border-slate-700/50">
+          {/* PAYMENTS & TRANSFERS (COPY + COPY ALL + OPEN APP + UPLOAD RECEIPT) */}
+          {profile.privacy.payments && profile.payments.length > 0 && (
+            <div className="space-y-2.5 pt-2 border-t border-slate-700/30">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
                 Payment & Transfers
               </p>
-              <div className="space-y-2.5">
-                {profile.payments.map((pay) => (
-                  <div key={pay.id} className={`p-3.5 rounded-2xl border space-y-2.5 ${theme.pill}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">
-                          ₱
-                        </span>
-                        <div>
-                          <p className="text-xs font-bold">{pay.bankName}</p>
-                          <p className={`text-[11px] ${theme.subtext}`}>{pay.accountName}</p>
+              <div className="space-y-3">
+                {profile.payments.map((pay) => {
+                  const fullCopyText = `${pay.bankName} - ${pay.accountName} - ${pay.accountNumber}`;
+                  return (
+                    <div key={pay.id} className={`p-3.5 rounded-2xl border space-y-2.5 ${theme.pill}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            ₱
+                          </span>
+                          <div className="truncate">
+                            <p className={`${largeTextMode ? "text-sm" : "text-xs"} font-bold truncate`}>{pay.bankName}</p>
+                            <p className={`text-[11px] truncate ${theme.subtext}`}>{pay.accountName}</p>
+                          </div>
+                        </div>
+                        {pay.qrImage && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveQrModal(pay)}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer shrink-0 ${theme.accentSoft} border`}
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>View QR</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between bg-black/15 rounded-xl px-3 py-2">
+                        <span className={`font-mono ${largeTextMode ? "text-base" : "text-sm"} font-semibold tracking-wide`}>{pay.accountNumber}</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(pay.accountNumber, pay.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer active:scale-95 ${theme.accent}`}
+                          >
+                            {copiedId === pay.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            <span>{copiedId === pay.id ? "Copied" : "Copy"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(fullCopyText, `all_${pay.id}`)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer active:scale-95 ${theme.actionBtn}`}
+                            title="Copy Bank + Name + Number"
+                          >
+                            {copiedId === `all_${pay.id}` ? "Copied All!" : "Copy All"}
+                          </button>
                         </div>
                       </div>
-                      {pay.qrImage && (
+
+                      {/* OPEN BANK APP & UPLOAD PAYMENT RECEIPT BUTTONS */}
+                      <div className="grid grid-cols-2 gap-2 pt-0.5">
                         <button
                           type="button"
-                          onClick={() => setActiveQrModal(pay)}
-                          className="px-2.5 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer"
+                          onClick={() => {
+                            copyToClipboard(pay.accountNumber, pay.id);
+                            openBankMobileApp(pay.providerId);
+                          }}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.actionBtn}`}
                         >
-                          <QrCode className="w-3.5 h-3.5" />
-                          <span>View QR</span>
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>Open {pay.bankName}</span>
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceiptModalPay(pay);
+                            setReceiptSenderName("");
+                            setReceiptRefNo("");
+                            setReceiptImage("");
+                            setReceiptSuccess(false);
+                          }}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.accentSoft} border`}
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          <span>Send Receipt</span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between bg-black/20 rounded-xl px-3 py-2">
-                      <span className="font-mono text-sm font-semibold tracking-wide">{pay.accountNumber}</span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(pay.accountNumber, pay.id)}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1 transition cursor-pointer"
-                      >
-                        {copiedId === pay.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedId === pay.id ? "Copied" : "Copy"}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Leave a Message Form */}
+          {/* LEAVE A MESSAGE FORM */}
           <div className={`p-4 rounded-2xl border space-y-3 ${theme.pill}`}>
-            <p className="text-xs font-bold">Leave a Message</p>
+            <p className={`${largeTextMode ? "text-sm" : "text-xs"} font-bold`}>Leave a Message</p>
             {contactSent ? (
               <p className="text-xs text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl text-center">
                 Message successfully sent to card owner inbox!
@@ -2050,14 +2740,14 @@ export default function SmartTapApp() {
                   value={contactForm.name}
                   onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                   placeholder="Your Name"
-                  className={`w-full px-3 py-2 rounded-xl border text-xs ${theme.input}`}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
                 />
                 <input
                   type="text"
                   value={contactForm.contact}
                   onChange={(e) => setContactForm({ ...contactForm, contact: e.target.value })}
                   placeholder="Your Email or Phone (Optional)"
-                  className={`w-full px-3 py-2 rounded-xl border text-xs ${theme.input}`}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
                 />
                 <textarea
                   rows={2}
@@ -2065,11 +2755,11 @@ export default function SmartTapApp() {
                   value={contactForm.message}
                   onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                   placeholder="Type your message here..."
-                  className={`w-full px-3 py-2 rounded-xl border text-xs ${theme.input}`}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
                 />
                 <button
                   type="submit"
-                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  className={`w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.accent}`}
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Send Message</span>
@@ -2080,7 +2770,7 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      {/* FLOATING BOTTOM BAR NAVIGATION */}
+      {/* FLOATING BOTTOM BAR NAVIGATION (HORIZONTAL SLIDE LEFT/RIGHT ARROWS + FULL THEME SYNC) */}
       <div
         className={`fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto transition-all duration-500 ease-out ${
           showFloatingBar
@@ -2089,7 +2779,7 @@ export default function SmartTapApp() {
         }`}
       >
         <div
-          className={`bg-[#111827]/95 backdrop-blur-md border border-slate-700/80 shadow-2xl flex items-center justify-between gap-2 transition-all duration-300 ease-in-out ${
+          className={`backdrop-blur-md border shadow-2xl flex items-center justify-between gap-2 transition-all duration-300 ease-in-out ${theme.floatingBar} ${
             isFloatingMinimized
               ? "w-14 h-14 rounded-full ml-auto p-0 justify-center"
               : "w-full rounded-2xl p-2.5"
@@ -2099,24 +2789,24 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={() => setIsFloatingMinimized(false)}
-              className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg transition transform hover:scale-105 cursor-pointer"
-              title="Show Quick Actions"
+              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition transform hover:scale-105 cursor-pointer ${theme.accent}`}
+              title="Expand Quick Actions"
             >
-              <ChevronUp className="w-6 h-6" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
           ) : (
             <>
               <a
                 href={profile.phone ? `tel:${profile.phone}` : "#"}
-                className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition"
+                className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition active:scale-95 ${theme.actionBtn}`}
               >
-                <Phone className="w-4 h-4 text-emerald-400" />
-                <span>Call/Chat</span>
+                <Phone className="w-4 h-4" />
+                <span>Call</span>
               </a>
               <button
                 type="button"
-                onClick={() => handleSaveContactVCard()}
-                className="flex-1 py-2 px-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition shadow cursor-pointer"
+                onClick={() => handleSaveContactVCard(undefined, undefined, undefined, undefined, true)}
+                className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition shadow cursor-pointer active:scale-95 ${theme.accent}`}
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Save</span>
@@ -2134,23 +2824,262 @@ export default function SmartTapApp() {
                     setShowPaySelectionModal(true);
                   }
                 }}
-                className="flex-1 py-2 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition cursor-pointer"
+                className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-semibold flex flex-col items-center justify-center gap-0.5 transition cursor-pointer active:scale-95 ${theme.actionBtn}`}
               >
-                <CreditCard className="w-4 h-4 text-cyan-400" />
+                <CreditCard className="w-4 h-4" />
                 <span>Pay QR</span>
               </button>
               <button
                 type="button"
                 onClick={() => setIsFloatingMinimized(true)}
-                className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition cursor-pointer"
-                title="Hide Bar"
+                className={`p-2.5 rounded-xl transition cursor-pointer active:scale-95 ${theme.actionBtn}`}
+                title="Slide Right to Hide"
               >
-                <ChevronDown className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             </>
           )}
         </div>
       </div>
+
+      {/* POST-SAVE CONTACT PROMPT MODAL */}
+      {showPostSavePrompt && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-bold text-base">Contact Card Downloaded!</h4>
+              <p className="text-xs text-slate-400">
+                Want to share your contact info back to {profile.name || "the owner"} so they have your number too?
+              </p>
+            </div>
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowPostSavePrompt(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                Maybe Later
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPostSavePrompt(false);
+                  setExchangeSuccess(false);
+                  setShowExchangeModal(true);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold cursor-pointer"
+              >
+                Share My Contact
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAYMENT RECEIPT UPLOAD MODAL */}
+      {receiptModalPay && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-bold">Send {receiptModalPay.bankName} Receipt</span>
+              </div>
+              <button onClick={() => setReceiptModalPay(null)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {receiptSuccess ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm">Payment Receipt Sent!</h4>
+                <p className="text-xs text-slate-400">
+                  Your screenshot has been delivered directly to {profile.name || "the owner"}'s Receipts Inbox.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setReceiptModalPay(null)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleReceiptSubmit} className="space-y-3">
+                <input
+                  type="text"
+                  required
+                  value={receiptSenderName}
+                  onChange={(e) => setReceiptSenderName(e.target.value)}
+                  placeholder="Your Name / Sender Name *"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  value={receiptRefNo}
+                  onChange={(e) => setReceiptRefNo(e.target.value)}
+                  placeholder="Reference No. / Amount (Optional)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+
+                <div>
+                  <input
+                    ref={receiptInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (f) setReceiptImage(await compressImage(f, 700, 0.8));
+                    }}
+                    className="hidden"
+                  />
+                  {receiptImage ? (
+                    <div className="space-y-2">
+                      <img src={receiptImage} alt="Receipt Preview" className="w-full max-h-44 object-contain rounded-xl bg-black border border-slate-700" />
+                      <button type="button" onClick={() => setReceiptImage("")} className="text-xs text-rose-400 hover:underline cursor-pointer">
+                        Remove Screenshot
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => receiptInputRef.current?.click()}
+                      className="w-full py-6 border-2 border-dashed border-slate-700 rounded-xl text-xs text-slate-300 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-indigo-500"
+                    >
+                      <ImageIcon className="w-6 h-6 text-indigo-400" />
+                      <span>Tap to Upload Receipt Screenshot *</span>
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!receiptImage}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Submit Payment Receipt</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ONE-TAP CALENDAR BOOKING MODAL (PRESET DROPDOWNS + .ICS DOWNLOAD) */}
+      {showBookingModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-indigo-400" />
+                <span className="text-sm font-bold">{profile.booking?.title || "Book Appointment"}</span>
+              </div>
+              <button onClick={() => setShowBookingModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {bookingSuccess ? (
+              <div className="py-5 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                  <Check className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm">Booking Confirmed & Added to Calendar!</h4>
+                <p className="text-xs text-slate-400">
+                  An <code>.ics</code> calendar invite with reminder alarm has been downloaded to your phone and sent to {profile.name || "the owner"}.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowBookingModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleBookingSubmit} className="space-y-3">
+                <p className="text-xs text-slate-400">
+                  With <strong className="text-white">{profile.name || "SmartTap Owner"}</strong> ({profile.booking?.duration || "30 mins"})
+                  {profile.booking?.location ? ` • ${profile.booking.location}` : ""}
+                </p>
+
+                <input
+                  type="text"
+                  required
+                  value={bookingForm.clientName}
+                  onChange={(e) => setBookingForm({ ...bookingForm, clientName: e.target.value })}
+                  placeholder="Your Full Name *"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+                <input
+                  type="tel"
+                  required
+                  value={bookingForm.clientPhone}
+                  onChange={(e) => setBookingForm({ ...bookingForm, clientPhone: e.target.value })}
+                  placeholder="Your Mobile Number *"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Select Day</label>
+                    <select
+                      value={bookingForm.dayChoice}
+                      onChange={(e) => setBookingForm({ ...bookingForm, dayChoice: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                    >
+                      <option value="Today">Today</option>
+                      <option value="Tomorrow">Tomorrow</option>
+                      <option value="In 2 Days">In 2 Days</option>
+                      <option value="Next Monday">Next Monday</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Select Time</label>
+                    <select
+                      value={bookingForm.timeChoice}
+                      onChange={(e) => setBookingForm({ ...bookingForm, timeChoice: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                    >
+                      <option value="09:00 AM">09:00 AM</option>
+                      <option value="10:00 AM">10:00 AM</option>
+                      <option value="11:00 AM">11:00 AM</option>
+                      <option value="01:00 PM">01:00 PM</option>
+                      <option value="02:00 PM">02:00 PM</option>
+                      <option value="03:00 PM">03:00 PM</option>
+                      <option value="04:00 PM">04:00 PM</option>
+                      <option value="05:00 PM">05:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <input
+                  type="text"
+                  value={bookingForm.notes}
+                  onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
+                  placeholder="Agenda / Other Details (Optional)"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                />
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Confirm & Add to Phone Calendar</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* TWO-WAY CONTACT EXCHANGE MODAL */}
       {showExchangeModal && (
@@ -2173,7 +3102,7 @@ export default function SmartTapApp() {
                 </div>
                 <h4 className="font-bold text-sm">Contact Shared!</h4>
                 <p className="text-xs text-slate-400">
-                  Your contact details have been sent directly to {profile.name || "the card owner"}.
+                  Your contact details have been saved to {profile.name || "the owner"}'s Contacts Inbox.
                 </p>
                 <button
                   type="button"
@@ -2272,35 +3201,40 @@ export default function SmartTapApp() {
         <p className={`text-xs ${theme.subtext}`}>Tap smarter. Share your world in one touch.</p>
         <p className={`text-[11px] ${theme.subtext}`}>
           Want to get your own SmartTap card?{" "}
-          <a href={TIKTOK_SHOP_URL} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline font-semibold">
+          <a href={TIKTOK_SHOP_URL} target="_blank" rel="noopener noreferrer" className={`${theme.accentText} hover:underline font-semibold`}>
             Order here on our TikTok Shop →
           </a>
         </p>
       </footer>
 
-      {/* SHARE PROFILE QR MODAL */}
+      {/* SHARE PROFILE MODAL (NATIVE PHONE SHARE SHEET + QR CODE) */}
       {showShareQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">Share Profile QR</span>
+              <span className="text-sm font-bold">Share SmartTap Profile</span>
               <button onClick={() => setShowShareQrModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
             </div>
             <div className="bg-white p-4 rounded-2xl inline-block mx-auto shadow-lg">
-              <img
-                src={qrImageSrc}
-                alt="SmartTap Profile QR Code"
-                className="w-48 h-48 object-contain"
-              />
+              <img src={qrImageSrc} alt="SmartTap Profile QR Code" className="w-48 h-48 object-contain" />
             </div>
-            <p className="text-xs text-slate-400">Scan camera to open this SmartTap profile instantly.</p>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(shareUrl, "qr_url")}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs inline-flex items-center justify-center gap-2 transition cursor-pointer"
-            >
-              <Copy className="w-4 h-4" /> {copiedId === "qr_url" ? "Link Copied!" : "Copy Profile Link"}
-            </button>
+            <p className="text-xs text-slate-400">Scan camera or tap Share Profile below to send via AirDrop, Messenger, or Viber.</p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleNativeShare(shareUrl)}
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs inline-flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-indigo-600/25"
+              >
+                <Share2 className="w-4 h-4" /> Share Profile (AirDrop / Messenger / Apps)
+              </button>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(shareUrl, "qr_url")}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs inline-flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" /> {copiedId === "qr_url" ? "Profile Link Copied!" : "Copy Profile Link"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2347,14 +3281,14 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* OWNER ANALYTICS & MESSAGES MODAL */}
+      {/* OWNER ANALYTICS & 4-TAB SEPARATED INBOX MODAL */}
       {showAnalyticsModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-base">Owner Analytics & Inbox</h3>
+                <h3 className="font-bold text-base">Owner Dashboard</h3>
               </div>
               <button onClick={() => setShowAnalyticsModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
@@ -2368,7 +3302,7 @@ export default function SmartTapApp() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">Owner Access Required</h4>
-                  <p className="text-xs text-slate-400 mt-1">Enter your password to view analytics and exchanged contacts.</p>
+                  <p className="text-xs text-slate-400 mt-1">Enter your password to view analytics, receipts, bookings, and contacts.</p>
                 </div>
                 <div className="space-y-2">
                   <input
@@ -2398,75 +3332,177 @@ export default function SmartTapApp() {
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tap Statistics</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                      <p className="text-[11px] text-slate-400">Last 1 Day</p>
-                      <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1d}</p>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                      <p className="text-[11px] text-slate-400">Last 1 Week</p>
-                      <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1w}</p>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                      <p className="text-[11px] text-slate-400">Last 1 Month</p>
-                      <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1m}</p>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                      <p className="text-[11px] text-slate-400">Total Taps</p>
-                      <p className="text-xl font-extrabold text-emerald-400 mt-1">{analytics.tapsTotal}</p>
-                    </div>
+                {/* Tap Statistics */}
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <p className="text-[10px] text-slate-400">1 Day</p>
+                    <p className="text-lg font-extrabold text-indigo-400 mt-0.5">{analytics.taps1d}</p>
+                  </div>
+                  <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <p className="text-[10px] text-slate-400">1 Week</p>
+                    <p className="text-lg font-extrabold text-indigo-400 mt-0.5">{analytics.taps1w}</p>
+                  </div>
+                  <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <p className="text-[10px] text-slate-400">1 Month</p>
+                    <p className="text-lg font-extrabold text-indigo-400 mt-0.5">{analytics.taps1m}</p>
+                  </div>
+                  <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <p className="text-[10px] text-slate-400">Total</p>
+                    <p className="text-lg font-extrabold text-emerald-400 mt-0.5">{analytics.tapsTotal}</p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold">Owner Credentials</p>
-                    {!isEditingCreds ? (
+                {/* 4 SEPARATED INBOX TABS */}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-4 gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+                    {[
+                      { id: "messages", label: "Inbox", count: messages.length },
+                      { id: "contacts", label: "Contacts", count: exchangedContacts.length },
+                      { id: "receipts", label: "Receipts", count: paymentReceipts.length },
+                      { id: "bookings", label: "Bookings", count: bookingsList.length }
+                    ].map((tab) => (
                       <button
+                        key={tab.id}
                         type="button"
-                        onClick={() => setIsEditingCreds(true)}
-                        className="text-xs text-indigo-400 hover:underline font-semibold cursor-pointer"
+                        onClick={() => setInboxTab(tab.id)}
+                        className={`py-2 px-1 rounded-xl text-[11px] font-bold transition cursor-pointer flex flex-col items-center ${
+                          inboxTab === tab.id ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-white"
+                        }`}
                       >
-                        Change Username / Password
+                        <span>{tab.label}</span>
+                        <span className="text-[9px] opacity-80">({tab.count})</span>
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingCreds(false)}
-                        className="text-xs text-slate-400 hover:underline cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    )}
+                    ))}
                   </div>
 
-                  {!isEditingCreds ? (
-                    <div className="text-xs space-y-1 text-slate-300">
-                      <p><span className="text-slate-500">Username:</span> {account?.identifier}</p>
-                      <p><span className="text-slate-500">Password:</span> ••••••••</p>
+                  {/* TAB 1: MESSAGES */}
+                  {inboxTab === "messages" && (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {messages.length === 0 ? (
+                        <p className="text-xs py-6 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">No messages received yet.</p>
+                      ) : (
+                        messages.map((m) => (
+                          <div key={m.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-white">{m.name}</span>
+                              <span className="text-[10px] text-slate-500">{m.date}</span>
+                            </div>
+                            {m.contact && <p className="text-[11px] text-indigo-400 font-mono">{m.contact}</p>}
+                            <p className="text-xs text-slate-300">{m.message}</p>
+                          </div>
+                        ))
+                      )}
                     </div>
+                  )}
+
+                  {/* TAB 2: EXCHANGED CONTACTS */}
+                  {inboxTab === "contacts" && (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {exchangedContacts.length === 0 ? (
+                        <p className="text-xs py-6 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">No contacts exchanged yet.</p>
+                      ) : (
+                        exchangedContacts.map((c) => (
+                          <div key={c.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-white">{c.name}</span>
+                              <span className="text-[10px] text-slate-500">{c.date}</span>
+                            </div>
+                            <p className="text-[11px] text-emerald-400 font-mono">{c.phone}</p>
+                            {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
+                            {c.social && <p className="text-[11px] text-slate-300">Note: {c.social}</p>}
+                            <button
+                              type="button"
+                              onClick={() => handleSaveContactVCard(c.name, c.phone, c.email, c.social)}
+                              className="mt-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
+                            >
+                              <UserPlus className="w-3 h-3" /> Save to Phone Contacts (.vcf)
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* TAB 3: PAYMENT RECEIPTS */}
+                  {inboxTab === "receipts" && (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {paymentReceipts.length === 0 ? (
+                        <p className="text-xs py-6 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">No payment receipts uploaded yet.</p>
+                      ) : (
+                        paymentReceipts.map((r) => (
+                          <div key={r.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">{r.bankName}</span>
+                              <p className="text-xs font-bold text-white truncate">{r.senderName}</p>
+                              {r.refNo && <p className="text-[11px] text-slate-400 font-mono truncate">Ref: {r.refNo}</p>}
+                              <p className="text-[10px] text-slate-500">{r.date}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setViewingReceiptImg(r.image)}
+                              className="shrink-0 cursor-pointer group relative"
+                            >
+                              <img src={r.image} alt="Receipt" className="w-14 h-16 object-cover rounded-lg border border-slate-700" />
+                              <span className="block text-[9px] text-indigo-400 mt-0.5 text-center font-semibold">View Full</span>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* TAB 4: BOOKINGS */}
+                  {inboxTab === "bookings" && (
+                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {bookingsList.length === 0 ? (
+                        <p className="text-xs py-6 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">No appointments booked yet.</p>
+                      ) : (
+                        bookingsList.map((b) => (
+                          <div key={b.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-indigo-400">{b.dayChoice} • {b.timeChoice}</span>
+                              <span className="text-[10px] text-slate-500">{b.date}</span>
+                            </div>
+                            <p className="text-xs font-bold text-white">{b.clientName} ({b.clientPhone})</p>
+                            <p className="text-[11px] text-slate-400">{b.title} • {b.location}</p>
+                            {b.notes && <p className="text-[11px] text-slate-300">Notes: {b.notes}</p>}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Owner Credentials */}
+                <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold">Owner Credentials</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingCreds(!isEditingCreds)}
+                      className="text-xs text-indigo-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      {isEditingCreds ? "Cancel" : "Change"}
+                    </button>
+                  </div>
+                  {!isEditingCreds ? (
+                    <p className="text-xs text-slate-400">Username: <span className="text-white">{account?.identifier}</span></p>
                   ) : (
-                    <div className="space-y-3 pt-1">
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">New Unique Username</label>
-                        <input
-                          type="text"
-                          value={editUser}
-                          onChange={(e) => setEditUser(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">New Password</label>
-                        <input
-                          type="password"
-                          value={editPass}
-                          onChange={(e) => setEditPass(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
-                        />
-                      </div>
+                    <div className="space-y-2 pt-1">
+                      <input
+                        type="text"
+                        value={editUser}
+                        onChange={(e) => setEditUser(e.target.value)}
+                        placeholder="New Username"
+                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                      />
+                      <input
+                        type="password"
+                        value={editPass}
+                        onChange={(e) => setEditPass(e.target.value)}
+                        placeholder="New Password"
+                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                      />
                       <button
                         type="button"
                         onClick={() => {
@@ -2474,46 +3510,12 @@ export default function SmartTapApp() {
                           setAccount(updatedAcc);
                           localStorage.setItem("smarttap_v32_account", JSON.stringify(updatedAcc));
                           setIsEditingCreds(false);
-                          alert("Credentials updated successfully!");
+                          alert("Credentials updated!");
                         }}
-                        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+                        className="w-full py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold cursor-pointer"
                       >
-                        Save New Credentials
+                        Save Credentials
                       </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-                    Inbox & Exchanged Contacts ({messages.length})
-                  </p>
-                  {messages.length === 0 ? (
-                    <p className="text-xs py-4 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">
-                      No messages or contacts received yet.
-                    </p>
-                  ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {messages.map((m) => (
-                        <div key={m.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-white">{m.name}</span>
-                            <span className="text-[10px] text-slate-500">{m.date}</span>
-                          </div>
-                          {m.contact && <p className="text-[11px] text-indigo-400 font-mono">Phone: {m.contact}</p>}
-                          <p className="text-xs text-slate-300">{m.message}</p>
-                          {m.isExchange && (
-                            <button
-                              type="button"
-                              onClick={() => handleSaveContactVCard(m.name, m.contact, m.email || "", m.message)}
-                              className="mt-1 px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <UserPlus className="w-3 h-3" /> Save to Phone Contacts (.vcf)
-                            </button>
-                          )}
-                        </div>
-                      ))}
                     </div>
                   )}
                 </div>
@@ -2526,6 +3528,18 @@ export default function SmartTapApp() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* FULL RECEIPT IMAGE LIGHTBOX */}
+      {viewingReceiptImg && (
+        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4" onClick={() => setViewingReceiptImg(null)}>
+          <div className="max-w-sm w-full space-y-3 text-center">
+            <img src={viewingReceiptImg} alt="Full Receipt" className="w-full max-h-[75vh] object-contain rounded-2xl border border-slate-700" />
+            <button type="button" onClick={() => setViewingReceiptImg(null)} className="px-5 py-2 rounded-full bg-white text-black text-xs font-bold cursor-pointer">
+              Close Receipt
+            </button>
           </div>
         </div>
       )}
