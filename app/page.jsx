@@ -9,7 +9,6 @@ import {
   Search, BarChart3, Send, Eye
 } from "lucide-react";
 
-// --- CONFIG & CONSTANTS ---
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttap.ph?is_from_webapp=1&sender_device=pc";
 
 const THEMES = {
@@ -124,7 +123,6 @@ const PAYMENT_PROVIDERS = [
   { id: "others", name: "Others (Other Banks / E-Wallet)", digits: null, label: "Account / Mobile Number", placeholder: "Enter account or mobile number", color: "bg-slate-600", badge: "OTH" }
 ];
 
-// --- COMPRESSOR ---
 const compressImage = (file, maxWidth = 600, quality = 0.75) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -150,7 +148,6 @@ const compressImage = (file, maxWidth = 600, quality = 0.75) => {
   });
 };
 
-// --- LOGO COMPONENT ---
 function BrandLogo({ size = "md" }) {
   const [imgError, setImgError] = useState(false);
   const dims = size === "lg" ? "w-14 h-14" : size === "sm" ? "w-6 h-6" : "w-9 h-9";
@@ -180,14 +177,12 @@ export default function SmartTapApp() {
   const [screen, setScreen] = useState("claim");
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Account State
-  const [account, setAccount] = useState(null); // { identifier, password }
-  const [authMode, setAuthMode] = useState("signup"); // 'signup' | 'login'
+  const [account, setAccount] = useState(null);
+  const [authMode, setAuthMode] = useState("signup");
   const [authIdentifier, setAuthIdentifier] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
 
-  // Profile State
   const [profile, setProfile] = useState({
     name: "",
     bio: "",
@@ -196,29 +191,24 @@ export default function SmartTapApp() {
     phone: "",
     email: "",
     theme: "default",
-    links: [], // { id, type('social'|'music'|'gaming'|'business'|'location'), platformId, label, url, gameDetails }
+    links: [],
     payments: [],
     location: { address: "", mapUrl: "" }
   });
 
-  // Modals & Interactive States
-  const [activeModal, setActiveModal] = useState(null); // 'social' | 'music' | 'gaming' | 'business' | 'payment'
+  const [activeModal, setActiveModal] = useState(null);
   const [selectedSubPlatform, setSelectedSubPlatform] = useState(null);
-  
-  // Input fields for modal
   const [inputField1, setInputField1] = useState("");
   const [inputField2, setInputField2] = useState("");
   const [inputField3, setInputField3] = useState("");
   const [modalError, setModalError] = useState("");
   const [payQrImage, setPayQrImage] = useState("");
 
-  // Top Right Modals (Search, Analytics & Account, Owner Lock)
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [analytics, setAnalytics] = useState({ taps1d: 12, taps1w: 48, taps1m: 165, tapsTotal: 420 });
 
-  // Contact Form State (Viewer side)
   const [contactForm, setContactForm] = useState({ name: "", contact: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
 
@@ -231,7 +221,6 @@ export default function SmartTapApp() {
   const galleryInputRef = useRef(null);
   const qrInputRef = useRef(null);
 
-  // Load saved data on mount
   useEffect(() => {
     try {
       const savedAccount = localStorage.getItem("smarttap_v3_account");
@@ -243,10 +232,8 @@ export default function SmartTapApp() {
       if (savedProfile) setProfile(JSON.parse(savedProfile));
       if (savedAnalytics) setAnalytics(JSON.parse(savedAnalytics));
 
-      // SMART ROUTING: If setup is done, always default taps to Viewers Page!
       if (savedSetupDone === "true" && savedProfile) {
         setScreen("view");
-        // Increment tap counter
         const currentAnalytics = savedAnalytics ? JSON.parse(savedAnalytics) : { taps1d: 12, taps1w: 48, taps1m: 165, tapsTotal: 420 };
         const updated = {
           taps1d: currentAnalytics.taps1d + 1,
@@ -265,7 +252,6 @@ export default function SmartTapApp() {
 
   const theme = THEMES[profile.theme] || THEMES.default;
 
-  // --- AUTH HANDLERS ---
   const handleManualAuth = (e) => {
     e.preventDefault();
     setAuthError("");
@@ -298,7 +284,6 @@ export default function SmartTapApp() {
     }
   };
 
-  // --- IMAGE UPLOAD HANDLERS ---
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -328,7 +313,6 @@ export default function SmartTapApp() {
     }));
   };
 
-  // --- ADD LINK (SOCIAL, MUSIC, BUSINESS) ---
   const saveLinkItem = (e) => {
     e.preventDefault();
     if (!inputField1.trim()) return;
@@ -352,7 +336,6 @@ export default function SmartTapApp() {
     setInputField1("");
   };
 
-  // --- ADD GAMING LINK ---
   const saveGamingItem = (e) => {
     e.preventDefault();
     if (!inputField1.trim()) return;
@@ -377,7 +360,6 @@ export default function SmartTapApp() {
     setInputField3("");
   };
 
-  // --- ADD PAYMENT ---
   const savePaymentItem = (e) => {
     e.preventDefault();
     setModalError("");
@@ -410,11 +392,10 @@ export default function SmartTapApp() {
     if (category === "payment") {
       setProfile((prev) => ({ ...prev, payments: prev.payments.filter((p) => p.id !== id) }));
     } else {
-      setProfile((prev) => ({ ...prev, links: prev.links.filter((l) => l.id !== id)) });
+      setProfile((prev) => ({ ...prev, links: prev.links.filter((l) => l.id !== id) }));
     }
   };
 
-  // --- SAVE PROFILE ---
   const handleSaveProfile = () => {
     localStorage.setItem("smarttap_v3_profile", JSON.stringify(profile));
     localStorage.setItem("smarttap_v3_setup_done", "true");
@@ -426,7 +407,6 @@ export default function SmartTapApp() {
     }, 600);
   };
 
-  // --- VIEWER ACTIONS ---
   const handleSaveContactVCard = () => {
     const vcard = [
       "BEGIN:VCARD",
@@ -476,9 +456,6 @@ export default function SmartTapApp() {
 
   if (!isLoaded) return null;
 
-  // ============================================================================
-  // SCREEN 1: CLAIM & SETUP WELCOME PAGE
-  // ============================================================================
   if (screen === "claim") {
     return (
       <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between p-6">
@@ -550,9 +527,6 @@ export default function SmartTapApp() {
     );
   }
 
-  // ============================================================================
-  // SCREEN 2: AUTHENTICATION (SIGNUP / LOGIN / OWNER LOCK)
-  // ============================================================================
   if (screen === "auth" || screen === "login_to_edit") {
     const isOwnerLock = screen === "login_to_edit";
 
@@ -634,9 +608,6 @@ export default function SmartTapApp() {
     );
   }
 
-  // ============================================================================
-  // SCREEN 3: EDIT YOUR SMARTTAP CARD (SETUP & EDITOR V3)
-  // ============================================================================
   if (screen === "edit") {
     return (
       <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-24`}>
@@ -662,7 +633,6 @@ export default function SmartTapApp() {
             </p>
           </div>
 
-          {/* 1. PROFILE SECTION */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <User className="w-5 h-5 text-indigo-400" />
@@ -755,7 +725,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* 2. FEATURED PHOTOS (UP TO 4) */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -793,7 +762,6 @@ export default function SmartTapApp() {
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
           </section>
 
-          {/* 3. CATEGORIES: SOCIAL, MUSIC, GAMING, BUSINESS, LOCATION */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -837,7 +805,6 @@ export default function SmartTapApp() {
               </button>
             </div>
 
-            {/* Added Links List */}
             {profile.links.length > 0 && (
               <div className="space-y-2.5 pt-2">
                 {profile.links.map((item) => (
@@ -866,7 +833,6 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* 4. LOCATION & MAPS */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <MapPin className="w-5 h-5 text-indigo-400" />
@@ -897,7 +863,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* 5. THEMES */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <Palette className="w-5 h-5 text-indigo-400" />
@@ -924,7 +889,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* 6. PAYMENT ACCOUNTS */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -988,7 +952,6 @@ export default function SmartTapApp() {
           </div>
         </div>
 
-        {/* MODAL FOR ADDING LINKS / PAYMENTS */}
         {activeModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
@@ -1135,13 +1098,9 @@ export default function SmartTapApp() {
     );
   }
 
-  // ============================================================================
-  // SCREEN 4: PUBLIC VIEWERS PAGE (LIVE SMARTTAP CARD PROFILE V3)
-  // ============================================================================
   return (
     <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4`}>
       <div className="max-w-md w-full mx-auto space-y-5">
-        {/* Top Bar: Brand Logo + Search Icon + Analytics/Account Icon + Owner Edit Icon */}
         <div className="flex items-center justify-between">
           <BrandLogo size="sm" />
           <div className="flex items-center gap-2">
@@ -1178,9 +1137,7 @@ export default function SmartTapApp() {
           </div>
         </div>
 
-        {/* Main Profile Card */}
         <div className={`rounded-3xl border p-6 space-y-6 shadow-xl ${theme.card}`}>
-          {/* Avatar & Name */}
           <div className="text-center space-y-3">
             <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-indigo-500/50 shadow-md bg-slate-800 flex items-center justify-center">
               {profile.avatar ? (
@@ -1204,7 +1161,6 @@ export default function SmartTapApp() {
             </div>
           </div>
 
-          {/* Featured Photos */}
           {profile.photos.length > 0 && (
             <div className={`grid gap-2 ${profile.photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
               {profile.photos.map((photo, index) => (
@@ -1215,7 +1171,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Contact buttons */}
           {(profile.phone || profile.email) && (
             <div className="space-y-2.5">
               {profile.phone && (
@@ -1239,7 +1194,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Location Pin */}
           {profile.location?.address && (
             <div className={`p-3.5 rounded-2xl border space-y-2 ${theme.pill}`}>
               <div className="flex items-center gap-2.5">
@@ -1263,7 +1217,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Links & Categories Section */}
           {profile.links.length > 0 && (
             <div className="space-y-2.5">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
@@ -1298,7 +1251,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Payment Section */}
           {profile.payments.length > 0 && (
             <div className="space-y-2.5">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
@@ -1345,7 +1297,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* LEAVE A MESSAGE / CONTACT FORM */}
           <div className={`p-4 rounded-2xl border space-y-3 ${theme.pill}`}>
             <p className="text-xs font-bold">Leave a Message</p>
             {contactSent ? (
@@ -1390,7 +1341,6 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="max-w-md w-full mx-auto text-center pt-8 pb-2 space-y-1.5">
         <div className="flex justify-center opacity-80"><BrandLogo size="sm" /></div>
         <p className={`text-xs ${theme.subtext}`}>Tap smarter. Share your world in one touch.</p>
@@ -1402,7 +1352,6 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
-      {/* SEARCH MODAL */}
       {showSearchModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 pt-20">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-4 space-y-3 shadow-2xl">
@@ -1440,7 +1389,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* OWNER ANALYTICS & ACCOUNT MODAL */}
       {showAnalyticsModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl">
@@ -1511,7 +1459,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* QR MODAL */}
       {activeQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
