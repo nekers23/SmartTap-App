@@ -81,12 +81,12 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const MUSIC_PLATFORMS = [
-  { id: "spotify", name: "Spotify", placeholder: "https://spotify.com/artist/...", badge: "SP" },
+  { id: "spotify", name: "Spotify", placeholder: "https://spotify.com/track/...", badge: "SP" },
   { id: "applemusic", name: "Apple Music", placeholder: "https://music.apple.com/...", badge: "AM" },
   { id: "youtubemusic", name: "YouTube Music", placeholder: "https://music.youtube.com/...", badge: "YM" },
   { id: "soundcloud", name: "SoundCloud", placeholder: "https://soundcloud.com/...", badge: "SC" },
   { id: "bandcamp", name: "Bandcamp", placeholder: "https://bandcamp.com/...", badge: "BC" },
-  { id: "music_other", name: "Other Music", placeholder: "https://...", badge: "♪" }
+  { id: "music_other", name: "Other Music Link", placeholder: "https://...", badge: "♪" }
 ];
 
 const GAMING_PLATFORMS = [
@@ -188,11 +188,11 @@ export default function SmartTapApp() {
     bio: "",
     avatar: "",
     photos: [],
-    featuredVideo: "", // Video URL or GIF
+    featuredVideo: "",
     phone: "",
     email: "",
     theme: "default",
-    verifiedBadge: { enabled: true, color: "text-blue-500" }, // Customizable badge
+    verifiedBadge: { enabled: true, color: "text-blue-500" },
     links: [],
     payments: [],
     locations: []
@@ -233,9 +233,9 @@ export default function SmartTapApp() {
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
 
-  // Music Player state simulation
+  // Music Player States
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(1);
+  const [musicVolume, setMusicVolume] = useState(0.8);
 
   const avatarInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -530,23 +530,8 @@ export default function SmartTapApp() {
               Claim & Setup Your SmartTap Card
             </h1>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Activate your personal digital profile. Share social links, music player, gaming IDs with deep-links, video, multiple locations, and payments.
+              Activate your personal digital profile. Share social links, music player, gaming IDs, video/GIF, locations, and payments.
             </p>
-          </div>
-
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 text-left space-y-3 text-sm text-slate-300">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-              <span>Secure owner login credentials</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-              <span>Music player with vinyl disc & Video/GIF loop</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-              <span>Direct viewer access & secure messages inbox</span>
-            </div>
           </div>
 
           <div className="space-y-3 pt-2">
@@ -607,9 +592,6 @@ export default function SmartTapApp() {
               <h2 className="text-xl font-bold">
                 {isOwnerLock ? "Owner Verification" : "Create SmartTap Account"}
               </h2>
-              <p className="text-xs text-slate-400">
-                {isOwnerLock ? "Enter your credentials to edit." : "Bind card to your secure account."}
-              </p>
             </div>
 
             <form onSubmit={handleManualAuth} className="space-y-4">
@@ -688,11 +670,10 @@ export default function SmartTapApp() {
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
-              Customize your info, verified badge, photos, featured video/GIF, links, music, gaming, locations, and payments.
+              Customize your info, verified badge, photos, video/GIF, links, music, gaming, locations, and payments.
             </p>
           </div>
 
-          {/* Profile Info & Verified Badge */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <User className="w-5 h-5 text-indigo-400" />
@@ -717,16 +698,17 @@ export default function SmartTapApp() {
                   className={`px-3 py-2 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 transition ${theme.pill}`}
                 >
                   <ImageIcon className="w-4 h-4 text-indigo-400" />
-                  Select from Photos
+                  Select Photo
                 </button>
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className={`px-3 py-2 rounded-xl border text-xs font-medium inline-flex items-center gap-1.5 transition ${theme.pill}`}
-                >
-                  <Camera className="w-4 h-4 text-indigo-400" />
-                  Take a Picture
-                </button>
+                {profile.avatar && (
+                  <button
+                    type="button"
+                    onClick={() => setProfile({ ...profile, avatar: "" })}
+                    className="px-3 py-2 rounded-xl border border-rose-500/30 text-rose-400 text-xs font-medium hover:bg-rose-500/10 transition"
+                  >
+                    Remove Photo
+                  </button>
+                )}
               </div>
             </div>
 
@@ -742,7 +724,6 @@ export default function SmartTapApp() {
                 />
               </div>
 
-              {/* Verified Badge Toggle & Color Picker */}
               <div className="p-3.5 rounded-xl border bg-slate-900/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold flex items-center gap-1.5">
@@ -818,7 +799,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Gallery Pictures & Featured Video/GIF */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -856,7 +836,7 @@ export default function SmartTapApp() {
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
             <div className="pt-2">
-              <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Featured Video URL / GIF Link (Optional)</label>
+              <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Featured Video / GIF Direct URL</label>
               <input
                 type="text"
                 value={profile.featuredVideo || ""}
@@ -867,7 +847,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Categories: Social, Music, Gaming, Business */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -939,7 +918,6 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* Multiple Locations */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -962,7 +940,7 @@ export default function SmartTapApp() {
 
             {profile.locations.length === 0 ? (
               <p className={`text-xs py-3 text-center rounded-xl border border-dashed border-slate-700/60 ${theme.subtext}`}>
-                No locations added yet. You can add multiple branches or stores.
+                No locations added yet.
               </p>
             ) : (
               <div className="space-y-2.5">
@@ -990,7 +968,6 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* Themes */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <Palette className="w-5 h-5 text-indigo-400" />
@@ -1017,7 +994,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Payments */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -1039,7 +1015,7 @@ export default function SmartTapApp() {
 
             {profile.payments.length === 0 ? (
               <p className={`text-xs py-3 text-center rounded-xl border border-dashed border-slate-700/60 ${theme.subtext}`}>
-                Add GCash, Maya, MariBank, GoTyme, BDO, or other banks with optional QR code.
+                Add GCash, Maya, MariBank, GoTyme, BDO, or other banks.
               </p>
             ) : (
               <div className="space-y-2.5">
@@ -1081,7 +1057,7 @@ export default function SmartTapApp() {
           </div>
         </div>
 
-        {/* MODAL FOR MULTIPLE LOCATIONS */}
+        {/* MODALS */}
         {showLocModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4">
@@ -1120,7 +1096,6 @@ export default function SmartTapApp() {
           </div>
         )}
 
-        {/* MODAL FOR LINKS & PAYMENTS */}
         {activeModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
@@ -1271,11 +1246,9 @@ export default function SmartTapApp() {
   return (
     <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4`}>
       <div className="max-w-md w-full mx-auto space-y-5">
-        {/* Top Navbar */}
         <div className="flex items-center justify-between">
           <BrandLogo size="sm" />
           <div className="flex items-center gap-2">
-            {/* Dark/Light / Theme Quick Switch */}
             <button
               type="button"
               onClick={() => {
@@ -1288,7 +1261,6 @@ export default function SmartTapApp() {
             >
               <Palette className="w-4 h-4 text-indigo-400" />
             </button>
-            {/* Share Profile QR Modal Button */}
             <button
               type="button"
               onClick={() => setShowShareQrModal(true)}
@@ -1336,19 +1308,14 @@ export default function SmartTapApp() {
           </div>
         </div>
 
-        {/* Main Profile Card */}
         <div className={`rounded-3xl border p-6 space-y-6 shadow-xl ${theme.card}`}>
-          {/* Avatar & Name */}
+          {/* Avatar & Name (Conditional avatar: if empty, no fallback circle) */}
           <div className="text-center space-y-3">
-            <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-indigo-500/50 shadow-md bg-slate-800 flex items-center justify-center">
-              {profile.avatar ? (
+            {profile.avatar && (
+              <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-indigo-500/50 shadow-md bg-slate-800 flex items-center justify-center">
                 <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-2xl font-bold text-indigo-400">
-                  {(profile.name || "ST").slice(0, 2).toUpperCase()}
-                </span>
-              )}
-            </div>
+              </div>
+            )}
 
             <div>
               <div className="inline-flex items-center justify-center gap-1.5">
@@ -1366,10 +1333,9 @@ export default function SmartTapApp() {
               )}
             </div>
 
-            {/* Copy Profile Link Quick Button */}
             <button
               type="button"
-              onClick={() => copyToClipboard(window.location.href, "profile_url")}
+              onClick={() => copyToClipboard(typeof window !== "undefined" ? window.location.href : "", "profile_url")}
               className={`px-3 py-1.5 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 mx-auto transition ${theme.pill}`}
             >
               {copiedId === "profile_url" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
@@ -1388,9 +1354,9 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Featured Video / GIF Loop (with interactive controls) */}
+          {/* Featured Video / GIF Loop (with full mobile support) */}
           {profile.featuredVideo && (
-            <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative group">
+            <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative shadow-inner">
               <video
                 src={profile.featuredVideo}
                 autoPlay
@@ -1435,7 +1401,7 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Multiple Locations Display */}
+          {/* Locations */}
           {profile.locations && profile.locations.length > 0 && (
             <div className="space-y-2.5">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
@@ -1467,26 +1433,26 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Categorized Links with Dividers & Music Player / Gaming Deep Links */}
+          {/* Links & Categories */}
           {profile.links.length > 0 && (
             <div className="space-y-4">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
                 Links & Categories
               </p>
 
-              {/* Special Music Player Header Card if music link exists */}
-              {profile.links.some(l => l.type === "music") && (
-                <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme.pill}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white ${isPlayingMusic ? "animate-spin" : ""}`}>
+              {/* Dynamic Music Player Card with real title */}
+              {profile.links.filter(l => l.type === "music").map(musicItem => (
+                <div key={musicItem.id} className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme.pill}`}>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shrink-0 ${isPlayingMusic ? "animate-spin" : ""}`}>
                       <Music className="w-5 h-5" />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold">SmartTap Audio Player</p>
-                      <p className={`text-[10px] ${theme.subtext}`}>Vinyl Disc Player & Volume</p>
+                    <div className="truncate flex-1">
+                      <p className="text-xs font-bold truncate">{musicItem.label}</p>
+                      <p className={`text-[10px] truncate ${theme.subtext}`}>Audio Track Player</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
                     <button
                       type="button"
                       onClick={() => setIsPlayingMusic(!isPlayingMusic)}
@@ -1494,13 +1460,22 @@ export default function SmartTapApp() {
                     >
                       {isPlayingMusic ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                     </button>
+                    <a
+                      href={musicItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-400 transition"
+                      title="Open Link"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
                   </div>
                 </div>
-              )}
+              ))}
 
               {["social", "music", "gaming", "business"].map((catKey) => {
-                const catLinks = profile.links.filter(l => l.type === catKey);
-                if (catLinks.length === 0) return null;
+                const catLinks = profile.links.filter(l => l.type === catKey && l.type !== "music");
+                if (catKey === "music" || catLinks.length === 0) return null;
 
                 return (
                   <div key={catKey} className="space-y-2 pt-1 border-t border-slate-700/50 first:border-t-0 first:pt-0">
@@ -1541,7 +1516,7 @@ export default function SmartTapApp() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
-                                  title="Open App / Fallback Store"
+                                  title="Open App"
                                 >
                                   <span>Open</span>
                                   <ExternalLink className="w-3 h-3" />
@@ -1670,21 +1645,20 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
-      {/* SHARE PROFILE QR MODAL */}
+      {/* SHARE PROFILE QR MODAL (Fixed display) */}
       {showShareQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">Scan to View Profile</span>
+              <span className="text-sm font-bold">Share Profile</span>
               <button onClick={() => setShowShareQrModal(false)} className="p-1 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="bg-white p-4 rounded-2xl inline-block mx-auto">
-              {/* Simulated QR representing profile URL */}
-              <div className="w-48 h-48 bg-slate-900 rounded-xl flex items-center p-2 justify-center text-center text-xs text-white font-mono break-all">
+              <div className="w-48 h-48 bg-slate-900 rounded-xl flex items-center p-3 justify-center text-center text-xs text-white font-mono break-all overflow-hidden">
                 {typeof window !== "undefined" ? window.location.href : "SmartTap Profile"}
               </div>
             </div>
-            <p className="text-xs text-slate-400">Have someone scan this QR code to instantly open this SmartTap card.</p>
+            <p className="text-xs text-slate-400">Scan or copy link to share this profile instantly.</p>
             <button
               type="button"
               onClick={() => copyToClipboard(typeof window !== "undefined" ? window.location.href : "", "qr_url")}
@@ -1734,7 +1708,7 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* OWNER ANALYTICS & SECURED ACCOUNT + MESSAGES MODAL */}
+      {/* OWNER ANALYTICS & MESSAGES MODAL */}
       {showAnalyticsModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1755,7 +1729,7 @@ export default function SmartTapApp() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">Owner Access Required</h4>
-                  <p className="text-xs text-slate-400 mt-1">Enter your account password to view analytics and inbox messages.</p>
+                  <p className="text-xs text-slate-400 mt-1">Enter your password to view analytics and inbox messages.</p>
                 </div>
                 <div className="space-y-2">
                   <input
