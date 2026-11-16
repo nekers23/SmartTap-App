@@ -6,7 +6,7 @@ import {
   Phone, Mail, Globe, Share2, Download, Copy, Check, Camera, Image as ImageIcon,
   Pencil, Lock, LogOut, ArrowLeft, Smartphone, Building2, QrCode, Sparkles,
   ExternalLink, UserPlus, CheckCircle2, X, ShieldCheck, Music, Gamepad2, MapPin,
-  Search, BarChart3, Send, Eye
+  Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Sun, Moon, Play, Pause, Volume2, VolumeX
 } from "lucide-react";
 
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttap.ph?is_from_webapp=1&sender_device=pc";
@@ -67,60 +67,59 @@ const THEMES = {
 };
 
 const SOCIAL_PLATFORMS = [
-  { id: "facebook", name: "Facebook", color: "bg-blue-600", placeholder: "https://facebook.com/username", badge: "FB" },
-  { id: "instagram", name: "Instagram", color: "bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600", placeholder: "https://instagram.com/username", badge: "IG" },
-  { id: "tiktok", name: "TikTok", color: "bg-neutral-900", placeholder: "https://tiktok.com/@username", badge: "TT" },
-  { id: "youtube", name: "YouTube", color: "bg-red-600", placeholder: "https://youtube.com/@channel", badge: "YT" },
-  { id: "x", name: "X (Twitter)", color: "bg-neutral-800", placeholder: "https://x.com/username", badge: "X" },
-  { id: "snapchat", name: "Snapchat", color: "bg-yellow-400 text-black", placeholder: "https://snapchat.com/add/username", badge: "SC" },
-  { id: "whatsapp", name: "WhatsApp", color: "bg-emerald-500", placeholder: "https://wa.me/639123456789", badge: "WA" },
-  { id: "telegram", name: "Telegram", color: "bg-sky-500", placeholder: "https://t.me/username", badge: "TG" },
-  { id: "discord", name: "Discord", color: "bg-indigo-500", placeholder: "https://discord.gg/invite or Username", badge: "DC" },
-  { id: "viber", name: "Viber", color: "bg-purple-600", placeholder: "viber://chat?number=%2B639123456789", badge: "VB" },
-  { id: "email", name: "Email", color: "bg-rose-500", placeholder: "you@gmail.com", badge: "@" },
-  { id: "custom", name: "Custom URL", color: "bg-slate-600", placeholder: "https://...", badge: "URL" }
+  { id: "facebook", name: "Facebook", placeholder: "https://facebook.com/username", badge: "FB" },
+  { id: "instagram", name: "Instagram", placeholder: "https://instagram.com/username", badge: "IG" },
+  { id: "tiktok", name: "TikTok", placeholder: "https://tiktok.com/@username", badge: "TT" },
+  { id: "youtube", name: "YouTube", placeholder: "https://youtube.com/@channel", badge: "YT" },
+  { id: "x", name: "X (Twitter)", placeholder: "https://x.com/username", badge: "X" },
+  { id: "snapchat", name: "Snapchat", placeholder: "https://snapchat.com/add/username", badge: "SC" },
+  { id: "whatsapp", name: "WhatsApp", placeholder: "https://wa.me/639123456789", badge: "WA" },
+  { id: "telegram", name: "Telegram", placeholder: "https://t.me/username", badge: "TG" },
+  { id: "discord", name: "Discord", placeholder: "https://discord.gg/invite", badge: "DC" },
+  { id: "viber", name: "Viber", placeholder: "viber://chat?number=...", badge: "VB" },
+  { id: "custom", name: "Custom URL", placeholder: "https://...", badge: "URL" }
 ];
 
 const MUSIC_PLATFORMS = [
-  { id: "spotify", name: "Spotify", color: "bg-emerald-600", placeholder: "https://spotify.com/artist/...", badge: "SP" },
-  { id: "applemusic", name: "Apple Music", color: "bg-rose-600", placeholder: "https://music.apple.com/...", badge: "AM" },
-  { id: "youtubemusic", name: "YouTube Music", color: "bg-red-600", placeholder: "https://music.youtube.com/...", badge: "YM" },
-  { id: "soundcloud", name: "SoundCloud", color: "bg-orange-500", placeholder: "https://soundcloud.com/...", badge: "SC" },
-  { id: "bandcamp", name: "Bandcamp", color: "bg-cyan-700", placeholder: "https://bandcamp.com/...", badge: "BC" },
-  { id: "music_other", name: "Other Music Link", color: "bg-slate-600", placeholder: "https://...", badge: "♪" }
+  { id: "spotify", name: "Spotify", placeholder: "https://spotify.com/artist/...", badge: "SP" },
+  { id: "applemusic", name: "Apple Music", placeholder: "https://music.apple.com/...", badge: "AM" },
+  { id: "youtubemusic", name: "YouTube Music", placeholder: "https://music.youtube.com/...", badge: "YM" },
+  { id: "soundcloud", name: "SoundCloud", placeholder: "https://soundcloud.com/...", badge: "SC" },
+  { id: "bandcamp", name: "Bandcamp", placeholder: "https://bandcamp.com/...", badge: "BC" },
+  { id: "music_other", name: "Other Music", placeholder: "https://...", badge: "♪" }
 ];
 
 const GAMING_PLATFORMS = [
-  { id: "mlbb", name: "Mobile Legends (MLBB)", color: "bg-blue-600", badge: "ML", fields: ["Game ID", "Server ID"] },
-  { id: "valorant", name: "Valorant", color: "bg-red-600", badge: "VAL", fields: ["Riot ID + Tagline (e.g. Player#PH1)"] },
-  { id: "roblox", name: "Roblox", color: "bg-neutral-800", badge: "RBX", fields: ["Username or Display Name"] },
-  { id: "codm", name: "CODM", color: "bg-amber-700", badge: "COD", fields: ["Exact In-Game Username"] },
-  { id: "dota2", name: "Dota 2", color: "bg-rose-800", badge: "D2", fields: ["Steam Friend Code / ID"] },
-  { id: "lol", name: "League of Legends", color: "bg-blue-800", badge: "LOL", fields: ["Riot ID + Tagline"] },
-  { id: "game_other", name: "Other Game", color: "bg-slate-600", badge: "GAME", fields: ["Game Name", "IGN / Username", "Player ID / Server"] }
+  { id: "mlbb", name: "Mobile Legends (MLBB)", badge: "ML", fields: ["Game ID", "Server ID"] },
+  { id: "valorant", name: "Valorant", badge: "VAL", fields: ["Riot ID + Tagline (e.g. Player#PH1)"] },
+  { id: "roblox", name: "Roblox", badge: "RBX", fields: ["Username or Display Name"] },
+  { id: "codm", name: "CODM", badge: "COD", fields: ["Exact In-Game Username"] },
+  { id: "dota2", name: "Dota 2", badge: "D2", fields: ["Steam Friend Code / ID"] },
+  { id: "lol", name: "League of Legends", badge: "LOL", fields: ["Riot ID + Tagline"] },
+  { id: "game_other", name: "Other Game", badge: "GAME", fields: ["Game Name", "IGN / Username", "Player ID / Server"] }
 ];
 
 const BUSINESS_PLATFORMS = [
-  { id: "shopee", name: "Shopee Store", color: "bg-orange-600", placeholder: "https://shopee.ph/...", badge: "SHP" },
-  { id: "lazada", name: "Lazada Store", color: "bg-indigo-700", placeholder: "https://lazada.com.ph/...", badge: "LZD" },
-  { id: "tiktokshop", name: "TikTok Shop", color: "bg-neutral-900", placeholder: "https://tiktok.com/@...", badge: "TT" },
-  { id: "carousell", name: "Carousell", color: "bg-teal-600", placeholder: "https://carousell.ph/...", badge: "CRS" },
-  { id: "website", name: "Official Website", color: "bg-blue-600", placeholder: "https://yourwebsite.com", badge: "WEB" },
-  { id: "business_other", name: "Other Business Link", color: "bg-slate-600", placeholder: "https://...", badge: "BIZ" }
+  { id: "shopee", name: "Shopee Store", placeholder: "https://shopee.ph/...", badge: "SHP" },
+  { id: "lazada", name: "Lazada Store", placeholder: "https://lazada.com.ph/...", badge: "LZD" },
+  { id: "tiktokshop", name: "TikTok Shop", placeholder: "https://tiktok.com/@...", badge: "TT" },
+  { id: "carousell", name: "Carousell", placeholder: "https://carousell.ph/...", badge: "CRS" },
+  { id: "website", name: "Official Website", placeholder: "https://yourwebsite.com", badge: "WEB" },
+  { id: "business_other", name: "Other Business", placeholder: "https://...", badge: "BIZ" }
 ];
 
 const PAYMENT_PROVIDERS = [
-  { id: "gcash", name: "GCash", digits: 11, label: "11-digit Mobile Number (09XX...)", placeholder: "09171234567", color: "bg-blue-600", badge: "G" },
-  { id: "maya", name: "Maya (Personal)", digits: 11, label: "11-digit Mobile Number (09XX...)", placeholder: "09181234567", color: "bg-emerald-600", badge: "M" },
-  { id: "mayabusiness", name: "Maya Business", digits: 12, label: "12-digit Account Number (starts with 9)", placeholder: "900123456789", color: "bg-teal-700", badge: "MB" },
-  { id: "maribank", name: "MariBank (SeaBank)", digits: 11, label: "11-digit Account Number", placeholder: "10234567890", color: "bg-orange-500", badge: "SB" },
-  { id: "gotyme", name: "GoTyme Bank", digits: 12, label: "12-digit Account Number", placeholder: "012345678901", color: "bg-cyan-600", badge: "GT" },
-  { id: "bdo", name: "BDO", digits: 12, label: "12-digit Account Number", placeholder: "001234567890", color: "bg-blue-800", badge: "BDO" },
-  { id: "bpi", name: "BPI", digits: 10, label: "10-digit Account Number", placeholder: "1234567890", color: "bg-red-700", badge: "BPI" },
-  { id: "landbank", name: "Landbank", digits: 10, label: "10-digit Account Number", placeholder: "1234567890", color: "bg-green-700", badge: "LBP" },
-  { id: "metrobank", name: "Metrobank", digits: 13, label: "13-digit Account Number", placeholder: "1234567890123", color: "bg-blue-700", badge: "MBTC" },
-  { id: "chinabank", name: "China Bank", digits: 12, label: "12-digit Account Number", placeholder: "123456789012", color: "bg-rose-700", badge: "CBC" },
-  { id: "others", name: "Others (Other Banks / E-Wallet)", digits: null, label: "Account / Mobile Number", placeholder: "Enter account or mobile number", color: "bg-slate-600", badge: "OTH" }
+  { id: "gcash", name: "GCash", digits: 11, label: "11-digit Mobile Number (09XX...)", placeholder: "09171234567", badge: "G" },
+  { id: "maya", name: "Maya (Personal)", digits: 11, label: "11-digit Mobile Number (09XX...)", placeholder: "09181234567", badge: "M" },
+  { id: "mayabusiness", name: "Maya Business", digits: 12, label: "12-digit Account Number", placeholder: "900123456789", badge: "MB" },
+  { id: "maribank", name: "MariBank (SeaBank)", digits: 11, label: "11-digit Account Number", placeholder: "10234567890", badge: "SB" },
+  { id: "gotyme", name: "GoTyme Bank", digits: 12, label: "12-digit Account Number", placeholder: "012345678901", badge: "GT" },
+  { id: "bdo", name: "BDO", digits: 12, label: "12-digit Account Number", placeholder: "001234567890", badge: "BDO" },
+  { id: "bpi", name: "BPI", digits: 10, label: "10-digit Account Number", placeholder: "1234567890", badge: "BPI" },
+  { id: "landbank", name: "Landbank", digits: 10, label: "10-digit Account Number", placeholder: "1234567890", badge: "LBP" },
+  { id: "metrobank", name: "Metrobank", digits: 13, label: "13-digit Account Number", placeholder: "1234567890123", badge: "MBTC" },
+  { id: "chinabank", name: "China Bank", digits: 12, label: "12-digit Account Number", placeholder: "123456789012", badge: "CBC" },
+  { id: "others", name: "Others (Bank / E-Wallet)", digits: null, label: "Account / Mobile Number", placeholder: "Enter account number", badge: "OTH" }
 ];
 
 const compressImage = (file, maxWidth = 600, quality = 0.75) => {
@@ -181,6 +180,7 @@ export default function SmartTapApp() {
   const [authMode, setAuthMode] = useState("signup");
   const [authIdentifier, setAuthIdentifier] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [showAuthPass, setShowAuthPass] = useState(false);
   const [authError, setAuthError] = useState("");
 
   const [profile, setProfile] = useState({
@@ -188,12 +188,14 @@ export default function SmartTapApp() {
     bio: "",
     avatar: "",
     photos: [],
+    featuredVideo: "", // Video URL or GIF
     phone: "",
     email: "",
     theme: "default",
+    verifiedBadge: { enabled: true, color: "text-blue-500" }, // Customizable badge
     links: [],
     payments: [],
-    location: { address: "", mapUrl: "" }
+    locations: []
   });
 
   const [activeModal, setActiveModal] = useState(null);
@@ -204,17 +206,36 @@ export default function SmartTapApp() {
   const [modalError, setModalError] = useState("");
   const [payQrImage, setPayQrImage] = useState("");
 
+  const [showLocModal, setShowLocModal] = useState(false);
+  const [locAddress, setLocAddress] = useState("");
+  const [locMapUrl, setLocMapUrl] = useState("");
+
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
-  const [analytics, setAnalytics] = useState({ taps1d: 12, taps1w: 48, taps1m: 165, tapsTotal: 420 });
+  const [showShareQrModal, setShowShareQrModal] = useState(false);
 
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [analyticsPin, setAnalyticsPin] = useState("");
+  const [analyticsUnlocked, setAnalyticsUnlocked] = useState(false);
+  const [analyticsPinError, setAnalyticsPinError] = useState("");
+  const [analytics, setAnalytics] = useState({ taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 });
+
+  const [isEditingCreds, setIsEditingCreds] = useState(false);
+  const [editUser, setEditUser] = useState("");
+  const [editPass, setEditPass] = useState("");
+  const [showEditPass, setShowEditPass] = useState(false);
+
+  const [messages, setMessages] = useState([]);
   const [contactForm, setContactForm] = useState({ name: "", contact: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
 
   const [copiedId, setCopiedId] = useState(null);
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
+
+  // Music Player state simulation
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(1);
 
   const avatarInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -223,18 +244,25 @@ export default function SmartTapApp() {
 
   useEffect(() => {
     try {
-      const savedAccount = localStorage.getItem("smarttap_v3_account");
-      const savedProfile = localStorage.getItem("smarttap_v3_profile");
-      const savedSetupDone = localStorage.getItem("smarttap_v3_setup_done");
-      const savedAnalytics = localStorage.getItem("smarttap_v3_analytics");
+      const savedAccount = localStorage.getItem("smarttap_v32_account");
+      const savedProfile = localStorage.getItem("smarttap_v32_profile");
+      const savedSetupDone = localStorage.getItem("smarttap_v32_setup_done");
+      const savedAnalytics = localStorage.getItem("smarttap_v32_analytics");
+      const savedMessages = localStorage.getItem("smarttap_v32_messages");
 
-      if (savedAccount) setAccount(JSON.parse(savedAccount));
+      if (savedAccount) {
+        const acc = JSON.parse(savedAccount);
+        setAccount(acc);
+        setEditUser(acc.identifier || "");
+        setEditPass(acc.password || "");
+      }
       if (savedProfile) setProfile(JSON.parse(savedProfile));
-      if (savedAnalytics) setAnalytics(JSON.parse(savedAnalytics));
+      if (savedMessages) setMessages(JSON.parse(savedMessages));
+
+      const currentAnalytics = savedAnalytics ? JSON.parse(savedAnalytics) : { taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 };
 
       if (savedSetupDone === "true" && savedProfile) {
         setScreen("view");
-        const currentAnalytics = savedAnalytics ? JSON.parse(savedAnalytics) : { taps1d: 12, taps1w: 48, taps1m: 165, tapsTotal: 420 };
         const updated = {
           taps1d: currentAnalytics.taps1d + 1,
           taps1w: currentAnalytics.taps1w + 1,
@@ -242,7 +270,9 @@ export default function SmartTapApp() {
           tapsTotal: currentAnalytics.tapsTotal + 1
         };
         setAnalytics(updated);
-        localStorage.setItem("smarttap_v3_analytics", JSON.stringify(updated));
+        localStorage.setItem("smarttap_v32_analytics", JSON.stringify(updated));
+      } else {
+        setAnalytics(currentAnalytics);
       }
     } catch (e) {
       console.error("Failed to load local data:", e);
@@ -257,17 +287,16 @@ export default function SmartTapApp() {
     setAuthError("");
 
     if (!authIdentifier.trim() || !authPassword.trim()) {
-      setAuthError("Please enter your username/email/phone and password.");
+      setAuthError("Please enter username and password.");
       return;
     }
 
     if (authMode === "signup") {
-      const newAcc = {
-        identifier: authIdentifier.trim(),
-        password: authPassword.trim()
-      };
+      const newAcc = { identifier: authIdentifier.trim(), password: authPassword.trim() };
       setAccount(newAcc);
-      localStorage.setItem("smarttap_v3_account", JSON.stringify(newAcc));
+      setEditUser(newAcc.identifier);
+      setEditPass(newAcc.password);
+      localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
       setScreen("edit");
     } else {
       if (
@@ -279,7 +308,7 @@ export default function SmartTapApp() {
         setAuthPassword("");
         setScreen("edit");
       } else {
-        setAuthError("Incorrect username or password. Please try again.");
+        setAuthError("Incorrect username or password.");
       }
     }
   };
@@ -327,6 +356,7 @@ export default function SmartTapApp() {
       type: activeModal,
       platformId: selectedSubPlatform.id,
       label: selectedSubPlatform.name,
+      badge: selectedSubPlatform.badge,
       url: finalUrl
     };
 
@@ -345,6 +375,7 @@ export default function SmartTapApp() {
       type: "gaming",
       platformId: selectedSubPlatform.id,
       label: selectedSubPlatform.name,
+      badge: selectedSubPlatform.badge,
       gameDetails: {
         field1: inputField1.trim(),
         field2: inputField2.trim(),
@@ -388,17 +419,29 @@ export default function SmartTapApp() {
     setPayQrImage("");
   };
 
+  const saveLocationItem = (e) => {
+    e.preventDefault();
+    if (!locAddress.trim()) return;
+    const newLoc = { id: Date.now(), address: locAddress.trim(), mapUrl: locMapUrl.trim() };
+    setProfile((prev) => ({ ...prev, locations: [...prev.locations, newLoc] }));
+    setLocAddress("");
+    setLocMapUrl("");
+    setShowLocModal(false);
+  };
+
   const removeItem = (id, category) => {
     if (category === "payment") {
       setProfile((prev) => ({ ...prev, payments: prev.payments.filter((p) => p.id !== id) }));
+    } else if (category === "location") {
+      setProfile((prev) => ({ ...prev, locations: prev.locations.filter((l) => l.id !== id) }));
     } else {
       setProfile((prev) => ({ ...prev, links: prev.links.filter((l) => l.id !== id) }));
     }
   };
 
   const handleSaveProfile = () => {
-    localStorage.setItem("smarttap_v3_profile", JSON.stringify(profile));
-    localStorage.setItem("smarttap_v3_setup_done", "true");
+    localStorage.setItem("smarttap_v32_profile", JSON.stringify(profile));
+    localStorage.setItem("smarttap_v32_setup_done", "true");
     setSaveToast(true);
     setTimeout(() => {
       setSaveToast(false);
@@ -449,6 +492,16 @@ export default function SmartTapApp() {
   const handleSendContactMessage = (e) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.message) return;
+    const newMsg = {
+      id: Date.now(),
+      name: contactForm.name.trim(),
+      contact: contactForm.contact.trim(),
+      message: contactForm.message.trim(),
+      date: new Date().toLocaleString()
+    };
+    const updatedMsgs = [newMsg, ...messages];
+    setMessages(updatedMsgs);
+    localStorage.setItem("smarttap_v32_messages", JSON.stringify(updatedMsgs));
     setContactSent(true);
     setContactForm({ name: "", contact: "", message: "" });
     setTimeout(() => setContactSent(false), 4000);
@@ -456,6 +509,7 @@ export default function SmartTapApp() {
 
   if (!isLoaded) return null;
 
+  // --- SCREEN 1: CLAIM ---
   if (screen === "claim") {
     return (
       <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between p-6">
@@ -476,22 +530,22 @@ export default function SmartTapApp() {
               Claim & Setup Your SmartTap Card
             </h1>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Activate your personal digital profile. Share your social links, music, gaming IDs, business stores, and payments with a single tap.
+              Activate your personal digital profile. Share social links, music player, gaming IDs with deep-links, video, multiple locations, and payments.
             </p>
           </div>
 
           <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 text-left space-y-3 text-sm text-slate-300">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-              <span>Create your owner login to protect your profile</span>
+              <span>Secure owner login credentials</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-              <span>Customize music, gaming, location & QR codes</span>
+              <span>Music player with vinyl disc & Video/GIF loop</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-indigo-400 shrink-0" />
-              <span>Direct live viewer access on every NFC tap</span>
+              <span>Direct viewer access & secure messages inbox</span>
             </div>
           </div>
 
@@ -527,6 +581,7 @@ export default function SmartTapApp() {
     );
   }
 
+  // --- SCREEN 2: AUTH ---
   if (screen === "auth" || screen === "login_to_edit") {
     const isOwnerLock = screen === "login_to_edit";
 
@@ -553,17 +608,13 @@ export default function SmartTapApp() {
                 {isOwnerLock ? "Owner Verification" : "Create SmartTap Account"}
               </h2>
               <p className="text-xs text-slate-400">
-                {isOwnerLock
-                  ? "Enter your account credentials to edit your profile."
-                  : "Bind this SmartTap card to your secure account."}
+                {isOwnerLock ? "Enter your credentials to edit." : "Bind card to your secure account."}
               </p>
             </div>
 
             <form onSubmit={handleManualAuth} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                  Username, Email, or Phone Number
-                </label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Username or Email</label>
                 <input
                   type="text"
                   required
@@ -575,17 +626,24 @@ export default function SmartTapApp() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500"
-                />
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                <div className="relative">
+                  <input
+                    type={showAuthPass ? "text" : "password"}
+                    required
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPass(!showAuthPass)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    {showAuthPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {authError && (
@@ -608,6 +666,7 @@ export default function SmartTapApp() {
     );
   }
 
+  // --- SCREEN 3: EDIT PROFILE ---
   if (screen === "edit") {
     return (
       <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-24`}>
@@ -629,14 +688,15 @@ export default function SmartTapApp() {
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
-              Customize your info, social links, music, gaming profiles, business links, and bank QR codes.
+              Customize your info, verified badge, photos, featured video/GIF, links, music, gaming, locations, and payments.
             </p>
           </div>
 
+          {/* Profile Info & Verified Badge */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <User className="w-5 h-5 text-indigo-400" />
-              <h2>Profile Information</h2>
+              <h2>Profile Information & Badge</h2>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
@@ -670,7 +730,7 @@ export default function SmartTapApp() {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2">
               <div>
                 <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Full Name</label>
                 <input
@@ -680,6 +740,46 @@ export default function SmartTapApp() {
                   placeholder="Juan Dela Cruz"
                   className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
                 />
+              </div>
+
+              {/* Verified Badge Toggle & Color Picker */}
+              <div className="p-3.5 rounded-xl border bg-slate-900/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-blue-400" /> Verified Checkmark Badge
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={profile.verifiedBadge?.enabled ?? true}
+                    onChange={(e) => setProfile({
+                      ...profile,
+                      verifiedBadge: { ...profile.verifiedBadge, enabled: e.target.checked }
+                    })}
+                    className="w-4 h-4 accent-indigo-600 rounded"
+                  />
+                </div>
+                {profile.verifiedBadge?.enabled && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className={`text-[11px] ${theme.subtext}`}>Badge Color:</span>
+                    {[
+                      { id: "text-blue-500", name: "Blue", bg: "bg-blue-500" },
+                      { id: "text-amber-400", name: "Gold", bg: "bg-amber-400" },
+                      { id: "text-emerald-500", name: "Green", bg: "bg-emerald-500" },
+                      { id: "text-pink-500", name: "Pink", bg: "bg-pink-500" }
+                    ].map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setProfile({
+                          ...profile,
+                          verifiedBadge: { ...profile.verifiedBadge, color: c.id }
+                        })}
+                        className={`w-6 h-6 rounded-full ${c.bg} border-2 ${profile.verifiedBadge?.color === c.id ? "border-white scale-110" : "border-transparent"} transition`}
+                        title={c.name}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -696,42 +796,36 @@ export default function SmartTapApp() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Phone Number</label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      placeholder="09171234567"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
-                    />
-                  </div>
+                  <input
+                    type="tel"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="09171234567"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                  />
                 </div>
-
                 <div>
                   <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Email Address</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      placeholder="you@gmail.com"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    placeholder="you@gmail.com"
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+                  />
                 </div>
               </div>
             </div>
           </section>
 
+          {/* Gallery Pictures & Featured Video/GIF */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
                 <ImageIcon className="w-5 h-5 text-indigo-400" />
-                <h2>Featured Gallery Pictures (Up to 4)</h2>
+                <h2>Featured Photos & Video / GIF</h2>
               </div>
-              <span className={`text-xs ${theme.subtext}`}>{profile.photos.length}/4</span>
+              <span className={`text-xs ${theme.subtext}`}>{profile.photos.length}/4 Photos</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -760,8 +854,20 @@ export default function SmartTapApp() {
               )}
             </div>
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
+
+            <div className="pt-2">
+              <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Featured Video URL / GIF Link (Optional)</label>
+              <input
+                type="text"
+                value={profile.featuredVideo || ""}
+                onChange={(e) => setProfile({ ...profile, featuredVideo: e.target.value })}
+                placeholder="https://... (mp4 video or gif link)"
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
+              />
+            </div>
           </section>
 
+          {/* Categories: Social, Music, Gaming, Business */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -810,13 +916,13 @@ export default function SmartTapApp() {
                 {profile.links.map((item) => (
                   <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 uppercase">
-                        {item.type.slice(0, 3)}
+                      <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0 uppercase shadow">
+                        {item.badge || item.type.slice(0, 2)}
                       </span>
                       <div className="truncate">
                         <p className="text-sm font-semibold truncate">{item.label}</p>
                         <p className={`text-xs truncate ${theme.subtext}`}>
-                          {item.url || `${item.gameDetails?.field1} | ${item.gameDetails?.field2 || ""}`}
+                          {item.url || `${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `• ${item.gameDetails.field2}` : ""}`}
                         </p>
                       </div>
                     </div>
@@ -833,40 +939,62 @@ export default function SmartTapApp() {
             )}
           </section>
 
+          {/* Multiple Locations */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
-            <div className="flex items-center gap-2 font-semibold text-base">
-              <MapPin className="w-5 h-5 text-indigo-400" />
-              <h2>Location / Pickup Store</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold text-base">
+                <MapPin className="w-5 h-5 text-indigo-400" />
+                <h2>Locations / Pickup Stores ({profile.locations.length})</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLocAddress("");
+                  setLocMapUrl("");
+                  setShowLocModal(true);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition ${theme.accent}`}
+              >
+                <Plus className="w-4 h-4" />
+                Add Location
+              </button>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Store Address / Description</label>
-                <input
-                  type="text"
-                  value={profile.location.address}
-                  onChange={(e) => setProfile({ ...profile, location: { ...profile.location, address: e.target.value } })}
-                  placeholder="e.g. Station 2 Beachfront, Boracay Island"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
-                />
+            {profile.locations.length === 0 ? (
+              <p className={`text-xs py-3 text-center rounded-xl border border-dashed border-slate-700/60 ${theme.subtext}`}>
+                No locations added yet. You can add multiple branches or stores.
+              </p>
+            ) : (
+              <div className="space-y-2.5">
+                {profile.locations.map((loc) => (
+                  <div key={loc.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                        <MapPin className="w-4 h-4" />
+                      </span>
+                      <div className="truncate">
+                        <p className="text-sm font-semibold truncate">{loc.address}</p>
+                        {loc.mapUrl && <p className={`text-xs truncate ${theme.subtext}`}>{loc.mapUrl}</p>}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(loc.id, "location")}
+                      className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <div>
-                <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Google Maps / Waze Link</label>
-                <input
-                  type="text"
-                  value={profile.location.mapUrl}
-                  onChange={(e) => setProfile({ ...profile, location: { ...profile.location, mapUrl: e.target.value } })}
-                  placeholder="https://maps.google.com/?q=..."
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:border-indigo-500 ${theme.input}`}
-                />
-              </div>
-            </div>
+            )}
           </section>
 
+          {/* Themes */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <Palette className="w-5 h-5 text-indigo-400" />
-              <h2>Profile Theme</h2>
+              <h2>Profile Theme Default</h2>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -889,6 +1017,7 @@ export default function SmartTapApp() {
             </div>
           </section>
 
+          {/* Payments */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -952,6 +1081,46 @@ export default function SmartTapApp() {
           </div>
         </div>
 
+        {/* MODAL FOR MULTIPLE LOCATIONS */}
+        {showLocModal && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+            <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-base">Add Location / Store</h3>
+                <button onClick={() => setShowLocModal(false)} className="p-1 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={saveLocationItem} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Store Address / Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={locAddress}
+                    onChange={(e) => setLocAddress(e.target.value)}
+                    placeholder="e.g. Balai Seafood Restaurant, Boracay"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Google Maps / Waze Link (Optional)</label>
+                  <input
+                    type="text"
+                    value={locMapUrl}
+                    onChange={(e) => setLocMapUrl(e.target.value)}
+                    placeholder="https://maps.google.com/?q=..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => setShowLocModal(false)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold">Save Location</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL FOR LINKS & PAYMENTS */}
         {activeModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
@@ -1098,12 +1267,36 @@ export default function SmartTapApp() {
     );
   }
 
+  // --- SCREEN 4: VIEWERS PAGE ---
   return (
     <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4`}>
       <div className="max-w-md w-full mx-auto space-y-5">
+        {/* Top Navbar */}
         <div className="flex items-center justify-between">
           <BrandLogo size="sm" />
           <div className="flex items-center gap-2">
+            {/* Dark/Light / Theme Quick Switch */}
+            <button
+              type="button"
+              onClick={() => {
+                const keys = Object.keys(THEMES);
+                const nextIdx = (keys.indexOf(profile.theme) + 1) % keys.length;
+                setProfile({ ...profile, theme: keys[nextIdx] });
+              }}
+              className={`p-2 rounded-full border transition ${theme.pill}`}
+              title="Quick Theme Toggle"
+            >
+              <Palette className="w-4 h-4 text-indigo-400" />
+            </button>
+            {/* Share Profile QR Modal Button */}
+            <button
+              type="button"
+              onClick={() => setShowShareQrModal(true)}
+              className={`p-2 rounded-full border transition ${theme.pill}`}
+              title="Share Profile QR"
+            >
+              <Share2 className="w-4 h-4 text-cyan-400" />
+            </button>
             <button
               type="button"
               onClick={() => setShowSearchModal(true)}
@@ -1114,7 +1307,13 @@ export default function SmartTapApp() {
             </button>
             <button
               type="button"
-              onClick={() => setShowAnalyticsModal(true)}
+              onClick={() => {
+                setAnalyticsPin("");
+                setAnalyticsPinError("");
+                setAnalyticsUnlocked(false);
+                setIsEditingCreds(false);
+                setShowAnalyticsModal(true);
+              }}
               className={`p-2 rounded-full border transition ${theme.pill}`}
               title="Owner Analytics & Account"
             >
@@ -1137,7 +1336,9 @@ export default function SmartTapApp() {
           </div>
         </div>
 
+        {/* Main Profile Card */}
         <div className={`rounded-3xl border p-6 space-y-6 shadow-xl ${theme.card}`}>
+          {/* Avatar & Name */}
           <div className="text-center space-y-3">
             <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-indigo-500/50 shadow-md bg-slate-800 flex items-center justify-center">
               {profile.avatar ? (
@@ -1150,17 +1351,33 @@ export default function SmartTapApp() {
             </div>
 
             <div>
-              <h1 className="text-xl font-extrabold tracking-tight">
-                {profile.name || "SmartTap User"}
-              </h1>
+              <div className="inline-flex items-center justify-center gap-1.5">
+                <h1 className="text-xl font-extrabold tracking-tight">
+                  {profile.name || "SmartTap User"}
+                </h1>
+                {profile.verifiedBadge?.enabled && (
+                  <ShieldCheck className={`w-5 h-5 shrink-0 ${profile.verifiedBadge.color || "text-blue-500"}`} title="Verified Profile" />
+                )}
+              </div>
               {profile.bio && (
                 <p className={`text-xs mt-1 leading-relaxed ${theme.subtext}`}>
                   {profile.bio}
                 </p>
               )}
             </div>
+
+            {/* Copy Profile Link Quick Button */}
+            <button
+              type="button"
+              onClick={() => copyToClipboard(window.location.href, "profile_url")}
+              className={`px-3 py-1.5 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 mx-auto transition ${theme.pill}`}
+            >
+              {copiedId === "profile_url" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+              <span>{copiedId === "profile_url" ? "Profile Link Copied!" : "Copy Profile Link"}</span>
+            </button>
           </div>
 
+          {/* Gallery Pictures */}
           {profile.photos.length > 0 && (
             <div className={`grid gap-2 ${profile.photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
               {profile.photos.map((photo, index) => (
@@ -1171,6 +1388,24 @@ export default function SmartTapApp() {
             </div>
           )}
 
+          {/* Featured Video / GIF Loop (with interactive controls) */}
+          {profile.featuredVideo && (
+            <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative group">
+              <video
+                src={profile.featuredVideo}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full aspect-video object-cover"
+              />
+              <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-slate-300 font-mono uppercase">
+                Featured Loop
+              </div>
+            </div>
+          )}
+
+          {/* Contact buttons */}
           {(profile.phone || profile.email) && (
             <div className="space-y-2.5">
               {profile.phone && (
@@ -1186,73 +1421,155 @@ export default function SmartTapApp() {
                 </div>
               )}
               {profile.email && (
-                <a href={getGmailComposeUrl(profile.email)} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
-                  <Mail className="w-4 h-4 text-rose-400" />
-                  <span>Email ({profile.email})</span>
-                </a>
-              )}
-            </div>
-          )}
-
-          {profile.location?.address && (
-            <div className={`p-3.5 rounded-2xl border space-y-2 ${theme.pill}`}>
-              <div className="flex items-center gap-2.5">
-                <MapPin className="w-5 h-5 text-indigo-400 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold">Location / Store</p>
-                  <p className={`text-xs truncate ${theme.subtext}`}>{profile.location.address}</p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <a href={getGmailComposeUrl(profile.email)} target="_blank" rel="noopener noreferrer" className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                    <Mail className="w-4 h-4 text-rose-400" />
+                    <span>Email (Compose)</span>
+                  </a>
+                  <button type="button" onClick={() => copyToClipboard(profile.email, "email_copy")} className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${theme.pill}`}>
+                    {copiedId === "email_copy" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
+                    <span>{copiedId === "email_copy" ? "Copied" : "Save Email"}</span>
+                  </button>
                 </div>
-              </div>
-              {profile.location.mapUrl && (
-                <a
-                  href={profile.location.mapUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2 rounded-xl bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open in Google Maps / Waze</span>
-                </a>
               )}
             </div>
           )}
 
-          {profile.links.length > 0 && (
+          {/* Multiple Locations Display */}
+          {profile.locations && profile.locations.length > 0 && (
             <div className="space-y-2.5">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
-                Links & Categories
+                Locations / Stores
               </p>
               <div className="space-y-2">
-                {profile.links.map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.type === "gaming" ? "#" : item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex items-center justify-between p-3 rounded-xl border transition ${theme.pill}`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 uppercase">
-                        {item.type.slice(0, 3)}
-                      </span>
-                      <div className="truncate">
-                        <span className="text-sm font-semibold truncate block">{item.label}</span>
-                        {item.type === "gaming" && (
-                          <span className={`text-xs truncate block ${theme.subtext}`}>
-                            {item.gameDetails?.field1} {item.gameDetails?.field2 ? `• Server: ${item.gameDetails.field2}` : ""}
-                          </span>
-                        )}
+                {profile.locations.map((loc) => (
+                  <div key={loc.id} className={`p-3.5 rounded-2xl border space-y-2 ${theme.pill}`}>
+                    <div className="flex items-center gap-2.5">
+                      <MapPin className="w-5 h-5 text-indigo-400 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold">{loc.address}</p>
                       </div>
                     </div>
-                    {item.type !== "gaming" && <ExternalLink className={`w-4 h-4 shrink-0 ${theme.subtext}`} />}
-                  </a>
+                    {loc.mapUrl && (
+                      <a
+                        href={loc.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2 rounded-xl bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open in Google Maps / Waze</span>
+                      </a>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
+          {/* Categorized Links with Dividers & Music Player / Gaming Deep Links */}
+          {profile.links.length > 0 && (
+            <div className="space-y-4">
+              <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
+                Links & Categories
+              </p>
+
+              {/* Special Music Player Header Card if music link exists */}
+              {profile.links.some(l => l.type === "music") && (
+                <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme.pill}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white ${isPlayingMusic ? "animate-spin" : ""}`}>
+                      <Music className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold">SmartTap Audio Player</p>
+                      <p className={`text-[10px] ${theme.subtext}`}>Vinyl Disc Player & Volume</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPlayingMusic(!isPlayingMusic)}
+                      className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow"
+                    >
+                      {isPlayingMusic ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {["social", "music", "gaming", "business"].map((catKey) => {
+                const catLinks = profile.links.filter(l => l.type === catKey);
+                if (catLinks.length === 0) return null;
+
+                return (
+                  <div key={catKey} className="space-y-2 pt-1 border-t border-slate-700/50 first:border-t-0 first:pt-0">
+                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">{catKey}</p>
+                    <div className="space-y-2">
+                      {catLinks.map((item) => (
+                        <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="w-8 h-8 rounded-lg bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 uppercase shadow">
+                              {item.badge || item.type.slice(0, 2)}
+                            </span>
+                            <div className="truncate flex-1">
+                              <span className="text-sm font-semibold truncate block">{item.label}</span>
+                              {item.type === "gaming" ? (
+                                <span className={`text-xs truncate block font-mono ${theme.subtext}`}>
+                                  {item.gameDetails?.field1} {item.gameDetails?.field2 ? `• ${item.gameDetails.field2}` : ""}
+                                </span>
+                              ) : (
+                                <span className={`text-xs truncate block ${theme.subtext}`}>{item.url}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 ml-2">
+                            {item.type === "gaming" ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
+                                  className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
+                                  title="Copy ID"
+                                >
+                                  {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                  <span>{copiedId === item.id ? "Copied" : "Copy"}</span>
+                                </button>
+                                <a
+                                  href={item.url || "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
+                                  title="Open App / Fallback Store"
+                                >
+                                  <span>Open</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </div>
+                            ) : (
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 transition shrink-0"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Payments */}
           {profile.payments.length > 0 && (
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 pt-2 border-t border-slate-700/50">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
                 Payment & Transfers
               </p>
@@ -1297,11 +1614,12 @@ export default function SmartTapApp() {
             </div>
           )}
 
+          {/* Leave a Message Form */}
           <div className={`p-4 rounded-2xl border space-y-3 ${theme.pill}`}>
             <p className="text-xs font-bold">Leave a Message</p>
             {contactSent ? (
               <p className="text-xs text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl text-center">
-                Message successfully sent to card owner!
+                Message successfully sent to card owner inbox!
               </p>
             ) : (
               <form onSubmit={handleSendContactMessage} className="space-y-2.5">
@@ -1352,6 +1670,33 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
+      {/* SHARE PROFILE QR MODAL */}
+      {showShareQrModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold">Scan to View Profile</span>
+              <button onClick={() => setShowShareQrModal(false)} className="p-1 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="bg-white p-4 rounded-2xl inline-block mx-auto">
+              {/* Simulated QR representing profile URL */}
+              <div className="w-48 h-48 bg-slate-900 rounded-xl flex items-center p-2 justify-center text-center text-xs text-white font-mono break-all">
+                {typeof window !== "undefined" ? window.location.href : "SmartTap Profile"}
+              </div>
+            </div>
+            <p className="text-xs text-slate-400">Have someone scan this QR code to instantly open this SmartTap card.</p>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(typeof window !== "undefined" ? window.location.href : "", "qr_url")}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs inline-flex items-center justify-center gap-2 transition"
+            >
+              <Copy className="w-4 h-4" /> {copiedId === "qr_url" ? "Link Copied!" : "Copy Link"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SEARCH MODAL */}
       {showSearchModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 pt-20">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-4 space-y-3 shadow-2xl">
@@ -1389,76 +1734,181 @@ export default function SmartTapApp() {
         </div>
       )}
 
+      {/* OWNER ANALYTICS & SECURED ACCOUNT + MESSAGES MODAL */}
       {showAnalyticsModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-base">Owner Analytics & Account</h3>
+                <h3 className="font-bold text-base">Owner Analytics & Inbox</h3>
               </div>
               <button onClick={() => setShowAnalyticsModal(false)} className="p-1 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                <p className="text-xs text-slate-400">Last 1 Day</p>
-                <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1d}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                <p className="text-xs text-slate-400">Last 1 Week</p>
-                <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1w}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                <p className="text-xs text-slate-400">Last 1 Month</p>
-                <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1m}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
-                <p className="text-xs text-slate-400">Total Taps</p>
-                <p className="text-xl font-extrabold text-emerald-400 mt-1">{analytics.tapsTotal}</p>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-800 space-y-3">
-              <p className="text-xs font-bold">Account Credentials Management</p>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  defaultValue={account?.identifier || ""}
-                  placeholder="Update Username"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-                  onChange={(e) => {
-                    const updated = { ...account, identifier: e.target.value };
-                    setAccount(updated);
-                    localStorage.setItem("smarttap_v3_account", JSON.stringify(updated));
+            {!analyticsUnlocked ? (
+              <div className="space-y-4 py-4 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">Owner Access Required</h4>
+                  <p className="text-xs text-slate-400 mt-1">Enter your account password to view analytics and inbox messages.</p>
+                </div>
+                <div className="space-y-2">
+                  <input
+                    type="password"
+                    autoFocus
+                    value={analyticsPin}
+                    onChange={(e) => setAnalyticsPin(e.target.value)}
+                    placeholder="Enter owner password"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white text-center"
+                  />
+                  {analyticsPinError && <p className="text-xs text-rose-400">{analyticsPinError}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (account && analyticsPin === account.password) {
+                      setAnalyticsUnlocked(true);
+                      setAnalyticsPinError("");
+                    } else {
+                      setAnalyticsPinError("Incorrect password. Access denied.");
+                    }
                   }}
-                />
-                <input
-                  type="password"
-                  defaultValue={account?.password || ""}
-                  placeholder="Update Password"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white"
-                  onChange={(e) => {
-                    const updated = { ...account, password: e.target.value };
-                    setAccount(updated);
-                    localStorage.setItem("smarttap_v3_account", JSON.stringify(updated));
-                  }}
-                />
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
+                >
+                  Unlock Owner Dashboard
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tap Statistics</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <p className="text-[11px] text-slate-400">Last 1 Day</p>
+                      <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1d}</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <p className="text-[11px] text-slate-400">Last 1 Week</p>
+                      <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1w}</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <p className="text-[11px] text-slate-400">Last 1 Month</p>
+                      <p className="text-xl font-extrabold text-indigo-400 mt-1">{analytics.taps1m}</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <p className="text-[11px] text-slate-400">Total Taps</p>
+                      <p className="text-xl font-extrabold text-emerald-400 mt-1">{analytics.tapsTotal}</p>
+                    </div>
+                  </div>
+                </div>
 
-            <button
-              onClick={() => setShowAnalyticsModal(false)}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
-            >
-              Close
-            </button>
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold">Owner Credentials</p>
+                    {!isEditingCreds ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingCreds(true)}
+                        className="text-xs text-indigo-400 hover:underline font-semibold"
+                      >
+                        Change Username / Password
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingCreds(false)}
+                        className="text-xs text-slate-400 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  {!isEditingCreds ? (
+                    <div className="text-xs space-y-1 text-slate-300">
+                      <p><span className="text-slate-500">Username:</span> {account?.identifier}</p>
+                      <p><span className="text-slate-500">Password:</span> ••••••••</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 pt-1">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">New Username</label>
+                        <input
+                          type="text"
+                          value={editUser}
+                          onChange={(e) => setEditUser(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">New Password</label>
+                        <input
+                          type="password"
+                          value={editPass}
+                          onChange={(e) => setEditPass(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedAcc = { identifier: editUser.trim(), password: editPass.trim() };
+                          setAccount(updatedAcc);
+                          localStorage.setItem("smarttap_v32_account", JSON.stringify(updatedAcc));
+                          setIsEditingCreds(false);
+                          alert("Credentials updated successfully!");
+                        }}
+                        className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                      >
+                        Save New Credentials
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+                    Viewer Messages Inbox ({messages.length})
+                  </p>
+                  {messages.length === 0 ? (
+                    <p className="text-xs py-4 text-center rounded-xl bg-slate-900 border border-slate-800 text-slate-500">
+                      No messages received yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {messages.map((m) => (
+                        <div key={m.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-white">{m.name}</span>
+                            <span className="text-[10px] text-slate-500">{m.date}</span>
+                          </div>
+                          {m.contact && <p className="text-[11px] text-indigo-400 font-mono">Contact: {m.contact}</p>}
+                          <p className="text-xs text-slate-300">{m.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowAnalyticsModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
+                >
+                  Close Dashboard
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {/* QR MODAL */}
       {activeQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
