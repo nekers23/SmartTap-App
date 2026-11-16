@@ -60,11 +60,38 @@ const deleteMediaBlob = async (key) => {
   });
 };
 
-// --- NATIVE APP DEEP LINK HANDLER ---
+// --- NATIVE APP DEEP LINK HANDLER (SOCIALS & GAMES) ---
 const openWithNativeDeepLink = (e, platformId, webUrl) => {
-  if (!webUrl || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (!isMobile) return; // Desktop uses standard target="_blank"
+
+  // Game deep links
+  const gameSchemes = {
+    mlbb: { app: "mobilelegends://", web: "https://m.mobilelegends.com/" },
+    valorant: { app: "riotclient://", web: "https://playvalorant.com/" },
+    roblox: { app: "roblox://", web: "https://www.roblox.com/" },
+    codm: { app: "garenacodm://", web: "https://codm.garena.com/" },
+    dota2: { app: "steam://rungameid/570", web: "https://www.dota2.com/" },
+    lol: { app: "riotclient://", web: "https://www.leagueoflegends.com/" }
+  };
+
+  if (gameSchemes[platformId]) {
+    e.preventDefault();
+    if (!isMobile) {
+      window.open(gameSchemes[platformId].web, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const start = Date.now();
+    window.location.href = gameSchemes[platformId].app;
+    setTimeout(() => {
+      if (Date.now() - start < 1500 && !document.hidden) {
+        window.open(gameSchemes[platformId].web, "_blank", "noopener,noreferrer");
+      }
+    }, 900);
+    return;
+  }
+
+  if (!webUrl || !isMobile) return;
 
   let appScheme = null;
   try {
@@ -170,13 +197,13 @@ const MUSIC_PLATFORMS = [
 ];
 
 const GAMING_PLATFORMS = [
-  { id: "mlbb", name: "Mobile Legends (MLBB)", badge: "ML", fields: ["Game ID", "Server ID"] },
-  { id: "valorant", name: "Valorant", badge: "VAL", fields: ["Riot ID + Tagline (e.g. Player#PH1)"] },
-  { id: "roblox", name: "Roblox", badge: "RBX", fields: ["Username or Display Name"] },
-  { id: "codm", name: "CODM", badge: "COD", fields: ["Exact In-Game Username"] },
-  { id: "dota2", name: "Dota 2", badge: "D2", fields: ["Steam Friend Code / ID"] },
-  { id: "lol", name: "League of Legends", badge: "LOL", fields: ["Riot ID + Tagline"] },
-  { id: "game_other", name: "Other Game", badge: "GAME", fields: ["Game Name", "IGN / Username", "Player ID / Server"] }
+  { id: "mlbb", name: "Mobile Legends (MLBB)", badge: "ML", fields: ["Game ID", "Server ID"], defaultUrl: "https://m.mobilelegends.com/" },
+  { id: "valorant", name: "Valorant", badge: "VAL", fields: ["Riot ID + Tagline (e.g. Player#PH1)"], defaultUrl: "https://playvalorant.com/" },
+  { id: "roblox", name: "Roblox", badge: "RBX", fields: ["Username or Display Name"], defaultUrl: "https://www.roblox.com/" },
+  { id: "codm", name: "CODM", badge: "COD", fields: ["Exact In-Game Username"], defaultUrl: "https://codm.garena.com/" },
+  { id: "dota2", name: "Dota 2", badge: "D2", fields: ["Steam Friend Code / ID"], defaultUrl: "https://www.dota2.com/" },
+  { id: "lol", name: "League of Legends", badge: "LOL", fields: ["Riot ID + Tagline"], defaultUrl: "https://www.leagueoflegends.com/" },
+  { id: "game_other", name: "Other Game", badge: "GAME", fields: ["Game Name", "IGN / Username", "Player ID / Server"], defaultUrl: "https://google.com" }
 ];
 
 const BUSINESS_PLATFORMS = [
@@ -279,7 +306,6 @@ export default function SmartTapApp() {
     locations: []
   });
 
-  // Live Object URLs loaded from IndexedDB (prevents black screen & QuotaExceededError)
   const [videoObjectUrl, setVideoObjectUrl] = useState("");
   const [audioObjectUrls, setAudioObjectUrls] = useState({});
 
@@ -301,7 +327,6 @@ export default function SmartTapApp() {
   const [showShareQrModal, setShowShareQrModal] = useState(false);
   const [showPaySelectionModal, setShowPaySelectionModal] = useState(false);
 
-  // Two-Way Contact Exchange Modal
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [exchangeForm, setExchangeForm] = useState({ name: "", phone: "", email: "", social: "" });
   const [exchangeSuccess, setExchangeSuccess] = useState(false);
@@ -324,12 +349,10 @@ export default function SmartTapApp() {
   const [activeQrModal, setActiveQrModal] = useState(null);
   const [saveToast, setSaveToast] = useState(false);
 
-  // Floating Bar state
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isFloatingMinimized, setIsFloatingMinimized] = useState(false);
   const mainActionsRef = useRef(null);
 
-  // Audio Player states
   const [activeAudioId, setActiveAudioId] = useState(null);
   const [musicVolume, setMusicVolume] = useState(0.85);
   const audioRef = useRef(null);
@@ -340,7 +363,6 @@ export default function SmartTapApp() {
   const audioInputRef = useRef(null);
   const qrInputRef = useRef(null);
 
-  // Load media blobs from IndexedDB
   const reloadMediaFromDB = async (currentProfile) => {
     try {
       if (currentProfile?.hasFeaturedVideo) {
@@ -368,7 +390,6 @@ export default function SmartTapApp() {
   };
 
   useEffect(() => {
-    // Offline-Ready PWA Caching: Service Worker & Offline status listener
     if (typeof window !== "undefined") {
       setIsOffline(!navigator.onLine);
       const goOnline = () => setIsOffline(false);
@@ -379,12 +400,8 @@ export default function SmartTapApp() {
       if ("serviceWorker" in navigator) {
         const swCode = `
           const CACHE_NAME = 'smarttap-offline-v1';
-          self.addEventListener('install', (e) => {
-            self.skipWaiting();
-          });
-          self.addEventListener('activate', (e) => {
-            e.waitUntil(clients.claim());
-          });
+          self.addEventListener('install', (e) => self.skipWaiting());
+          self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
           self.addEventListener('fetch', (e) => {
             if (e.request.method !== 'GET') return;
             e.respondWith(
@@ -445,7 +462,6 @@ export default function SmartTapApp() {
     setIsLoaded(true);
   }, []);
 
-  // Scroll listener for Floating Bottom Bar
   useEffect(() => {
     if (screen !== "view") return;
     const handleScroll = () => {
@@ -461,7 +477,6 @@ export default function SmartTapApp() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [screen]);
 
-  // Audio playback control
   const togglePlayAudio = (trackId) => {
     const src = audioObjectUrls[trackId];
     if (!src || !audioRef.current) return;
@@ -489,6 +504,7 @@ export default function SmartTapApp() {
 
   const theme = THEMES[profile.theme] || THEMES.default;
 
+  // --- FIXED AUTHENTICATION (SEPARATE LOGIN VS SIGNUP FLOW) ---
   const handleManualAuth = (e) => {
     e.preventDefault();
     setAuthError("");
@@ -501,27 +517,10 @@ export default function SmartTapApp() {
       return;
     }
 
-    if (authMode === "signup") {
-      const existingAccounts = JSON.parse(localStorage.getItem("smarttap_registry") || "[]");
-      const isTaken = existingAccounts.some((acc) => acc.identifier.toLowerCase() === enteredUser);
-
-      if (isTaken) {
-        setAuthError("Username is already taken. Please choose another unique username.");
-        return;
-      }
-
-      const newAcc = { identifier: authIdentifier.trim(), password: enteredPass };
-      existingAccounts.push(newAcc);
-      localStorage.setItem("smarttap_registry", JSON.stringify(existingAccounts));
-      localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
-
-      setAccount(newAcc);
-      setEditUser(newAcc.identifier);
-      setEditPass(newAcc.password);
-      setScreen("edit");
-    } else {
-      const savedAcc = localStorage.getItem("smarttap_v32_account");
-      const parsedAcc = savedAcc ? JSON.parse(savedAcc) : null;
+    // Check if we are in Owner Login mode ("login" or "login_to_edit")
+    if (authMode === "login" || screen === "login_to_edit") {
+      const savedAccStr = localStorage.getItem("smarttap_v32_account");
+      const parsedAcc = savedAccStr ? JSON.parse(savedAccStr) : account;
 
       if (
         parsedAcc &&
@@ -534,7 +533,27 @@ export default function SmartTapApp() {
       } else {
         setAuthError("Incorrect username or password.");
       }
+      return;
     }
+
+    // Signup Mode: Enforce unique username check
+    const existingAccounts = JSON.parse(localStorage.getItem("smarttap_registry") || "[]");
+    const isTaken = existingAccounts.some((acc) => acc.identifier.toLowerCase() === enteredUser);
+
+    if (isTaken) {
+      setAuthError("Username is already taken. Please choose another unique username.");
+      return;
+    }
+
+    const newAcc = { identifier: authIdentifier.trim(), password: enteredPass };
+    existingAccounts.push(newAcc);
+    localStorage.setItem("smarttap_registry", JSON.stringify(existingAccounts));
+    localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
+
+    setAccount(newAcc);
+    setEditUser(newAcc.identifier);
+    setEditPass(newAcc.password);
+    setScreen("edit");
   };
 
   const handleAvatarUpload = async (e) => {
@@ -644,6 +663,7 @@ export default function SmartTapApp() {
       platformId: selectedSubPlatform.id,
       label: selectedSubPlatform.name,
       badge: selectedSubPlatform.badge,
+      url: selectedSubPlatform.defaultUrl || "https://google.com",
       gameDetails: {
         field1: inputField1.trim(),
         field2: inputField2.trim(),
@@ -838,6 +858,7 @@ export default function SmartTapApp() {
             <button
               onClick={() => {
                 setAuthMode("signup");
+                setAuthError("");
                 setScreen("auth");
               }}
               className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
@@ -849,6 +870,7 @@ export default function SmartTapApp() {
               <button
                 onClick={() => {
                   setAuthMode("login");
+                  setAuthError("");
                   setScreen("login_to_edit");
                 }}
                 className="w-full py-3 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer"
@@ -866,15 +888,15 @@ export default function SmartTapApp() {
     );
   }
 
-  // --- SCREEN 2: AUTH ---
+  // --- SCREEN 2: AUTH (SIGNUP & OWNER LOGIN) ---
   if (screen === "auth" || screen === "login_to_edit") {
-    const isOwnerLock = screen === "login_to_edit";
+    const isOwnerLogin = authMode === "login" || screen === "login_to_edit";
 
     return (
       <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between p-6">
         <header className="max-w-md w-full mx-auto pt-2 flex items-center justify-between">
           <button
-            onClick={() => setScreen(isOwnerLock ? "view" : "claim")}
+            onClick={() => setScreen(isOwnerLogin ? "view" : "claim")}
             className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -890,16 +912,18 @@ export default function SmartTapApp() {
                 <Lock className="w-6 h-6" />
               </div>
               <h2 className="text-xl font-bold">
-                {isOwnerLock ? "Owner Verification" : "Create SmartTap Account"}
+                {isOwnerLogin ? "Owner Login" : "Create SmartTap Account"}
               </h2>
-              {!isOwnerLock && (
-                <p className="text-xs text-slate-400">Each username must be unique.</p>
-              )}
+              <p className="text-xs text-slate-400">
+                {isOwnerLogin
+                  ? "Sign in with your existing username & password to edit."
+                  : "Choose a unique username for your card."}
+              </p>
             </div>
 
             <form onSubmit={handleManualAuth} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Unique Username</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
                 <input
                   type="text"
                   required
@@ -941,7 +965,7 @@ export default function SmartTapApp() {
                 type="submit"
                 className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition cursor-pointer"
               >
-                {isOwnerLock ? "Verify & Open Editor" : "Create Account & Start Setup"}
+                {isOwnerLogin ? "Log In & Open Editor" : "Create Account & Start Setup"}
               </button>
             </form>
           </div>
@@ -973,7 +997,7 @@ export default function SmartTapApp() {
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
-              Customize your info, verified badge, photos, direct device video (IndexedDB powered), audio tracks, links, and payments.
+              Customize your info, verified badge, photos, direct device video, audio tracks, links, and payments.
             </p>
           </div>
 
@@ -1139,7 +1163,7 @@ export default function SmartTapApp() {
             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
 
             <div className="pt-3 border-t border-slate-800 space-y-2">
-              <label className={`block text-xs font-medium ${theme.subtext}`}>Featured Video (Direct Upload from Device — No Black Screen)</label>
+              <label className={`block text-xs font-medium ${theme.subtext}`}>Featured Video (Direct Upload from Device)</label>
               <input
                 ref={videoInputRef}
                 type="file"
@@ -1229,7 +1253,7 @@ export default function SmartTapApp() {
                       <div className="truncate">
                         <p className="text-sm font-semibold truncate">{item.label}</p>
                         <p className={`text-xs truncate ${theme.subtext}`}>
-                          {item.type === "music" ? "Device Audio Track" : (item.url || `${item.gameDetails?.field1}`)}
+                          {item.type === "music" ? "Device Audio Track" : (item.type === "gaming" ? `${item.gameDetails?.field1}` : item.url)}
                         </p>
                       </div>
                     </div>
@@ -1461,13 +1485,13 @@ export default function SmartTapApp() {
               ) : activeModal === "music" ? (
                 <form onSubmit={saveMusicItem} className="space-y-3.5">
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Song Title (e.g. Weng Weng)</label>
+                    <label className="block text-xs text-slate-400 mb-1">Song Title (e.g. Dilaw - Maki)</label>
                     <input
                       type="text"
                       required
                       value={inputField1}
                       onChange={(e) => setInputField1(e.target.value)}
-                      placeholder="Enter exact song title"
+                      placeholder="e.g. Dilaw - Maki"
                       className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
                     />
                   </div>
@@ -1624,7 +1648,6 @@ export default function SmartTapApp() {
 
   return (
     <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
-      {/* Hidden Global Audio Element */}
       <audio ref={audioRef} loop onEnded={() => setActiveAudioId(null)} />
 
       <div className="max-w-md w-full mx-auto space-y-5">
@@ -1683,6 +1706,7 @@ export default function SmartTapApp() {
             <button
               type="button"
               onClick={() => {
+                setAuthMode("login");
                 setAuthIdentifier("");
                 setAuthPassword("");
                 setAuthError("");
@@ -1758,7 +1782,7 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Featured Device Video (Powered by IndexedDB Blob ObjectURL) */}
+          {/* Featured Device Video */}
           {videoObjectUrl && (
             <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black relative shadow-inner">
               <video
@@ -1774,7 +1798,7 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Main Actions Ref for Floating Bar trigger */}
+          {/* Main Actions Ref */}
           <div ref={mainActionsRef} className="space-y-2.5">
             {(profile.phone || profile.email) && (
               <div className="space-y-2.5">
@@ -1838,7 +1862,7 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* Links & Categories (Working Audio Player + Native App Deep Links) */}
+          {/* Links & Categories (Audio Player + Games Copy & Open App + Socials) */}
           {profile.links.length > 0 && (
             <div className="space-y-4">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
@@ -1873,7 +1897,6 @@ export default function SmartTapApp() {
                       </button>
                     </div>
 
-                    {/* Volume Adjuster Slider */}
                     <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
                       <button type="button" onClick={() => setMusicVolume(musicVolume > 0 ? 0 : 0.85)} className="text-slate-400 hover:text-white cursor-pointer">
                         {musicVolume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-indigo-400" />}
@@ -1919,23 +1942,36 @@ export default function SmartTapApp() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 ml-2">
+                          <div className="flex items-center gap-1.5 ml-2 shrink-0">
                             {item.type === "gaming" ? (
-                              <button
-                                type="button"
-                                onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
-                                className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0 cursor-pointer"
-                              >
-                                {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                <span>{copiedId === item.id ? "Copied" : "Copy ID"}</span>
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold inline-flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                  <span>{copiedId === item.id ? "Copied" : "Copy"}</span>
+                                </button>
+                                <a
+                                  href={item.url || "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => openWithNativeDeepLink(e, item.platformId, item.url)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition"
+                                  title="Launch Game App"
+                                >
+                                  <span>Open App</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </>
                             ) : (
                               <a
                                 href={item.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => openWithNativeDeepLink(e, item.platformId, item.url)}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition shrink-0"
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-400 text-[11px] font-semibold inline-flex items-center gap-1 transition"
                                 title="Open in Native App"
                               >
                                 <span>Open App</span>
@@ -2044,7 +2080,7 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      {/* FLOATING BOTTOM BAR NAVIGATION (Smooth Slide Animation & Minimize/Maximize) */}
+      {/* FLOATING BOTTOM BAR NAVIGATION */}
       <div
         className={`fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto transition-all duration-500 ease-out ${
           showFloatingBar
@@ -2116,7 +2152,7 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      {/* TWO-WAY CONTACT EXCHANGE MODAL ("Share My Contact Back") */}
+      {/* TWO-WAY CONTACT EXCHANGE MODAL */}
       {showExchangeModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
@@ -2242,7 +2278,7 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
-      {/* SHARE PROFILE QR MODAL (FIXED REAL QR RENDERING) */}
+      {/* SHARE PROFILE QR MODAL */}
       {showShareQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
