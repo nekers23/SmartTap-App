@@ -2,569 +2,461 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
-  User, Link as LinkIcon, CreditCard, Palette, Save, Plus, Trash2,
-  Phone, Mail, Share2, Download, Copy, Check, Image as ImageIcon,
-  Pencil, Lock, ArrowLeft, Building2, QrCode, Sparkles,
-  ExternalLink, UserPlus, X, ShieldCheck, Music, Gamepad2, MapPin,
-  Search, BarChart3, Send, Eye, EyeOff, MessageSquare, Play, Pause, Volume2, VolumeX,
-  ChevronLeft, ChevronRight, RefreshCw, WifiOff, Calendar, Receipt, AlertTriangle,
-  CheckCircle2, Clock, Navigation, Smartphone
+  User, Phone, Mail, MapPin, Link as LinkIcon, CreditCard, Music, Gamepad2,
+  Building2, Share2, Plus, Trash2, Pencil, Eye, EyeOff, Save, Check, Copy,
+  QrCode, ExternalLink, Search, BarChart3, Lock, ArrowLeft, X, Image as ImageIcon,
+  Send, Navigation, Calendar, Clock, ShieldCheck, Palette, Layers, AlertTriangle,
+  WifiOff, RefreshCw, UserPlus, Receipt, Smartphone, Play, Pause, Volume2, VolumeX,
+  ChevronLeft, ChevronRight, CheckCircle2, Download
 } from "lucide-react";
 
-const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttap.ph?is_from_webapp=1&sender_device=pc";
+const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttapph";
 
-// --- INDEXEDDB HELPER FOR LARGE MEDIA (VIDEO & AUDIO) ---
-const DB_NAME = "SmartTapMediaDB";
-const STORE_NAME = "mediaFiles";
+const DAYS_OF_WEEK = [
+  { id: 0, short: "Sun", name: "Sunday" },
+  { id: 1, short: "Mon", name: "Monday" },
+  { id: 2, short: "Tue", name: "Tuesday" },
+  { id: 3, short: "Wed", name: "Wednesday" },
+  { id: 4, short: "Thu", name: "Thursday" },
+  { id: 5, short: "Fri", name: "Friday" },
+  { id: 6, short: "Sat", name: "Saturday" }
+];
 
-const openMediaDB = () => {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") return reject("No window");
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-};
+const BOOKING_LABELS = [
+  "Book a Meeting / Appointment",
+  "Schedule a Consultation",
+  "Reserve a Table / Visit",
+  "Book a Discovery Call",
+  "Inquire / Set an Appointment"
+];
 
-const saveMediaBlob = async (key, blob) => {
-  const db = await openMediaDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(blob, key);
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = () => reject(tx.error);
-  });
-};
+const DURATION_OPTIONS = [
+  { mins: 15, label: "15 Mins" },
+  { mins: 30, label: "30 Mins" },
+  { mins: 45, label: "45 Mins" },
+  { mins: 60, label: "1 Hour" },
+  { mins: 120, label: "2 Hours" }
+];
 
-const getMediaBlob = async (key) => {
-  const db = await openMediaDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const req = tx.objectStore(STORE_NAME).get(key);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-};
+const TIME_OPTIONS_30M = Array.from({ length: 48 }, (_, i) => {
+  const h = String(Math.floor(i / 2)).padStart(2, "0");
+  const m = i % 2 === 0 ? "00" : "30";
+  return `${h}:${m}`;
+});
 
-const deleteMediaBlob = async (key) => {
-  const db = await openMediaDB();
-  return new Promise((resolve) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).delete(key);
-    tx.oncomplete = () => resolve(true);
-  });
-};
+function formatTime12(time24) {
+  if (!time24) return "";
+  const [hStr, mStr] = time24.split(":");
+  let h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${ampm}`;
+}
 
-// --- SMART DEVICE DETECTION & NATIVE APP DEEP LINKS (iOS & ANDROID) ---
-const getDeviceOS = () => {
-  if (typeof window === "undefined") return "desktop";
-  const ua = navigator.userAgent || "";
-  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
-  if (/Android/i.test(ua)) return "android";
-  return "desktop";
-};
-
-const openWithNativeDeepLink = (e, platformId, webUrl) => {
-  if (typeof window === "undefined") return;
-  const os = getDeviceOS();
-  const isMobile = os === "ios" || os === "android";
-
-  const gameSchemes = {
-    mlbb: { app: "mobilelegends://", web: "https://m.mobilelegends.com/" },
-    valorant: { app: "riotclient://", web: "https://playvalorant.com/" },
-    roblox: { app: "roblox://", web: "https://www.roblox.com/" },
-    codm: { app: "garenacodm://", web: "https://codm.garena.com/" },
-    dota2: { app: "steam://rungameid/570", web: "https://www.dota2.com/" },
-    lol: { app: "riotclient://", web: "https://www.leagueoflegends.com/" }
-  };
-
-  if (gameSchemes[platformId]) {
-    e.preventDefault();
-    if (!isMobile) {
-      window.open(gameSchemes[platformId].web, "_blank", "noopener,noreferrer");
-      return;
-    }
-    const start = Date.now();
-    window.location.href = gameSchemes[platformId].app;
-    setTimeout(() => {
-      if (Date.now() - start < 1500 && !document.hidden) {
-        window.open(gameSchemes[platformId].web, "_blank", "noopener,noreferrer");
-      }
-    }, 900);
-    return;
-  }
-
-  if (!webUrl || !isMobile) return;
-
-  let appScheme = null;
-  try {
-    const urlObj = new URL(webUrl.startsWith("http") ? webUrl : `https://${webUrl}`);
-    const pathParts = urlObj.pathname.split("/").filter(Boolean);
-    const handle = pathParts[0]?.replace("@", "") || "";
-
-    if (platformId === "instagram" && handle) {
-      appScheme = `instagram://user?username=${handle}`;
-    } else if (platformId === "tiktok" && handle) {
-      appScheme = os === "ios" ? `snssdk1233://user/profile/${handle}` : `tiktok://user/profile/${handle}`;
-    } else if (platformId === "facebook") {
-      appScheme = `fb://facewebmodal/f?href=${encodeURIComponent(webUrl)}`;
-    } else if (platformId === "youtube") {
-      appScheme = os === "ios" ? `youtube://${urlObj.hostname}${urlObj.pathname}` : `vnd.youtube://${urlObj.hostname}${urlObj.pathname}`;
-    }
-  } catch (err) {
-    return;
-  }
-
-  if (appScheme) {
-    e.preventDefault();
-    const start = Date.now();
-    window.location.href = appScheme;
-    setTimeout(() => {
-      if (Date.now() - start < 1500 && !document.hidden) {
-        window.open(webUrl, "_blank", "noopener,noreferrer");
-      }
-    }, 900);
-  }
-};
-
-// --- BANK & E-WALLET APP LAUNCHER (iOS & ANDROID) ---
-const openBankMobileApp = (providerId) => {
-  const os = getDeviceOS();
-  const bankApps = {
-    gcash: {
-      scheme: "gcash://",
-      iosStore: "https://apps.apple.com/ph/app/gcash/id520020791",
-      androidStore: "https://play.google.com/store/apps/details?id=com.globe.gcash.android"
-    },
-    maya: {
-      scheme: "paymaya://",
-      iosStore: "https://apps.apple.com/ph/app/maya-savings-loans-cards/id991673877",
-      androidStore: "https://play.google.com/store/apps/details?id=com.paymaya"
-    },
-    mayabusiness: {
-      scheme: "paymaya://",
-      iosStore: "https://apps.apple.com/ph/app/maya-business/id1555517890",
-      androidStore: "https://play.google.com/store/apps/details?id=com.paymaya.business"
-    },
-    bdo: {
-      scheme: "bdoonline://",
-      iosStore: "https://apps.apple.com/ph/app/bdo-online/id1552490339",
-      androidStore: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail"
-    },
-    bpi: {
-      scheme: "bpi://",
-      iosStore: "https://apps.apple.com/ph/app/bpi/id1551722854",
-      androidStore: "https://play.google.com/store/apps/details?id=com.bpi.ng.app"
-    },
-    gotyme: {
-      scheme: "gotyme://",
-      iosStore: "https://apps.apple.com/ph/app/gotyme-bank/id1630117912",
-      androidStore: "https://play.google.com/store/apps/details?id=ph.gotyme.app"
-    },
-    maribank: {
-      scheme: "seabankph://",
-      iosStore: "https://apps.apple.com/ph/app/seabank-ph-a-rural-bank/id1604481696",
-      androidStore: "https://play.google.com/store/apps/details?id=ph.seabank.seabank"
-    },
-    landbank: {
-      scheme: "landbank://",
-      iosStore: "https://apps.apple.com/ph/app/landbank-mobile-banking/id480098878",
-      androidStore: "https://play.google.com/store/apps/details?id=com.landbank.mobilebanking"
-    },
-    metrobank: {
-      scheme: "metrobank://",
-      iosStore: "https://apps.apple.com/ph/app/metrobank-app/id1546348573",
-      androidStore: "https://play.google.com/store/apps/details?id=ph.com.metrobank.mcc.mbonline"
-    },
-    chinabank: {
-      scheme: "chinabank://",
-      iosStore: "https://apps.apple.com/ph/app/my-cbc/id6444061504",
-      androidStore: "https://play.google.com/store/apps/details?id=com.chinabank.mobile"
-    }
-  };
-
-  const target = bankApps[providerId];
-  if (!target) {
-    alert("Account number copied! Open your preferred banking or e-wallet app to paste and transfer.");
-    return;
-  }
-
-  const fallbackUrl = os === "ios" ? target.iosStore : target.androidStore;
-  if (os === "desktop") {
-    window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-    return;
-  }
-
-  const start = Date.now();
-  window.location.href = target.scheme;
-  setTimeout(() => {
-    if (Date.now() - start < 1600 && !document.hidden) {
-      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-    }
-  }, 1000);
-};
-
-// --- LIVE PH BUSINESS HOURS EVALUATOR (Asia/Manila) ---
-const evaluatePhBusinessStatus = (schedule) => {
-  if (!schedule || !schedule.enabled) return null;
-  try {
-    const now = new Date();
-    const phTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
-    const day = phTime.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
-    const currentMins = phTime.getHours() * 60 + phTime.getMinutes();
-
-    let isOpenDay = true;
-    if (schedule.days === "mon_fri") isOpenDay = day >= 1 && day <= 5;
-    else if (schedule.days === "mon_sat") isOpenDay = day >= 1 && day <= 6;
-
-    const [openH, openM] = (schedule.openTime || "09:00").split(":").map(Number);
-    const [closeH, closeM] = (schedule.closeTime || "18:00").split(":").map(Number);
-    const openMins = openH * 60 + openM;
-    const closeMins = closeH * 60 + closeM;
-
-    const format12h = (timeStr) => {
-      const [h, m] = timeStr.split(":").map(Number);
-      const ampm = h >= 12 ? "PM" : "AM";
-      const h12 = h % 12 || 12;
-      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
-    };
-
-    if (isOpenDay && currentMins >= openMins && currentMins < closeMins) {
-      return {
-        isOpen: true,
-        label: `Open Now • Closes at ${format12h(schedule.closeTime)}`
-      };
-    } else {
-      return {
-        isOpen: false,
-        label: `Closed • Opens at ${format12h(schedule.openTime)}`
-      };
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
-// --- FULL DYNAMIC THEMES (INCLUDING EXECUTIVE ELEGANT THEME & FULL BUTTON SYNC) ---
 const THEMES = {
-  default: {
-    id: "default",
-    name: "Default Midnight",
+  midnight: {
+    id: "midnight",
+    name: "Midnight Indigo",
+    swatch: "bg-indigo-600 border-indigo-300",
     bg: "bg-[#090d16]",
-    card: "bg-[#111827] border-slate-800/80",
-    input: "bg-[#090d16] border-slate-700 text-white placeholder-slate-500",
     text: "text-slate-100",
     subtext: "text-slate-400",
-    accent: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/25",
+    card: "bg-[#111827]/95 border-slate-800",
+    pill: "bg-slate-900/90 border-slate-800 hover:border-slate-700",
+    input: "bg-[#090d16] border-slate-700 text-white focus:border-indigo-500",
+    accent: "bg-indigo-600 hover:bg-indigo-500 text-white",
+    accentSoft: "bg-indigo-500/15 text-indigo-300 border-indigo-500/30",
     accentText: "text-indigo-400",
-    accentSoft: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
-    pill: "bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border-slate-700/70",
-    actionBtn: "bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700/70",
-    floatingBar: "bg-[#111827]/95 border-slate-700/80",
     badgeIcon: "bg-indigo-600 text-white",
-    swatch: "bg-[#090d16] border-indigo-500"
+    actionBtn: "bg-slate-800 hover:bg-slate-700 text-slate-200",
+    floatingBar: "bg-[#111827]/95 border-slate-700/80"
   },
-  elegant: {
-    id: "elegant",
-    name: "Executive Gold",
-    bg: "bg-[#12100e]",
-    card: "bg-[#1b1815] border-[#3d3326] shadow-2xl",
-    input: "bg-[#12100e] border-[#4a3e2e] text-[#f5efe6] placeholder-[#8c7b65]",
-    text: "text-[#f5efe6]",
-    subtext: "text-[#b8a68e]",
-    accent: "bg-gradient-to-r from-[#c59b49] to-[#a87e32] hover:from-[#d4aa57] hover:to-[#b88b3a] text-[#12100e] font-bold shadow-amber-900/30",
-    accentText: "text-[#dcb76b]",
-    accentSoft: "bg-[#c59b49]/15 text-[#e6c681] border-[#c59b49]/40",
-    pill: "bg-[#24201c] hover:bg-[#2e2823] text-[#f5efe6] border-[#3d3326]",
-    actionBtn: "bg-[#2c2620] hover:bg-[#383028] text-[#e6c681] border border-[#4a3e2e]",
-    floatingBar: "bg-[#1b1815]/95 border-[#4a3e2e]",
-    badgeIcon: "bg-gradient-to-br from-[#c59b49] to-[#997024] text-[#12100e]",
-    swatch: "bg-[#1b1815] border-[#c59b49]"
+  emerald: {
+    id: "emerald",
+    name: "Emerald Forest",
+    swatch: "bg-emerald-600 border-emerald-300",
+    bg: "bg-[#06120e]",
+    text: "text-emerald-50",
+    subtext: "text-emerald-300/70",
+    card: "bg-[#0b1f18]/95 border-emerald-900/70",
+    pill: "bg-[#081712] border-emerald-900/60 hover:border-emerald-700",
+    input: "bg-[#06120e] border-emerald-800 text-white focus:border-emerald-500",
+    accent: "bg-emerald-600 hover:bg-emerald-500 text-white",
+    accentSoft: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    accentText: "text-emerald-400",
+    badgeIcon: "bg-emerald-600 text-white",
+    actionBtn: "bg-emerald-950 hover:bg-emerald-900 text-emerald-200",
+    floatingBar: "bg-[#0b1f18]/95 border-emerald-800/80"
   },
-  black: {
-    id: "black",
-    name: "Obsidian Black",
-    bg: "bg-black",
-    card: "bg-[#0a0a0a] border-neutral-800",
-    input: "bg-black border-neutral-800 text-white placeholder-neutral-600",
-    text: "text-white",
-    subtext: "text-neutral-400",
-    accent: "bg-white hover:bg-neutral-200 text-black font-bold",
-    accentText: "text-white",
-    accentSoft: "bg-white/10 text-white border-white/25",
-    pill: "bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-800",
-    actionBtn: "bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-700",
-    floatingBar: "bg-[#0a0a0a]/95 border-neutral-800",
-    badgeIcon: "bg-white text-black",
-    swatch: "bg-black border-white"
+  crimson: {
+    id: "crimson",
+    name: "Crimson Velvet",
+    swatch: "bg-rose-600 border-rose-300",
+    bg: "bg-[#14080c]",
+    text: "text-rose-50",
+    subtext: "text-rose-300/70",
+    card: "bg-[#210d14]/95 border-rose-900/70",
+    pill: "bg-[#190a0f] border-rose-900/60 hover:border-rose-700",
+    input: "bg-[#14080c] border-rose-800 text-white focus:border-rose-500",
+    accent: "bg-rose-600 hover:bg-rose-500 text-white",
+    accentSoft: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+    accentText: "text-rose-400",
+    badgeIcon: "bg-rose-600 text-white",
+    actionBtn: "bg-rose-950 hover:bg-rose-900 text-rose-200",
+    floatingBar: "bg-[#210d14]/95 border-rose-800/80"
   },
-  white: {
-    id: "white",
-    name: "Clean White",
+  gold: {
+    id: "gold",
+    name: "Obsidian Gold",
+    swatch: "bg-amber-500 border-amber-200",
+    bg: "bg-[#120f08]",
+    text: "text-amber-50",
+    subtext: "text-amber-200/70",
+    card: "bg-[#1c170d]/95 border-amber-900/70",
+    pill: "bg-[#16120a] border-amber-900/60 hover:border-amber-700",
+    input: "bg-[#120f08] border-amber-800 text-white focus:border-amber-500",
+    accent: "bg-amber-500 hover:bg-amber-400 text-black",
+    accentSoft: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    accentText: "text-amber-400",
+    badgeIcon: "bg-amber-500 text-black",
+    actionBtn: "bg-amber-950 hover:bg-amber-900 text-amber-200",
+    floatingBar: "bg-[#1c170d]/95 border-amber-800/80"
+  },
+  clean: {
+    id: "clean",
+    name: "Clean Daylight",
+    swatch: "bg-slate-200 border-slate-500",
     bg: "bg-slate-100",
-    card: "bg-white border-slate-200/90 shadow-md",
-    input: "bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400",
     text: "text-slate-900",
     subtext: "text-slate-500",
-    accent: "bg-slate-900 hover:bg-slate-800 text-white font-semibold",
-    accentText: "text-slate-900",
-    accentSoft: "bg-slate-900/5 text-slate-800 border-slate-300",
-    pill: "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200",
-    actionBtn: "bg-slate-200/80 hover:bg-slate-300/80 text-slate-900 border border-slate-300",
-    floatingBar: "bg-white/95 border-slate-300",
+    card: "bg-white border-slate-200",
+    pill: "bg-slate-50 border-slate-200 hover:border-slate-300",
+    input: "bg-white border-slate-300 text-slate-900 focus:border-indigo-600",
+    accent: "bg-slate-900 hover:bg-slate-800 text-white",
+    accentSoft: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    accentText: "text-indigo-600",
     badgeIcon: "bg-slate-900 text-white",
-    swatch: "bg-white border-slate-400"
+    actionBtn: "bg-slate-200 hover:bg-slate-300 text-slate-800",
+    floatingBar: "bg-white/95 border-slate-300"
   },
-  pink: {
-    id: "pink",
-    name: "Blush Pink",
-    bg: "bg-[#fdf2f8]",
-    card: "bg-white/95 border-pink-200 shadow-md",
-    input: "bg-pink-50/70 border-pink-300 text-pink-950 placeholder-pink-400",
-    text: "text-pink-950",
-    subtext: "text-pink-700/80",
-    accent: "bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white font-semibold shadow-pink-500/25",
-    accentText: "text-pink-600",
-    accentSoft: "bg-pink-500/15 text-pink-700 border-pink-300",
-    pill: "bg-pink-50/90 hover:bg-pink-100/90 text-pink-950 border-pink-200",
-    actionBtn: "bg-pink-100 hover:bg-pink-200 text-pink-700 border border-pink-300",
-    floatingBar: "bg-white/95 border-pink-300",
-    badgeIcon: "bg-gradient-to-br from-pink-500 to-rose-500 text-white",
-    swatch: "bg-pink-400 border-pink-600"
+  ocean: {
+    id: "ocean",
+    name: "Ocean Cyan",
+    swatch: "bg-cyan-500 border-cyan-200",
+    bg: "bg-[#06131a]",
+    text: "text-cyan-50",
+    subtext: "text-cyan-300/70",
+    card: "bg-[#0b202b]/95 border-cyan-900/70",
+    pill: "bg-[#081821] border-cyan-900/60 hover:border-cyan-700",
+    input: "bg-[#06131a] border-cyan-800 text-white focus:border-cyan-500",
+    accent: "bg-cyan-500 hover:bg-cyan-400 text-slate-950",
+    accentSoft: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+    accentText: "text-cyan-400",
+    badgeIcon: "bg-cyan-500 text-slate-950",
+    actionBtn: "bg-cyan-950 hover:bg-cyan-900 text-cyan-200",
+    floatingBar: "bg-[#0b202b]/95 border-cyan-800/80"
   }
 };
 
 const SOCIAL_PLATFORMS = [
-  { id: "facebook", name: "Facebook", placeholder: "https://facebook.com/username", badge: "FB" },
-  { id: "instagram", name: "Instagram", placeholder: "https://instagram.com/username", badge: "IG" },
-  { id: "tiktok", name: "TikTok", placeholder: "https://tiktok.com/@username", badge: "TT" },
-  { id: "youtube", name: "YouTube", placeholder: "https://youtube.com/@channel", badge: "YT" },
-  { id: "x", name: "X (Twitter)", placeholder: "https://x.com/username", badge: "X" },
-  { id: "whatsapp", name: "WhatsApp", placeholder: "https://wa.me/639123456789", badge: "WA" },
-  { id: "telegram", name: "Telegram", placeholder: "https://t.me/username", badge: "TG" },
-  { id: "discord", name: "Discord", placeholder: "https://discord.gg/invite", badge: "DC" },
-  { id: "viber", name: "Viber", placeholder: "viber://chat?number=...", badge: "VB" },
-  { id: "custom", name: "Custom URL", placeholder: "https://...", badge: "URL" }
+  { id: "facebook", name: "Facebook", badge: "FB", placeholder: "https://facebook.com/username" },
+  { id: "instagram", name: "Instagram", badge: "IG", placeholder: "https://instagram.com/username" },
+  { id: "tiktok", name: "TikTok", badge: "TT", placeholder: "https://tiktok.com/@username" },
+  { id: "youtube", name: "YouTube", badge: "YT", placeholder: "https://youtube.com/@channel" },
+  { id: "x", name: "X (Twitter)", badge: "X", placeholder: "https://x.com/username" },
+  { id: "linkedin", name: "LinkedIn", badge: "IN", placeholder: "https://linkedin.com/in/username" },
+  { id: "viber", name: "Viber", badge: "VB", placeholder: "viber://chat?number=%2B63917..." },
+  { id: "telegram", name: "Telegram", badge: "TG", placeholder: "https://t.me/username" }
 ];
 
 const MUSIC_PLATFORMS = [
-  { id: "audio_upload", name: "Device Audio File (MP3/WAV)", placeholder: "Song Title", badge: "♪" }
+  { id: "audio_upload", name: "Audio Track (MP3/WAV)", badge: "MP3" }
 ];
 
 const GAMING_PLATFORMS = [
-  { id: "mlbb", name: "Mobile Legends (MLBB)", badge: "ML", fields: ["Game ID", "Server ID"], defaultUrl: "https://m.mobilelegends.com/" },
-  { id: "valorant", name: "Valorant", badge: "VAL", fields: ["Riot ID + Tagline (e.g. Player#PH1)"], defaultUrl: "https://playvalorant.com/" },
-  { id: "roblox", name: "Roblox", badge: "RBX", fields: ["Username or Display Name"], defaultUrl: "https://www.roblox.com/" },
-  { id: "codm", name: "CODM", badge: "COD", fields: ["Exact In-Game Username"], defaultUrl: "https://codm.garena.com/" },
-  { id: "dota2", name: "Dota 2", badge: "D2", fields: ["Steam Friend Code / ID"], defaultUrl: "https://www.dota2.com/" },
-  { id: "lol", name: "League of Legends", badge: "LOL", fields: ["Riot ID + Tagline"], defaultUrl: "https://www.leagueoflegends.com/" },
-  { id: "game_other", name: "Other Game", badge: "GAME", fields: ["Game Name", "IGN / Username", "Player ID / Server"], defaultUrl: "https://google.com" }
+  { id: "mlbb", name: "Mobile Legends (MLBB)", badge: "ML", fields: ["IGN / Username", "User ID & Server (e.g. 12345678 (3021))"] },
+  { id: "valorant", name: "Valorant", badge: "VAL", fields: ["Riot ID & Tagline (e.g. Player#PH1)", "Rank / Server (Optional)"] },
+  { id: "roblox", name: "Roblox", badge: "RBX", fields: ["Roblox Username", "Display Name (Optional)"] },
+  { id: "codm", name: "Call of Duty Mobile", badge: "COD", fields: ["IGN / Username", "Player UID"] },
+  { id: "genshin", name: "Genshin Impact", badge: "GI", fields: ["UID (Asia/America)", "Adventure Rank / IGN"] },
+  { id: "steam", name: "Steam", badge: "STM", fields: ["Steam Friend Code", "Profile Name"] }
 ];
 
 const BUSINESS_PLATFORMS = [
-  { id: "shopee", name: "Shopee Store", placeholder: "https://shopee.ph/...", badge: "SHP" },
-  { id: "lazada", name: "Lazada Store", placeholder: "https://lazada.com.ph/...", badge: "LZD" },
-  { id: "tiktokshop", name: "TikTok Shop", placeholder: "https://tiktok.com/@...", badge: "TT" },
-  { id: "carousell", name: "Carousell", placeholder: "https://carousell.ph/...", badge: "CRS" },
-  { id: "website", name: "Official Website", placeholder: "https://yourwebsite.com", badge: "WEB" },
-  { id: "business_other", name: "Other Business", placeholder: "https://...", badge: "BIZ" }
+  { id: "website", name: "Official Website", badge: "WEB", placeholder: "https://yourbusiness.com" },
+  { id: "shopee", name: "Shopee Store", badge: "SHP", placeholder: "https://shopee.ph/shopname" },
+  { id: "lazada", name: "Lazada Store", badge: "LAZ", placeholder: "https://lazada.com.ph/shop/..." },
+  { id: "tiktokshop", name: "TikTok Shop", badge: "TTS", placeholder: "https://tiktok.com/@shop" },
+  { id: "gmaps_rev", name: "Google Review Link", badge: "REV", placeholder: "https://g.page/r/..." },
+  { id: "menu_pdf", name: "Menu / Brochure Link", badge: "PDF", placeholder: "https://drive.google.com/..." }
 ];
 
 const PAYMENT_PROVIDERS = [
-  { id: "gcash", name: "GCash", digits: 11, label: "11-digit Mobile Number (09XX...)", placeholder: "09171234567", badge: "G" },
-  { id: "maya", name: "Maya (Personal)", digits: 11, label: "11-digit Mobile Number (09XX...)", placeholder: "09181234567", badge: "M" },
-  { id: "mayabusiness", name: "Maya Business", digits: 12, label: "12-digit Account Number", placeholder: "900123456789", badge: "MB" },
-  { id: "maribank", name: "MariBank (SeaBank)", digits: 11, label: "11-digit Account Number", placeholder: "10234567890", badge: "SB" },
-  { id: "gotyme", name: "GoTyme Bank", digits: 12, label: "12-digit Account Number", placeholder: "012345678901", badge: "GT" },
-  { id: "bdo", name: "BDO", digits: 12, label: "12-digit Account Number", placeholder: "001234567890", badge: "BDO" },
-  { id: "bpi", name: "BPI", digits: 10, label: "10-digit Account Number", placeholder: "1234567890", badge: "BPI" },
-  { id: "landbank", name: "Landbank", digits: 10, label: "10-digit Account Number", placeholder: "1234567890", badge: "LBP" },
-  { id: "metrobank", name: "Metrobank", digits: 13, label: "13-digit Account Number", placeholder: "1234567890123", badge: "MBTC" },
-  { id: "chinabank", name: "China Bank", digits: 12, label: "12-digit Account Number", placeholder: "123456789012", badge: "CBC" },
-  { id: "others", name: "Others (Bank / E-Wallet)", digits: null, label: "Account / Mobile Number", placeholder: "Enter account number", badge: "OTH" }
+  { id: "gcash", name: "GCash", badge: "GC", label: "GCash Mobile Number (11 digits)", placeholder: "09171234567", minLen: 11, maxLen: 11 },
+  { id: "maya", name: "Maya", badge: "MY", label: "Maya Mobile Number (11 digits)", placeholder: "09181234567", minLen: 11, maxLen: 11 },
+  { id: "maribank", name: "MariBank (SeaBank)", badge: "MB", label: "MariBank Account Number (11 digits)", placeholder: "10234567890", minLen: 11, maxLen: 11 },
+  { id: "gotyme", name: "GoTyme Bank", badge: "GT", label: "GoTyme Account Number (12 digits)", placeholder: "018812345678", minLen: 12, maxLen: 12 },
+  { id: "bdo", name: "BDO Unibank", badge: "BDO", label: "BDO Account Number (12 digits)", placeholder: "001234567890", minLen: 12, maxLen: 12 },
+  { id: "bpi", name: "BPI", badge: "BPI", label: "BPI Account Number (10 digits)", placeholder: "1234567890", minLen: 10, maxLen: 10 },
+  { id: "metrobank", name: "Metrobank", badge: "MBT", label: "Metrobank Account Number (13 digits)", placeholder: "1234567890123", minLen: 13, maxLen: 13 },
+  { id: "landbank", name: "Landbank", badge: "LBP", label: "Landbank Account Number (10 digits)", placeholder: "1234567890", minLen: 10, maxLen: 10 },
+  { id: "chinabank", name: "China Bank", badge: "CBC", label: "China Bank Account Number (12 digits)", placeholder: "123456789012", minLen: 12, maxLen: 12 },
+  { id: "others", name: "Other Bank / E-Wallet", badge: "OTH", label: "Account / Mobile Number", placeholder: "Enter account number", minLen: 8, maxLen: 16 }
 ];
-
-const TIME_OPTIONS = [
-  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00",
-  "20:00", "21:00", "22:00", "23:00"
-];
-
-const formatTime12 = (t) => {
-  const [h, m] = t.split(":").map(Number);
-  const ampm = h >= 12 ? "PM" : "AM";
-  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
-};
-
-const compressImage = (file, maxWidth = 600, quality = 0.75) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-    };
-  });
-};
 
 function BrandLogo({ size = "md" }) {
-  const [imgError, setImgError] = useState(false);
-  const dims = size === "lg" ? "w-14 h-14" : size === "sm" ? "w-6 h-6" : "w-9 h-9";
-
+  const isSm = size === "sm";
   return (
-    <div className="inline-flex items-center gap-2.5 select-none">
-      {!imgError ? (
-        <img
-          src="/logo.png"
-          alt="SmartTap Logo"
-          onError={() => setImgError(true)}
-          className={`${dims} rounded-xl object-contain`}
-        />
-      ) : (
-        <div className={`${dims} rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-extrabold shadow-md`}>
-          ST
-        </div>
-      )}
-      <span className={`font-bold tracking-tight ${size === "lg" ? "text-2xl" : size === "sm" ? "text-sm" : "text-lg"}`}>
-        SmartTap
+    <div className="inline-flex items-center gap-2 select-none">
+      <div className={`${isSm ? "w-7 h-7 rounded-lg text-xs" : "w-9 h-9 rounded-xl text-sm"} bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white font-black flex items-center justify-center shadow-md`}>
+        ST
+      </div>
+      <span className={`${isSm ? "text-sm" : "text-lg"} font-extrabold tracking-tight`}>
+        Smart<span className="text-indigo-400">Tap</span>
       </span>
     </div>
   );
 }
 
+function normalizeUrl(url) {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (/^(https?:\/\/|mailto:|tel:|viber:\/\/|tg:\/\/)/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function getGmailComposeUrl(email) {
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
+}
+
+async function compressImage(file, maxWidth = 600, quality = 0.8) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        if (w > maxWidth) {
+          h = Math.round((h * maxWidth) / w);
+          w = maxWidth;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function evaluatePhBusinessStatus(schedule) {
+  if (!schedule || !schedule.enabled) return null;
+  const nowPh = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+  const dayIdx = nowPh.getDay();
+  const currentMins = nowPh.getHours() * 60 + nowPh.getMinutes();
+
+  const activeDays = schedule.activeDays || [0, 1, 2, 3, 4, 5, 6];
+  if (!activeDays.includes(dayIdx)) {
+    return { isOpen: false, label: "Closed Today (PH Time)" };
+  }
+
+  let openStr = schedule.openTime || "09:00";
+  let closeStr = schedule.closeTime || "18:00";
+
+  if (schedule.mode === "custom" && schedule.perDay?.[dayIdx]) {
+    openStr = schedule.perDay[dayIdx].open || openStr;
+    closeStr = schedule.perDay[dayIdx].close || closeStr;
+  }
+
+  const [oh, om] = openStr.split(":").map(Number);
+  const [ch, cm] = closeStr.split(":").map(Number);
+  const openMins = oh * 60 + om;
+  const closeMins = ch * 60 + cm;
+
+  const isOpen = closeMins >= openMins
+    ? currentMins >= openMins && currentMins < closeMins
+    : currentMins >= openMins || currentMins < closeMins;
+
+  return {
+    isOpen,
+    label: isOpen
+      ? `Open Now • Closes ${formatTime12(closeStr)}`
+      : `Closed • Opens ${formatTime12(openStr)}`
+  };
+}
+
+function openWithNativeDeepLink(e, platformId, fallbackUrl) {
+  if (!fallbackUrl || fallbackUrl === "#") return;
+  const schemes = {
+    facebook: "fb://",
+    instagram: "instagram://",
+    tiktok: "snssdk1233://",
+    youtube: "vnd.youtube://",
+    x: "twitter://",
+    linkedin: "linkedin://",
+    telegram: "tg://"
+  };
+  const scheme = schemes[platformId];
+  if (scheme && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    e.preventDefault();
+    window.location.href = scheme;
+    setTimeout(() => {
+      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+    }, 650);
+  }
+}
+
+function openBankMobileApp(providerId) {
+  const bankSchemes = {
+    gcash: "gcash://",
+    maya: "paymaya://",
+    maribank: "seabankph://",
+    gotyme: "gotyme://",
+    bdo: "bdoonline://",
+    bpi: "bpi://"
+  };
+  const scheme = bankSchemes[providerId];
+  if (scheme && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    window.location.href = scheme;
+  } else {
+    alert("Account number copied! Open your banking app to paste and complete the transfer.");
+  }
+}
+
+const DB_NAME = "SmartTapMediaDB";
+const DB_STORE = "mediaFiles";
+
+function openMediaDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(DB_STORE)) {
+        req.result.createObjectStore(DB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveMediaBlob(key, blob) {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).put(blob, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getMediaBlob(key) {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readonly");
+    const req = tx.objectStore(DB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteMediaBlob(key) {
+  const db = await openMediaDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 export default function SmartTapApp() {
-  const [screen, setScreen] = useState("claim");
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-
-  // High-Contrast / Large Text Accessibility Mode
-  const [largeTextMode, setLargeTextMode] = useState(false);
-
-  const [account, setAccount] = useState(null);
+  const [screen, setScreen] = useState("view");
   const [authMode, setAuthMode] = useState("signup");
+  const [account, setAccount] = useState(null);
   const [authIdentifier, setAuthIdentifier] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [showAuthPass, setShowAuthPass] = useState(false);
   const [authError, setAuthError] = useState("");
 
+  const [isOffline, setIsOffline] = useState(false);
+  const [largeTextMode, setLargeTextMode] = useState(false);
+  const [themeToast, setThemeToast] = useState("");
+  const [saveToast, setSaveToast] = useState(false);
+  const [copiedId, setCopiedId] = useState("");
+
   const [profile, setProfile] = useState({
     name: "",
     bio: "",
-    avatar: "",
-    photos: [],
-    hasFeaturedVideo: false,
     phone: "",
     email: "",
-    theme: "default",
+    avatar: "",
+    photos: [],
+    theme: "midnight",
+    surfaceStyle: "solid",
     verifiedBadge: { enabled: true, color: "text-blue-500" },
     privacy: {
       contact: true,
       media: true,
-      locations: true,
-      links: true,
       booking: true,
+      links: true,
+      locations: true,
       payments: true
     },
     booking: {
       enabled: false,
       title: "Book a Meeting / Appointment",
-      availableDays: "mon_sat",
+      availableDays: [1, 2, 3, 4, 5],
       startTime: "09:00",
       endTime: "18:00",
-      duration: "30 mins",
       location: ""
     },
     links: [],
-    payments: [],
-    locations: []
+    locations: [],
+    payments: []
   });
 
   const [videoObjectUrl, setVideoObjectUrl] = useState("");
   const [audioObjectUrls, setAudioObjectUrls] = useState({});
+  const [activeAudioId, setActiveAudioId] = useState(null);
+  const [musicVolume, setMusicVolume] = useState(0.85);
+  const audioRef = useRef(null);
 
   const [activeModal, setActiveModal] = useState(null);
   const [selectedSubPlatform, setSelectedSubPlatform] = useState(null);
   const [inputField1, setInputField1] = useState("");
   const [inputField2, setInputField2] = useState("");
   const [inputField3, setInputField3] = useState("");
-  const [pendingAudioFile, setPendingAudioFile] = useState(null);
-  const [modalError, setModalError] = useState("");
   const [payQrImage, setPayQrImage] = useState("");
+  const [modalError, setModalError] = useState("");
+  const [pendingAudioFile, setPendingAudioFile] = useState(null);
 
-  // Location & Business Hours Modal
+  const [editingLinkItem, setEditingLinkItem] = useState(null);
+  const [dismissedHealthBanner, setDismissedHealthBanner] = useState(false);
+
   const [showLocModal, setShowLocModal] = useState(false);
   const [locAddress, setLocAddress] = useState("");
   const [locLandmark, setLocLandmark] = useState("");
   const [locMapUrl, setLocMapUrl] = useState("");
   const [locHoursEnabled, setLocHoursEnabled] = useState(false);
-  const [locDays, setLocDays] = useState("mon_sun");
+  const [locActiveDays, setLocActiveDays] = useState([1, 2, 3, 4, 5, 6, 0]);
+  const [locScheduleMode, setLocScheduleMode] = useState("uniform");
   const [locOpenTime, setLocOpenTime] = useState("09:00");
   const [locCloseTime, setLocCloseTime] = useState("18:00");
-
-  // Search, Share & Payment Modals
-  const [showSearchModal, setShowSearchModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showShareQrModal, setShowShareQrModal] = useState(false);
-  const [showPaySelectionModal, setShowPaySelectionModal] = useState(false);
-
-  // Payment Receipt Upload Modal
-  const [receiptModalPay, setReceiptModalPay] = useState(null);
-  const [receiptSenderName, setReceiptSenderName] = useState("");
-  const [receiptRefNo, setReceiptRefNo] = useState("");
-  const [receiptImage, setReceiptImage] = useState("");
-  const [receiptSuccess, setReceiptSuccess] = useState(false);
-  const [viewingReceiptImg, setViewingReceiptImg] = useState(null);
-
-  // Two-Way Contact Exchange Modal + Post-Save Prompt
-  const [showExchangeModal, setShowExchangeModal] = useState(false);
-  const [exchangeForm, setExchangeForm] = useState({ name: "", phone: "", email: "", social: "" });
-  const [exchangeSuccess, setExchangeSuccess] = useState(false);
-  const [showPostSavePrompt, setShowPostSavePrompt] = useState(false);
-
-  // Booking Modal (Preset Dropdowns + Automatic .ics Calendar Download)
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingForm, setBookingForm] = useState({
-    clientName: "",
-    clientPhone: "",
-    dayChoice: "Tomorrow",
-    timeChoice: "10:00 AM",
-    notes: ""
+  const [locPerDay, setLocPerDay] = useState({
+    0: { open: "10:00", close: "17:00" },
+    1: { open: "09:00", close: "18:00" },
+    2: { open: "09:00", close: "18:00" },
+    3: { open: "09:00", close: "18:00" },
+    4: { open: "09:00", close: "18:00" },
+    5: { open: "09:00", close: "18:00" },
+    6: { open: "10:00", close: "17:00" }
   });
-  const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Owner Analytics & 4-Tab Inbox Modal
-  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
-  const [analyticsPin, setAnalyticsPin] = useState("");
-  const [analyticsUnlocked, setAnalyticsUnlocked] = useState(false);
-  const [analyticsPinError, setAnalyticsPinError] = useState("");
-  const [analytics, setAnalytics] = useState({ taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 });
-  const [inboxTab, setInboxTab] = useState("messages"); // "messages" | "contacts" | "receipts" | "bookings"
-
-  const [isEditingCreds, setIsEditingCreds] = useState(false);
-  const [editUser, setEditUser] = useState("");
-  const [editPass, setEditPass] = useState("");
-
-  // 4 Separate Inbox Lists
+  const [analytics, setAnalytics] = useState({ taps1d: 1, taps1w: 1, taps1m: 1, tapsTotal: 1 });
   const [messages, setMessages] = useState([]);
   const [exchangedContacts, setExchangedContacts] = useState([]);
   const [paymentReceipts, setPaymentReceipts] = useState([]);
@@ -573,18 +465,48 @@ export default function SmartTapApp() {
   const [contactForm, setContactForm] = useState({ name: "", contact: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
 
-  const [copiedId, setCopiedId] = useState(null);
-  const [activeQrModal, setActiveQrModal] = useState(null);
-  const [saveToast, setSaveToast] = useState(false);
-  const [themeToast, setThemeToast] = useState("");
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
+  const [exchangeSuccess, setExchangeSuccess] = useState(false);
+  const [exchangeForm, setExchangeForm] = useState({ name: "", phone: "", email: "", social: "" });
+  const [showPostSavePrompt, setShowPostSavePrompt] = useState(false);
 
+  const [receiptModalPay, setReceiptModalPay] = useState(null);
+  const [receiptSenderName, setReceiptSenderName] = useState("");
+  const [receiptRefNo, setReceiptRefNo] = useState("");
+  const [receiptImage, setReceiptImage] = useState("");
+  const [receiptSuccess, setReceiptSuccess] = useState(false);
+  const [viewingReceiptImg, setViewingReceiptImg] = useState(null);
+
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [calMonthOffset, setCalMonthOffset] = useState(0);
+  const [bookingForm, setBookingForm] = useState({
+    clientName: "",
+    clientPhone: "",
+    selectedDateISO: "",
+    selectedDateLabel: "",
+    durationMins: 30,
+    timeChoice: "09:00",
+    notes: ""
+  });
+
+  const [showShareQrModal, setShowShareQrModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [analyticsPin, setAnalyticsPin] = useState("");
+  const [analyticsPinError, setAnalyticsPinError] = useState("");
+  const [analyticsUnlocked, setAnalyticsUnlocked] = useState(false);
+  const [inboxTab, setInboxTab] = useState("messages");
+  const [isEditingCreds, setIsEditingCreds] = useState(false);
+  const [editUser, setEditUser] = useState("");
+  const [editPass, setEditPass] = useState("");
+
+  const [activeQrModal, setActiveQrModal] = useState(null);
+  const [showPaySelectionModal, setShowPaySelectionModal] = useState(false);
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isFloatingMinimized, setIsFloatingMinimized] = useState(false);
-  const mainActionsRef = useRef(null);
-
-  const [activeAudioId, setActiveAudioId] = useState(null);
-  const [musicVolume, setMusicVolume] = useState(0.85);
-  const audioRef = useRef(null);
 
   const avatarInputRef = useRef(null);
   const galleryInputRef = useRef(null);
@@ -592,172 +514,63 @@ export default function SmartTapApp() {
   const audioInputRef = useRef(null);
   const qrInputRef = useRef(null);
   const receiptInputRef = useRef(null);
-
-  // --- INTERACTIVE LINK HEALTH & BROKEN URL CHECKER ---
-  const scanBrokenLinks = (linksArr) => {
-    const issues = [];
-    (linksArr || []).forEach((item) => {
-      if (item.type === "music" || item.type === "gaming") return;
-      const u = (item.url || "").trim();
-      if (!u) {
-        issues.push(`${item.label}: Missing URL`);
-        return;
-      }
-      try {
-        const parsed = new URL(u);
-        if (!parsed.hostname.includes(".")) {
-          issues.push(`${item.label}: Invalid domain format`);
-        } else if (
-          u.includes("private") ||
-          u.includes("deleted") ||
-          u.includes("404") ||
-          parsed.pathname === "/" && ["instagram", "tiktok", "facebook", "youtube"].includes(item.platformId)
-        ) {
-          issues.push(`${item.label}: Profile handle missing or unreachable (${u})`);
-        }
-      } catch {
-        issues.push(`${item.label}: Broken or malformed URL`);
-      }
-    });
-    return issues;
-  };
-
-  const linkHealthIssues = scanBrokenLinks(profile.links);
-
-  const reloadMediaFromDB = async (currentProfile) => {
-    try {
-      if (currentProfile?.hasFeaturedVideo) {
-        const vBlob = await getMediaBlob("featured_video");
-        if (vBlob) {
-          setVideoObjectUrl(URL.createObjectURL(vBlob));
-        }
-      } else {
-        setVideoObjectUrl("");
-      }
-
-      const musicLinks = (currentProfile?.links || []).filter((l) => l.type === "music");
-      const urlMap = {};
-      for (const m of musicLinks) {
-        const aBlob = await getMediaBlob(`audio_${m.id}`);
-        if (aBlob) {
-          urlMap[m.id] = URL.createObjectURL(aBlob);
-        }
-      }
-      setAudioObjectUrls(urlMap);
-    } catch (err) {
-      console.error("IndexedDB media load error:", err);
-    }
-  };
+  const mainActionsRef = useRef(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsOffline(!navigator.onLine);
-      const goOnline = () => setIsOffline(false);
-      const goOffline = () => setIsOffline(true);
-      window.addEventListener("online", goOnline);
-      window.addEventListener("offline", goOffline);
+    const savedAcc = localStorage.getItem("smarttap_v32_account");
+    const savedProf = localStorage.getItem("smarttap_v32_profile");
+    const savedMsgs = localStorage.getItem("smarttap_v32_messages");
+    const savedExch = localStorage.getItem("smarttap_v32_exchanged");
+    const savedRcpt = localStorage.getItem("smarttap_v32_receipts");
+    const savedBook = localStorage.getItem("smarttap_v32_bookings");
 
-      if ("serviceWorker" in navigator) {
-        const swCode = `
-          const CACHE_NAME = 'smarttap-offline-v4';
-          self.addEventListener('install', (e) => self.skipWaiting());
-          self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
-          self.addEventListener('fetch', (e) => {
-            if (e.request.method !== 'GET') return;
-            e.respondWith(
-              fetch(e.request)
-                .then((res) => {
-                  const clone = res.clone();
-                  caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-                  return res;
-                })
-                .catch(() => caches.match(e.request))
-            );
-          });
-        `;
-        const blob = new Blob([swCode], { type: "application/javascript" });
-        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-      }
-    }
-
-    try {
-      const savedAccount = localStorage.getItem("smarttap_v32_account");
-      const savedProfile = localStorage.getItem("smarttap_v32_profile");
-      const savedSetupDone = localStorage.getItem("smarttap_v32_setup_done");
-      const savedAnalytics = localStorage.getItem("smarttap_v32_analytics");
-      const savedMessages = localStorage.getItem("smarttap_v32_messages");
-      const savedContacts = localStorage.getItem("smarttap_v32_contacts");
-      const savedReceipts = localStorage.getItem("smarttap_v32_receipts");
-      const savedBookings = localStorage.getItem("smarttap_v32_bookings");
-
-      if (savedAccount) {
-        const acc = JSON.parse(savedAccount);
-        setAccount(acc);
-        setEditUser(acc.identifier || "");
-        setEditPass(acc.password || "");
-      }
-      if (savedProfile) {
-        const parsedProf = JSON.parse(savedProfile);
-        setProfile((prev) => ({
-          ...prev,
-          ...parsedProf,
-          privacy: { ...prev.privacy, ...(parsedProf.privacy || {}) },
-          booking: { ...prev.booking, ...(parsedProf.booking || {}) }
-        }));
-        reloadMediaFromDB(parsedProf);
-      }
-      if (savedMessages) setMessages(JSON.parse(savedMessages));
-      if (savedContacts) setExchangedContacts(JSON.parse(savedContacts));
-      if (savedReceipts) setPaymentReceipts(JSON.parse(savedReceipts));
-      if (savedBookings) setBookingsList(JSON.parse(savedBookings));
-
-      const currentAnalytics = savedAnalytics ? JSON.parse(savedAnalytics) : { taps1d: 0, taps1w: 0, taps1m: 0, tapsTotal: 0 };
-
-      if (savedSetupDone === "true" && savedProfile) {
-        setScreen("view");
-        const updated = {
-          taps1d: currentAnalytics.taps1d + 1,
-          taps1w: currentAnalytics.taps1w + 1,
-          taps1m: currentAnalytics.taps1m + 1,
-          tapsTotal: currentAnalytics.tapsTotal + 1
-        };
-        setAnalytics(updated);
-        localStorage.setItem("smarttap_v32_analytics", JSON.stringify(updated));
-      } else {
-        setAnalytics(currentAnalytics);
-      }
-    } catch (e) {
-      console.error("Failed to load local data:", e);
-    }
-    setIsLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (screen !== "view") return;
-    const handleScroll = () => {
-      if (!mainActionsRef.current) return;
-      const rect = mainActionsRef.current.getBoundingClientRect();
-      setShowFloatingBar(rect.bottom < 0);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [screen]);
-
-  const togglePlayAudio = (trackId) => {
-    const src = audioObjectUrls[trackId];
-    if (!src || !audioRef.current) return;
-
-    if (activeAudioId === trackId) {
-      audioRef.current.pause();
-      setActiveAudioId(null);
+    if (savedAcc) {
+      const parsedAcc = JSON.parse(savedAcc);
+      setAccount(parsedAcc);
+      setEditUser(parsedAcc.identifier || "");
+      setEditPass(parsedAcc.password || "");
     } else {
-      audioRef.current.src = src;
-      audioRef.current.volume = musicVolume;
-      audioRef.current.play()
-        .then(() => setActiveAudioId(trackId))
-        .catch(() => setActiveAudioId(null));
+      setScreen("claim");
     }
-  };
+
+    if (savedProf) {
+      const parsedProf = JSON.parse(savedProf);
+      setProfile((prev) => ({
+        ...prev,
+        ...parsedProf,
+        privacy: { ...prev.privacy, ...(parsedProf.privacy || {}) },
+        booking: { ...prev.booking, ...(parsedProf.booking || {}) },
+        verifiedBadge: { ...prev.verifiedBadge, ...(parsedProf.verifiedBadge || {}) }
+      }));
+
+      (parsedProf.links || []).forEach(async (item) => {
+        if (item.type === "music") {
+          const blob = await getMediaBlob(`audio_${item.id}`);
+          if (blob) {
+            setAudioObjectUrls((prev) => ({ ...prev, [item.id]: URL.createObjectURL(blob) }));
+          }
+        }
+      });
+    }
+
+    if (savedMsgs) setMessages(JSON.parse(savedMsgs));
+    if (savedExch) setExchangedContacts(JSON.parse(savedExch));
+    if (savedRcpt) setPaymentReceipts(JSON.parse(savedRcpt));
+    if (savedBook) setBookingsList(JSON.parse(savedBook));
+
+    getMediaBlob("featured_video").then((blob) => {
+      if (blob) setVideoObjectUrl(URL.createObjectURL(blob));
+    });
+
+    const handleOfflineStatus = () => setIsOffline(!navigator.onLine);
+    handleOfflineStatus();
+    window.addEventListener("online", handleOfflineStatus);
+    window.addEventListener("offline", handleOfflineStatus);
+    return () => {
+      window.removeEventListener("online", handleOfflineStatus);
+      window.removeEventListener("offline", handleOfflineStatus);
+    };
+  }, []);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -765,364 +578,416 @@ export default function SmartTapApp() {
     }
   }, [musicVolume]);
 
-  const theme = THEMES[profile.theme] || THEMES.default;
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowFloatingBar(window.scrollY > 220);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  const handleManualAuth = (e) => {
-    e.preventDefault();
-    setAuthError("");
+  const theme = THEMES[profile.theme] || THEMES.midnight;
 
-    const enteredUser = authIdentifier.trim().toLowerCase();
-    const enteredPass = authPassword.trim();
-
-    if (!enteredUser || !enteredPass) {
-      setAuthError("Please enter username and password.");
-      return;
+  const surfaceInlineStyle = (() => {
+    const style = profile.surfaceStyle || "solid";
+    if (style === "gradient") {
+      return { backgroundImage: "linear-gradient(145deg, rgba(99,102,241,0.22), rgba(6,182,212,0.12), transparent 70%)" };
     }
+    if (style === "mesh") {
+      return {
+        backgroundImage:
+          "radial-gradient(at 15% 15%, rgba(99,102,241,0.28) 0px, transparent 50%), radial-gradient(at 85% 80%, rgba(16,185,129,0.22) 0px, transparent 50%)"
+      };
+    }
+    if (style === "pattern") {
+      return {
+        backgroundImage: "radial-gradient(rgba(148,163,184,0.18) 1px, transparent 1px)",
+        backgroundSize: "18px 18px"
+      };
+    }
+    return {};
+  })();
+
+  const linkHealthIssues = (profile.links || [])
+    .filter((item) => item.type !== "music" && item.type !== "gaming")
+    .map((item) => {
+      const u = (item.url || "").trim();
+      if (!u || !u.includes(".") || u.length < 8) {
+        return { item, reason: `${item.label} has an incomplete or invalid URL.` };
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  function copyToClipboard(text, id) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(""), 2000);
+  }
+
+  function handleManualAuth(e) {
+    e.preventDefault();
+    const idTrim = authIdentifier.trim();
+    const passTrim = authPassword.trim();
+    if (!idTrim || !passTrim) return;
 
     if (authMode === "login" || screen === "login_to_edit") {
-      const savedAccStr = localStorage.getItem("smarttap_v32_account");
-      const parsedAcc = savedAccStr ? JSON.parse(savedAccStr) : account;
-
-      if (
-        parsedAcc &&
-        parsedAcc.identifier.toLowerCase() === enteredUser &&
-        parsedAcc.password === enteredPass
-      ) {
-        setAuthIdentifier("");
-        setAuthPassword("");
+      if (account && account.identifier === idTrim && account.password === passTrim) {
+        setAuthError("");
         setScreen("edit");
       } else {
-        setAuthError("Incorrect username or password.");
+        setAuthError("Invalid username or password. Please try again.");
       }
-      return;
+    } else {
+      const newAcc = { identifier: idTrim, password: passTrim };
+      setAccount(newAcc);
+      setEditUser(idTrim);
+      setEditPass(passTrim);
+      localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
+      setAuthError("");
+      setScreen("edit");
     }
+  }
 
-    const existingAccounts = JSON.parse(localStorage.getItem("smarttap_registry") || "[]");
-    const isTaken = existingAccounts.some((acc) => acc.identifier.toLowerCase() === enteredUser);
+  function handleSaveProfile() {
+    localStorage.setItem("smarttap_v32_profile", JSON.stringify(profile));
+    setSaveToast(true);
+    setTimeout(() => {
+      setSaveToast(false);
+      setScreen("view");
+    }, 900);
+  }
 
-    if (isTaken) {
-      setAuthError("Username is already taken. Please choose another unique username.");
-      return;
-    }
-
-    const newAcc = { identifier: authIdentifier.trim(), password: enteredPass };
-    existingAccounts.push(newAcc);
-    localStorage.setItem("smarttap_registry", JSON.stringify(existingAccounts));
-    localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
-
-    setAccount(newAcc);
-    setEditUser(newAcc.identifier);
-    setEditPass(newAcc.password);
-    setScreen("edit");
-  };
-
-  const handleAvatarUpload = async (e) => {
+  async function handleAvatarUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const compressed = await compressImage(file, 400, 0.8);
-    setProfile((prev) => ({ ...prev, avatar: compressed }));
-  };
+    const compressed = await compressImage(file, 400, 0.85);
+    setProfile({ ...profile, avatar: compressed });
+  }
 
-  const handleGalleryUpload = async (e) => {
+  async function handleGalleryUpload(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const remainingSlots = 4 - profile.photos.length;
-    const compressedList = await Promise.all(
-      files.slice(0, remainingSlots).map((f) => compressImage(f, 700, 0.75))
-    );
-    setProfile((prev) => ({
-      ...prev,
-      photos: [...prev.photos, ...compressedList].slice(0, 4)
-    }));
-  };
+    const slotsLeft = 4 - profile.photos.length;
+    const selected = files.slice(0, slotsLeft);
+    const compressedList = await Promise.all(selected.map((f) => compressImage(f, 700, 0.8)));
+    setProfile({ ...profile, photos: [...profile.photos, ...compressedList] });
+  }
 
-  const removeGalleryPhoto = (idx) => {
-    setProfile((prev) => ({
-      ...prev,
-      photos: prev.photos.filter((_, i) => i !== idx)
-    }));
-  };
+  function removeGalleryPhoto(idx) {
+    setProfile({ ...profile, photos: profile.photos.filter((_, i) => i !== idx) });
+  }
 
-  const handleVideoFileUpload = async (e) => {
+  async function handleVideoFileUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      await saveMediaBlob("featured_video", file);
-      setVideoObjectUrl(URL.createObjectURL(file));
-      setProfile((prev) => ({ ...prev, hasFeaturedVideo: true }));
-    } catch {
-      alert("Failed to save video to browser storage.");
-    }
-  };
+    await saveMediaBlob("featured_video", file);
+    setVideoObjectUrl(URL.createObjectURL(file));
+  }
 
-  const handleRemoveVideo = async () => {
+  async function handleRemoveVideo() {
     await deleteMediaBlob("featured_video");
     setVideoObjectUrl("");
-    setProfile((prev) => ({ ...prev, hasFeaturedVideo: false }));
-  };
+  }
 
-  const saveLinkItem = (e) => {
+  function saveLinkItem(e) {
     e.preventDefault();
-    if (!inputField1.trim()) return;
-
-    let finalUrl = inputField1.trim();
-    if (!/^https?:\/\//i.test(finalUrl)) {
-      finalUrl = `https://${finalUrl}`;
+    const cleanUrl = normalizeUrl(inputField1);
+    if (editingLinkItem) {
+      setProfile({
+        ...profile,
+        links: profile.links.map((l) => (l.id === editingLinkItem.id ? { ...l, url: cleanUrl } : l))
+      });
+      setEditingLinkItem(null);
+      setInputField1("");
+      return;
     }
 
     const newItem = {
-      id: Date.now(),
+      id: Date.now().toString(),
       type: activeModal,
       platformId: selectedSubPlatform.id,
       label: selectedSubPlatform.name,
       badge: selectedSubPlatform.badge,
-      url: finalUrl
+      url: cleanUrl
     };
-
-    setProfile((prev) => ({ ...prev, links: [...prev.links, newItem] }));
+    setProfile({ ...profile, links: [...profile.links, newItem] });
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
-  };
+  }
 
-  const saveMusicItem = async (e) => {
+  async function saveMusicItem(e) {
     e.preventDefault();
-    if (!inputField1.trim() || !pendingAudioFile) return;
+    if (!pendingAudioFile) return;
+    const newId = Date.now().toString();
+    await saveMediaBlob(`audio_${newId}`, pendingAudioFile);
+    const objUrl = URL.createObjectURL(pendingAudioFile);
+    setAudioObjectUrls((prev) => ({ ...prev, [newId]: objUrl }));
 
-    const trackId = Date.now();
-    await saveMediaBlob(`audio_${trackId}`, pendingAudioFile);
-    setAudioObjectUrls((prev) => ({ ...prev, [trackId]: URL.createObjectURL(pendingAudioFile) }));
-
-    const newMusicItem = {
-      id: trackId,
+    const newItem = {
+      id: newId,
       type: "music",
       platformId: "audio_upload",
-      label: inputField1.trim(),
-      badge: "♪",
+      label: inputField1.trim() || pendingAudioFile.name,
+      badge: "MP3",
       url: ""
     };
-
-    setProfile((prev) => ({ ...prev, links: [...prev.links, newMusicItem] }));
+    setProfile({ ...profile, links: [...profile.links, newItem] });
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
     setPendingAudioFile(null);
-  };
+  }
 
-  const saveGamingItem = (e) => {
+  function saveGamingItem(e) {
     e.preventDefault();
-    if (!inputField1.trim()) return;
-
     const newItem = {
-      id: Date.now(),
+      id: Date.now().toString(),
       type: "gaming",
       platformId: selectedSubPlatform.id,
       label: selectedSubPlatform.name,
       badge: selectedSubPlatform.badge,
-      url: selectedSubPlatform.defaultUrl || "https://google.com",
-      gameDetails: {
-        field1: inputField1.trim(),
-        field2: inputField2.trim(),
-        field3: inputField3.trim()
-      }
+      gameDetails: { field1: inputField1.trim(), field2: inputField2.trim(), field3: inputField3.trim() },
+      url: "#"
     };
-
-    setProfile((prev) => ({ ...prev, links: [...prev.links, newItem] }));
+    setProfile({ ...profile, links: [...profile.links, newItem] });
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
     setInputField2("");
     setInputField3("");
-  };
+  }
 
-  const savePaymentItem = (e) => {
+  function savePaymentItem(e) {
     e.preventDefault();
-    setModalError("");
-
-    const cleanNum = inputField2.replace(/\s+/g, "");
-    if (!inputField1.trim() || !cleanNum) {
-      setModalError("Please enter Account Name and Number.");
-      return;
-    }
-
-    const newPayment = {
-      id: Date.now(),
+    const bankLabel = selectedSubPlatform.id === "others" ? inputField3.trim() : selectedSubPlatform.name;
+    const newPay = {
+      id: Date.now().toString(),
       providerId: selectedSubPlatform.id,
-      bankName: selectedSubPlatform.id === "others" ? inputField3.trim() : selectedSubPlatform.name,
+      bankName: bankLabel,
       accountName: inputField1.trim(),
-      accountNumber: cleanNum,
+      accountNumber: inputField2.trim(),
       qrImage: payQrImage
     };
-
-    setProfile((prev) => ({ ...prev, payments: [...prev.payments, newPayment] }));
+    setProfile({ ...profile, payments: [...profile.payments, newPay] });
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
     setInputField2("");
     setInputField3("");
     setPayQrImage("");
-  };
+    setModalError("");
+  }
 
-  const saveLocationItem = (e) => {
+  function saveLocationItem(e) {
     e.preventDefault();
-    if (!locAddress.trim()) return;
     const newLoc = {
-      id: Date.now(),
+      id: Date.now().toString(),
       address: locAddress.trim(),
       landmark: locLandmark.trim(),
-      mapUrl: locMapUrl.trim(),
-      schedule: locHoursEnabled
-        ? { enabled: true, days: locDays, openTime: locOpenTime, closeTime: locCloseTime }
-        : { enabled: false }
-    };
-    setProfile((prev) => ({ ...prev, locations: [...prev.locations, newLoc] }));
-    setLocAddress("");
-    setLocLandmark("");
-    setLocMapUrl("");
-    setLocHoursEnabled(false);
-    setShowLocModal(false);
-  };
-
-  const removeItem = async (id, category) => {
-    if (category === "payment") {
-      setProfile((prev) => ({ ...prev, payments: prev.payments.filter((p) => p.id !== id) }));
-    } else if (category === "location") {
-      setProfile((prev) => ({ ...prev, locations: prev.locations.filter((l) => l.id !== id) }));
-    } else {
-      if (category === "music") {
-        await deleteMediaBlob(`audio_${id}`);
+      mapUrl: locMapUrl.trim() ? normalizeUrl(locMapUrl) : "",
+      schedule: {
+        enabled: locHoursEnabled,
+        activeDays: locActiveDays,
+        mode: locScheduleMode,
+        openTime: locOpenTime,
+        closeTime: locCloseTime,
+        perDay: locPerDay
       }
-      setProfile((prev) => ({ ...prev, links: prev.links.filter((l) => l.id !== id) }));
-    }
-  };
+    };
+    setProfile({ ...profile, locations: [...profile.locations, newLoc] });
+    setShowLocModal(false);
+  }
 
-  const handleSaveProfile = () => {
-    try {
-      localStorage.setItem("smarttap_v32_profile", JSON.stringify(profile));
-      localStorage.setItem("smarttap_v32_setup_done", "true");
-      setSaveToast(true);
-      setTimeout(() => {
-        setSaveToast(false);
-        setScreen("view");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 450);
-    } catch {
-      alert("Storage limit warning: Try reducing gallery image sizes.");
+  async function removeItem(id, type) {
+    if (type === "location") {
+      setProfile({ ...profile, locations: profile.locations.filter((l) => l.id !== id) });
+    } else if (type === "payment") {
+      setProfile({ ...profile, payments: profile.payments.filter((p) => p.id !== id) });
+    } else {
+      if (type === "music") {
+        await deleteMediaBlob(`audio_${id}`);
+        if (activeAudioId === id && audioRef.current) {
+          audioRef.current.pause();
+          setActiveAudioId(null);
+        }
+      }
+      setProfile({ ...profile, links: profile.links.filter((l) => l.id !== id) });
     }
-  };
+  }
 
-  const handleSaveContactVCard = (customName, customPhone, customEmail, customNote, triggerPrompt = false) => {
-    const fn = customName || profile.name || "SmartTap User";
-    const tel = customPhone !== undefined ? customPhone : profile.phone;
-    const mail = customEmail !== undefined ? customEmail : profile.email;
-    const note = customNote !== undefined ? customNote : profile.bio;
+  function togglePlayAudio(id) {
+    const src = audioObjectUrls[id];
+    if (!src || !audioRef.current) return;
+    if (activeAudioId === id) {
+      audioRef.current.pause();
+      setActiveAudioId(null);
+    } else {
+      audioRef.current.src = src;
+      audioRef.current.play();
+      setActiveAudioId(id);
+    }
+  }
+
+  function handleSaveContactVCard(customName, customPhone, customEmail, customNote, promptBack = false) {
+    const cName = customName || profile.name || "SmartTap Contact";
+    const cPhone = customPhone || profile.phone || "";
+    const cEmail = customEmail || profile.email || "";
+    const cNote = customNote || profile.bio || "Saved via SmartTap PH";
 
     const vcard = [
       "BEGIN:VCARD",
       "VERSION:3.0",
-      `FN:${fn}`,
-      tel ? `TEL;TYPE=CELL:${tel}` : "",
-      mail ? `EMAIL:${mail}` : "",
-      note ? `NOTE:${note}` : "",
+      `FN:${cName}`,
+      cPhone ? `TEL;TYPE=CELL:${cPhone}` : "",
+      cEmail ? `EMAIL:${cEmail}` : "",
+      `NOTE:${cNote}`,
       "END:VCARD"
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ].filter(Boolean).join("\n");
 
     const blob = new Blob([vcard], { type: "text/vcard" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${fn.replace(/\s+/g, "_")}.vcf`;
+    a.download = `${cName.replace(/\s+/g, "_")}.vcf`;
     a.click();
     URL.revokeObjectURL(url);
 
-    if (triggerPrompt) {
+    if (promptBack) {
       setShowPostSavePrompt(true);
     }
-  };
+  }
 
-  // --- SUBMIT TWO-WAY CONTACT EXCHANGE ---
-  const handleExchangeContactSubmit = (e) => {
+  function handleSendContactMessage(e) {
     e.preventDefault();
-    if (!exchangeForm.name.trim() || !exchangeForm.phone.trim()) return;
+    const newMsg = {
+      id: Date.now().toString(),
+      name: contactForm.name.trim(),
+      contact: contactForm.contact.trim(),
+      message: contactForm.message.trim(),
+      date: new Date().toLocaleDateString("en-PH", { month: "short", day: "numeric" })
+    };
+    const updated = [newMsg, ...messages];
+    setMessages(updated);
+    localStorage.setItem("smarttap_v32_messages", JSON.stringify(updated));
+    setContactForm({ name: "", contact: "", message: "" });
+    setContactSent(true);
+    setTimeout(() => setContactSent(false), 3500);
+  }
 
-    const newContactEntry = {
-      id: Date.now(),
+  function handleExchangeContactSubmit(e) {
+    e.preventDefault();
+    const entry = {
+      id: Date.now().toString(),
       name: exchangeForm.name.trim(),
       phone: exchangeForm.phone.trim(),
       email: exchangeForm.email.trim(),
       social: exchangeForm.social.trim(),
-      date: new Date().toLocaleString()
+      date: new Date().toLocaleDateString("en-PH", { month: "short", day: "numeric" })
     };
-
-    const updatedContacts = [newContactEntry, ...exchangedContacts];
-    setExchangedContacts(updatedContacts);
-    localStorage.setItem("smarttap_v32_contacts", JSON.stringify(updatedContacts));
+    const updated = [entry, ...exchangedContacts];
+    setExchangedContacts(updated);
+    localStorage.setItem("smarttap_v32_exchanged", JSON.stringify(updated));
     setExchangeSuccess(true);
-  };
+  }
 
-  // --- SUBMIT PAYMENT RECEIPT ---
-  const handleReceiptSubmit = (e) => {
+  function handleReceiptSubmit(e) {
     e.preventDefault();
-    if (!receiptSenderName.trim() || !receiptImage || !receiptModalPay) return;
-
-    const newReceipt = {
-      id: Date.now(),
+    if (!receiptImage) return;
+    const entry = {
+      id: Date.now().toString(),
       bankName: receiptModalPay.bankName,
       senderName: receiptSenderName.trim(),
       refNo: receiptRefNo.trim(),
       image: receiptImage,
-      date: new Date().toLocaleString()
+      date: new Date().toLocaleDateString("en-PH", { month: "short", day: "numeric" })
+    };
+    const updated = [entry, ...paymentReceipts];
+    setPaymentReceipts(updated);
+    localStorage.setItem("smarttap_v32_receipts", JSON.stringify(updated));
+    setReceiptSuccess(true);
+  }
+
+  function getAvailableBookingTimes() {
+    const start = profile.booking?.startTime || "09:00";
+    const end = profile.booking?.endTime || "18:00";
+    const filtered = TIME_OPTIONS_30M.filter((t) => t >= start && t <= end);
+    return filtered.length > 0 ? filtered : ["09:00", "10:00", "13:00", "15:00"];
+  }
+
+  function buildCalendarMonth(offset) {
+    const base = new Date();
+    const target = new Date(base.getFullYear(), base.getMonth() + offset, 1);
+    const year = target.getFullYear();
+    const month = target.getMonth();
+    const monthLabel = target.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayStart = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+    const allowedDays = profile.booking?.availableDays || [1, 2, 3, 4, 5];
+
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, month, d);
+      const isPast = dateObj < todayStart;
+      const isAllowedWeekday = allowedDays.includes(dateObj.getDay());
+      const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const label = dateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+      cells.push({
+        dayNum: d,
+        iso,
+        label,
+        isAvailable: !isPast && isAllowedWeekday
+      });
+    }
+    return { monthLabel, cells };
+  }
+
+  function handleBookingSubmit(e) {
+    e.preventDefault();
+    if (!bookingForm.selectedDateISO) return;
+
+    const newBooking = {
+      id: Date.now().toString(),
+      title: profile.booking?.title || "Appointment",
+      location: profile.booking?.location || "TBD",
+      clientName: bookingForm.clientName.trim(),
+      clientPhone: bookingForm.clientPhone.trim(),
+      dayChoice: bookingForm.selectedDateLabel,
+      timeChoice: formatTime12(bookingForm.timeChoice),
+      durationMins: bookingForm.durationMins,
+      notes: bookingForm.notes.trim(),
+      date: new Date().toLocaleDateString("en-PH", { month: "short", day: "numeric" })
     };
 
-    const updatedReceipts = [newReceipt, ...paymentReceipts];
-    setPaymentReceipts(updatedReceipts);
-    localStorage.setItem("smarttap_v32_receipts", JSON.stringify(updatedReceipts));
-    setReceiptSuccess(true);
-  };
+    const updated = [newBooking, ...bookingsList];
+    setBookingsList(updated);
+    localStorage.setItem("smarttap_v32_bookings", JSON.stringify(updated));
 
-  // --- GENERATE .ICS CALENDAR EVENT & SUBMIT BOOKING ---
-  const handleBookingSubmit = (e) => {
-    e.preventDefault();
-    if (!bookingForm.clientName.trim() || !bookingForm.clientPhone.trim()) return;
+    const [y, m, d] = bookingForm.selectedDateISO.split("-").map(Number);
+    const [hh, mm] = bookingForm.timeChoice.split(":").map(Number);
+    const startDt = new Date(y, m - 1, d, hh, mm);
+    const endDt = new Date(startDt.getTime() + bookingForm.durationMins * 60000);
 
-    const eventTitle = `${profile.booking?.title || "Meeting"} with ${profile.name || "SmartTap Owner"}`;
-    const eventLoc = profile.booking?.location || "Online / To be confirmed";
-    const eventDesc = `Client: ${bookingForm.clientName} (${bookingForm.clientPhone}) | Notes: ${bookingForm.notes || "None"}`;
-
-    // Build start/end ISO strings for tomorrow/selected day
-    const startDate = new Date();
-    if (bookingForm.dayChoice === "Tomorrow") startDate.setDate(startDate.getDate() + 1);
-    else if (bookingForm.dayChoice === "In 2 Days") startDate.setDate(startDate.getDate() + 2);
-    else if (bookingForm.dayChoice === "Next Monday") {
-      const diff = (1 + 7 - startDate.getDay()) % 7 || 7;
-      startDate.setDate(startDate.getDate() + diff);
-    }
-
-    const [timePart, meridiem] = bookingForm.timeChoice.split(" ");
-    let [hr, min] = timePart.split(":").map(Number);
-    if (meridiem === "PM" && hr !== 12) hr += 12;
-    if (meridiem === "AM" && hr === 12) hr = 0;
-    startDate.setHours(hr, min, 0, 0);
-
-    const endDate = new Date(startDate.getTime() + 30 * 60000);
-    const toICSDate = (d) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+    const fmtIcs = (dt) =>
+      `${dt.getFullYear()}${String(dt.getMonth() + 1).padStart(2, "0")}${String(dt.getDate()).padStart(2, "0")}T${String(dt.getHours()).padStart(2, "0")}${String(dt.getMinutes()).padStart(2, "0")}00`;
 
     const icsContent = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
       "PRODID:-//SmartTap PH//Booking//EN",
       "BEGIN:VEVENT",
-      `UID:smarttap-${Date.now()}@smarttap.ph`,
-      `DTSTAMP:${toICSDate(new Date())}`,
-      `DTSTART:${toICSDate(startDate)}`,
-      `DTEND:${toICSDate(endDate)}`,
-      `SUMMARY:${eventTitle}`,
-      `LOCATION:${eventLoc}`,
-      `DESCRIPTION:${eventDesc}`,
+      `DTSTART:${fmtIcs(startDt)}`,
+      `DTEND:${fmtIcs(endDt)}`,
+      `SUMMARY:${newBooking.title} with ${profile.name || "SmartTap"}`,
+      `LOCATION:${newBooking.location}`,
+      `DESCRIPTION:Client: ${newBooking.clientName} (${newBooking.clientPhone})`,
       "BEGIN:VALARM",
-      "TRIGGER:-PT15M",
+      "TRIGGER:-PT30M",
       "ACTION:DISPLAY",
       "DESCRIPTION:Reminder",
       "END:VALARM",
@@ -1134,126 +999,83 @@ export default function SmartTapApp() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `SmartTap_Booking_${bookingForm.clientName.replace(/\s+/g, "_")}.ics`;
+    a.download = `SmartTap_Booking_${bookingForm.selectedDateISO}.ics`;
     a.click();
     URL.revokeObjectURL(url);
 
-    const newBooking = {
-      id: Date.now(),
-      title: profile.booking?.title || "Meeting / Appointment",
-      clientName: bookingForm.clientName.trim(),
-      clientPhone: bookingForm.clientPhone.trim(),
-      dayChoice: bookingForm.dayChoice,
-      timeChoice: bookingForm.timeChoice,
-      location: eventLoc,
-      notes: bookingForm.notes.trim(),
-      date: new Date().toLocaleString()
-    };
-
-    const updatedBookings = [newBooking, ...bookingsList];
-    setBookingsList(updatedBookings);
-    localStorage.setItem("smarttap_v32_bookings", JSON.stringify(updatedBookings));
     setBookingSuccess(true);
-  };
+  }
 
-  const getGmailComposeUrl = (emailAddress) => {
-    return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(emailAddress)}`;
-  };
+  async function handleNativeShare(url) {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${profile.name || "SmartTap"} Digital Card`,
+          text: `Check out ${profile.name || "my"} SmartTap profile!`,
+          url
+        });
+      } catch {}
+    } else {
+      copyToClipboard(url, "qr_url");
+    }
+  }
 
-  const copyToClipboard = (text, id) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const downloadQrPhoto = (dataUrl, bankName) => {
+  function downloadQrPhoto(dataUrl, bankName) {
     const a = document.createElement("a");
     a.href = dataUrl;
     a.download = `${bankName.replace(/\s+/g, "_")}_QR.jpg`;
     a.click();
-  };
+  }
 
-  const handleSendContactMessage = (e) => {
-    e.preventDefault();
-    if (!contactForm.name || !contactForm.message) return;
-    const newMsg = {
-      id: Date.now(),
-      name: contactForm.name.trim(),
-      contact: contactForm.contact.trim(),
-      message: contactForm.message.trim(),
-      date: new Date().toLocaleString()
-    };
-    const updatedMsgs = [newMsg, ...messages];
-    setMessages(updatedMsgs);
-    localStorage.setItem("smarttap_v32_messages", JSON.stringify(updatedMsgs));
-    setContactSent(true);
-    setContactForm({ name: "", contact: "", message: "" });
-    setTimeout(() => setContactSent(false), 4000);
-  };
-
-  const handleNativeShare = async (shareUrl) => {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: `${profile.name || "SmartTap"} — Digital Profile`,
-          text: profile.bio || "Connect with me via SmartTap!",
-          url: shareUrl
-        });
-      } catch {
-        // User cancelled share sheet
-      }
-    } else {
-      copyToClipboard(shareUrl, "qr_url");
-    }
-  };
-
-  if (!isLoaded) return null;
-
-  // --- SCREEN 1: CLAIM ---
+  // --- SCREEN 1: CLAIM CARD ---
   if (screen === "claim") {
     return (
       <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between p-6">
-        <header className="max-w-md w-full mx-auto pt-2 flex justify-between items-center">
-          <BrandLogo size="md" />
-          <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-medium">
-            SmartTap v4.0
+        <header className="max-w-md w-full mx-auto pt-2 flex items-center justify-between">
+          <BrandLogo />
+          <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+            Unclaimed Card
           </span>
         </header>
 
-        <main className="max-w-md w-full mx-auto my-auto py-10 text-center space-y-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 mx-auto shadow-lg shadow-indigo-950/50">
-            <Sparkles className="w-10 h-10" />
+        <main className="max-w-md w-full mx-auto my-auto text-center space-y-6 py-8">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-lg">
+            <QrCode className="w-8 h-8" />
           </div>
 
-          <div className="space-y-3">
-            <h1 className="text-3xl font-extrabold tracking-tight">
-              Claim & Setup Your SmartTap Card
-            </h1>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Your luxury digital identity—complete with Native App Deep Links, Payment Receipt Uploads, One-Tap Calendar Bookings, and Offline PWA Support.
+          <div className="space-y-2">
+            <h1 className="text-2xl font-extrabold tracking-tight">Claim Your SmartTap Card</h1>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              This NFC card is ready to be activated. Set up your digital profile, links, payment QRs, and booking calendar in under 2 minutes.
             </p>
           </div>
 
           <div className="space-y-3 pt-2">
             <button
+              type="button"
               onClick={() => {
                 setAuthMode("signup");
+                setAuthIdentifier("");
+                setAuthPassword("");
                 setAuthError("");
                 setScreen("auth");
               }}
-              className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition cursor-pointer active:scale-95"
             >
-              Get Started — Claim Card
+              Activate & Set Up Card
             </button>
 
             {account && (
               <button
+                type="button"
                 onClick={() => {
                   setAuthMode("login");
+                  setAuthIdentifier("");
+                  setAuthPassword("");
                   setAuthError("");
-                  setScreen("login_to_edit");
+                  setScreen("auth");
                 }}
-                className="w-full py-3 px-5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer active:scale-95"
+                className="w-full py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer active:scale-95"
               >
                 Already claimed? Sign in to Edit
               </button>
@@ -1354,7 +1176,6 @@ export default function SmartTapApp() {
       </div>
     );
   }
-
   // --- SCREEN 3: EDIT PROFILE ---
   if (screen === "edit") {
     const togglePrivacy = (key) => {
@@ -1364,8 +1185,25 @@ export default function SmartTapApp() {
       }));
     };
 
+    const toggleBookingDay = (dayId) => {
+      const current = profile.booking?.availableDays || [];
+      const updated = current.includes(dayId)
+        ? current.filter((d) => d !== dayId)
+        : [...current, dayId];
+      setProfile({
+        ...profile,
+        booking: { ...profile.booking, availableDays: updated }
+      });
+    };
+
+    const toggleLocDay = (dayId) => {
+      setLocActiveDays((prev) =>
+        prev.includes(dayId) ? prev.filter((d) => d !== dayId) : [...prev, dayId]
+      );
+    };
+
     return (
-      <div className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-28`}>
+      <div style={surfaceInlineStyle} className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-36`}>
         <header className={`sticky top-0 z-30 border-b backdrop-blur-md ${theme.card}`}>
           <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between">
             <BrandLogo size="sm" />
@@ -1388,21 +1226,6 @@ export default function SmartTapApp() {
             </p>
           </div>
 
-          {/* LINK HEALTH CHECKER ALERT */}
-          {linkHealthIssues.length > 0 && (
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>Link Health Scanner Alert ({linkHealthIssues.length} issue found)</span>
-              </div>
-              <ul className="text-[11px] text-amber-200/90 list-disc pl-5 space-y-0.5">
-                {linkHealthIssues.map((iss, i) => (
-                  <li key={i}>{iss}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* SECTION 1: PROFILE INFO & CONTACT PRIVACY */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
@@ -1416,7 +1239,6 @@ export default function SmartTapApp() {
                 className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold inline-flex items-center gap-1 cursor-pointer ${
                   profile.privacy.contact ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
                 }`}
-                title="Toggle Contact Buttons Visibility"
               >
                 {profile.privacy.contact ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 <span>{profile.privacy.contact ? "Contact Visible" : "Contact Hidden"}</span>
@@ -1511,7 +1333,7 @@ export default function SmartTapApp() {
                   rows={2}
                   value={profile.bio}
                   onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                  placeholder="Entrepreneur | Gamer | Manila, PH"
+                  placeholder="Entrepreneur | Cafe Owner | Manila, PH"
                   className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
                 />
               </div>
@@ -1610,7 +1432,7 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* SECTION 3: ONE-TAP CALENDAR BOOKING SETUP (PRESET DROPDOWNS) */}
+          {/* SECTION 3: APPOINTMENT / MEETING BOOKING */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -1624,7 +1446,6 @@ export default function SmartTapApp() {
                   className={`p-1.5 rounded-lg border cursor-pointer ${
                     profile.privacy.booking ? theme.accentSoft : "bg-rose-500/15 text-rose-400 border-rose-500/30"
                   }`}
-                  title="Hide/Show Booking Section"
                 >
                   {profile.privacy.booking ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 </button>
@@ -1641,7 +1462,7 @@ export default function SmartTapApp() {
             </div>
 
             {profile.booking?.enabled && (
-              <div className="space-y-3 pt-1">
+              <div className="space-y-4 pt-1">
                 <div>
                   <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Booking Button Label</label>
                   <select
@@ -1649,36 +1470,58 @@ export default function SmartTapApp() {
                     onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, title: e.target.value } })}
                     className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-medium ${theme.input}`}
                   >
-                    <option value="Book a Meeting / Appointment">Book a Meeting / Appointment</option>
-                    <option value="Schedule a Consultation">Schedule a Consultation</option>
-                    <option value="Reserve a Table / Visit">Reserve a Table / Visit</option>
-                    <option value="Book a Discovery Call">Book a Discovery Call</option>
+                    {BOOKING_LABELS.map((lbl) => (
+                      <option key={lbl} value={lbl}>{lbl}</option>
+                    ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-medium mb-1.5 ${theme.subtext}`}>
+                    Select Available Days (Viewers can only pick checked days)
+                  </label>
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {DAYS_OF_WEEK.map((d) => {
+                      const isChecked = (profile.booking?.availableDays || []).includes(d.id);
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => toggleBookingDay(d.id)}
+                          className={`py-2 rounded-xl border text-[11px] font-bold transition cursor-pointer ${
+                            isChecked ? theme.accent : theme.pill
+                          }`}
+                        >
+                          {d.short}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Available Days</label>
+                    <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Earliest Time</label>
                     <select
-                      value={profile.booking.availableDays}
-                      onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, availableDays: e.target.value } })}
+                      value={profile.booking.startTime || "09:00"}
+                      onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, startTime: e.target.value } })}
                       className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
                     >
-                      <option value="mon_sun">Monday – Sunday</option>
-                      <option value="mon_sat">Monday – Saturday</option>
-                      <option value="mon_fri">Monday – Friday</option>
+                      {TIME_OPTIONS_30M.map((t) => (
+                        <option key={t} value={t}>{formatTime12(t)}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Session Duration</label>
+                    <label className={`block text-xs font-medium mb-1 ${theme.subtext}`}>Latest Time</label>
                     <select
-                      value={profile.booking.duration}
-                      onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, duration: e.target.value } })}
+                      value={profile.booking.endTime || "18:00"}
+                      onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, endTime: e.target.value } })}
                       className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
                     >
-                      <option value="15 mins">15 Minutes</option>
-                      <option value="30 mins">30 Minutes</option>
-                      <option value="1 hour">1 Hour</option>
+                      {TIME_OPTIONS_30M.map((t) => (
+                        <option key={t} value={t}>{formatTime12(t)}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -1737,29 +1580,50 @@ export default function SmartTapApp() {
 
             {profile.links.length > 0 && (
               <div className="space-y-2.5 pt-2">
-                {profile.links.map((item) => (
-                  <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 uppercase shadow ${theme.badgeIcon}`}>
-                        {item.badge || item.type.slice(0, 2)}
-                      </span>
-                      <div className="truncate">
-                        <p className="text-sm font-semibold truncate">{item.label}</p>
-                        <p className={`text-xs truncate ${theme.subtext}`}>
-                          {item.type === "music" ? "Device Audio Track" : (item.type === "gaming" ? `${item.gameDetails?.field1}` : item.url)}
-                        </p>
+                {profile.links.map((item) => {
+                  const isBroken = linkHealthIssues.some((iss) => iss.item.id === item.id);
+                  return (
+                    <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border ${isBroken ? "border-amber-500/60 bg-amber-500/10" : theme.pill}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 uppercase shadow ${theme.badgeIcon}`}>
+                          {item.badge || item.type.slice(0, 2)}
+                        </span>
+                        <div className="truncate">
+                          <p className="text-sm font-semibold truncate flex items-center gap-1.5">
+                            <span>{item.label}</span>
+                            {isBroken && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">Check URL</span>}
+                          </p>
+                          <p className={`text-xs truncate ${theme.subtext}`}>
+                            {item.type === "music" ? "Device Audio Track" : (item.type === "gaming" ? `${item.gameDetails?.field1}` : item.url)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {item.type !== "music" && item.type !== "gaming" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingLinkItem(item);
+                              setInputField1(item.url);
+                            }}
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${theme.actionBtn}`}
+                            title="Edit Link"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button type="button" onClick={() => removeItem(item.id, item.type)} className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    <button type="button" onClick={() => removeItem(item.id, item.type)} className="p-1.5 text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
 
-          {/* SECTION 5: LOCATIONS & OPERATING HOURS */}
+          {/* SECTION 5: LOCATIONS & FLEXIBLE OPERATING HOURS */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-base">
@@ -1783,6 +1647,8 @@ export default function SmartTapApp() {
                     setLocLandmark("");
                     setLocMapUrl("");
                     setLocHoursEnabled(false);
+                    setLocActiveDays([1, 2, 3, 4, 5, 6, 0]);
+                    setLocScheduleMode("uniform");
                     setShowLocModal(true);
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer ${theme.accent}`}
@@ -1809,7 +1675,9 @@ export default function SmartTapApp() {
                         <p className="text-sm font-semibold truncate">{loc.address}</p>
                         {loc.schedule?.enabled && (
                           <p className={`text-[11px] truncate ${theme.accentText}`}>
-                            Hours: {formatTime12(loc.schedule.openTime)} – {formatTime12(loc.schedule.closeTime)}
+                            {loc.schedule.mode === "custom"
+                              ? "Custom Daily Schedule Enabled"
+                              : `${formatTime12(loc.schedule.openTime)} – ${formatTime12(loc.schedule.closeTime)}`}
                           </p>
                         )}
                       </div>
@@ -1823,11 +1691,11 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* SECTION 6: PROFILE THEMES (INCLUDING EXECUTIVE GOLD) */}
+          {/* SECTION 6: PROFILE THEMES + SURFACE STYLE */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <Palette className={`w-5 h-5 ${theme.accentText}`} />
-              <h2>Profile Theme Default</h2>
+              <h2>Profile Theme & Surface Style</h2>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -1847,6 +1715,34 @@ export default function SmartTapApp() {
                   </button>
                 );
               })}
+            </div>
+
+            <div className="pt-2 border-t border-slate-700/30 space-y-2">
+              <label className={`text-xs font-semibold flex items-center gap-1.5 ${theme.subtext}`}>
+                <Layers className="w-3.5 h-3.5" /> Background Surface Finish
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { id: "solid", label: "Solid" },
+                  { id: "gradient", label: "Gradient" },
+                  { id: "mesh", label: "Mesh" },
+                  { id: "pattern", label: "Pattern" }
+                ].map((st) => {
+                  const active = (profile.surfaceStyle || "solid") === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setProfile({ ...profile, surfaceStyle: st.id })}
+                      className={`py-2 px-2 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                        active ? theme.accent : theme.pill
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </section>
 
@@ -1887,7 +1783,7 @@ export default function SmartTapApp() {
                 {profile.payments.map((pay) => (
                   <div key={pay.id} className={`flex items-center justify-between p-3 rounded-xl border ${theme.pill}`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                      <span className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${theme.badgeIcon}`}>
                         ₱
                       </span>
                       <div className="truncate">
@@ -1905,6 +1801,44 @@ export default function SmartTapApp() {
           </section>
         </main>
 
+        {/* FLOATING LINK HEALTH POP-UP ALERT */}
+        {linkHealthIssues.length > 0 && !dismissedHealthBanner && (
+          <div className="fixed bottom-20 inset-x-4 z-40 max-w-xl mx-auto">
+            <div className="bg-[#1c1917] border-2 border-amber-500/80 text-amber-100 rounded-2xl p-3.5 shadow-2xl flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1 min-w-0">
+                  <p className="text-xs font-bold text-amber-300">
+                    Broken / Incomplete Link Detected ({linkHealthIssues.length})
+                  </p>
+                  <p className="text-[11px] text-amber-100/90 truncate">
+                    {linkHealthIssues[0].reason}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetItem = linkHealthIssues[0].item;
+                      setEditingLinkItem(targetItem);
+                      setInputField1(targetItem.url || "");
+                    }}
+                    className="mt-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
+                  >
+                    <Pencil className="w-3 h-3" /> Edit & Fix Link
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDismissedHealthBanner(true)}
+                className="p-1 text-amber-300/70 hover:text-white cursor-pointer"
+                title="Dismiss Alert"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={`fixed bottom-0 inset-x-0 p-4 border-t backdrop-blur-md z-30 ${theme.card}`}>
           <div className="max-w-xl mx-auto">
             <button
@@ -1918,7 +1852,37 @@ export default function SmartTapApp() {
           </div>
         </div>
 
-        {/* LOCATION & BUSINESS HOURS MODAL (PRESET OPTIONS) */}
+        {/* DIRECT EDIT BROKEN LINK MODAL */}
+        {editingLinkItem && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-base">Edit {editingLinkItem.label} URL</h3>
+                <button onClick={() => setEditingLinkItem(null)} className="p-1 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={saveLinkItem} className="space-y-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Full Profile / Page URL</label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={inputField1}
+                    onChange={(e) => setInputField1(e.target.value)}
+                    placeholder="https://instagram.com/yourusername"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setEditingLinkItem(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Cancel</button>
+                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Update Link</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* LOCATION & FLEXIBLE BUSINESS HOURS MODAL */}
         {showLocModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -1939,12 +1903,12 @@ export default function SmartTapApp() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Landmark Notes for Grab / Angkas (Optional)</label>
+                  <label className="block text-xs text-slate-400 mb-1">Landmark Notes (Optional)</label>
                   <input
                     type="text"
                     value={locLandmark}
                     onChange={(e) => setLocLandmark(e.target.value)}
-                    placeholder="e.g. Beside D'Mall entrance, green signage"
+                    placeholder="e.g. Beside main entrance, second floor"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
                   />
                 </div>
@@ -1959,7 +1923,6 @@ export default function SmartTapApp() {
                   />
                 </div>
 
-                {/* Live Business Operating Hours Option (Preset Dropdowns) */}
                 <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold flex items-center gap-1.5 text-emerald-400">
@@ -1973,45 +1936,114 @@ export default function SmartTapApp() {
                     />
                   </div>
                   {locHoursEnabled && (
-                    <div className="space-y-2.5 pt-1">
+                    <div className="space-y-3 pt-1">
                       <div>
-                        <label className="block text-[11px] text-slate-400 mb-1">Operating Days</label>
-                        <select
-                          value={locDays}
-                          onChange={(e) => setLocDays(e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                        <label className="block text-[11px] text-slate-400 mb-1.5">Check Open Days</label>
+                        <div className="grid grid-cols-7 gap-1">
+                          {DAYS_OF_WEEK.map((d) => {
+                            const checked = locActiveDays.includes(d.id);
+                            return (
+                              <button
+                                key={d.id}
+                                type="button"
+                                onClick={() => toggleLocDay(d.id)}
+                                className={`py-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                                  checked ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"
+                                }`}
+                              >
+                                {d.short}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 bg-[#090d16] p-1 rounded-xl border border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setLocScheduleMode("uniform")}
+                          className={`py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer ${
+                            locScheduleMode === "uniform" ? "bg-indigo-600 text-white" : "text-slate-400"
+                          }`}
                         >
-                          <option value="mon_sun">Open Daily (Monday – Sunday)</option>
-                          <option value="mon_sat">Monday – Saturday</option>
-                          <option value="mon_fri">Monday – Friday (Weekdays)</option>
-                        </select>
+                          Same Hours Daily
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLocScheduleMode("custom")}
+                          className={`py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer ${
+                            locScheduleMode === "custom" ? "bg-indigo-600 text-white" : "text-slate-400"
+                          }`}
+                        >
+                          Custom per Day
+                        </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Opening Time</label>
-                          <select
-                            value={locOpenTime}
-                            onChange={(e) => setLocOpenTime(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
-                          >
-                            {TIME_OPTIONS.map((t) => (
-                              <option key={t} value={t}>{formatTime12(t)}</option>
-                            ))}
-                          </select>
+
+                      {locScheduleMode === "uniform" ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">Opening Time</label>
+                            <select
+                              value={locOpenTime}
+                              onChange={(e) => setLocOpenTime(e.target.value)}
+                              className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                            >
+                              {TIME_OPTIONS_30M.map((t) => (
+                                <option key={t} value={t}>{formatTime12(t)}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">Closing Time</label>
+                            <select
+                              value={locCloseTime}
+                              onChange={(e) => setLocCloseTime(e.target.value)}
+                              className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                            >
+                              {TIME_OPTIONS_30M.map((t) => (
+                                <option key={t} value={t}>{formatTime12(t)}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-[11px] text-slate-400 mb-1">Closing Time</label>
-                          <select
-                            value={locCloseTime}
-                            onChange={(e) => setLocCloseTime(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
-                          >
-                            {TIME_OPTIONS.map((t) => (
-                              <option key={t} value={t}>{formatTime12(t)}</option>
-                            ))}
-                          </select>
+                      ) : (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                          {DAYS_OF_WEEK.filter((d) => locActiveDays.includes(d.id)).map((d) => (
+                            <div key={d.id} className="flex items-center justify-between gap-2 bg-[#090d16] p-2 rounded-lg border border-slate-800">
+                              <span className="text-[11px] font-bold w-10">{d.short}</span>
+                              <select
+                                value={locPerDay[d.id]?.open || "09:00"}
+                                onChange={(e) =>
+                                  setLocPerDay({
+                                    ...locPerDay,
+                                    [d.id]: { ...locPerDay[d.id], open: e.target.value }
+                                  })
+                                }
+                                className="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white"
+                              >
+                                {TIME_OPTIONS_30M.map((t) => (
+                                  <option key={t} value={t}>{formatTime12(t)}</option>
+                                ))}
+                              </select>
+                              <span className="text-[10px] text-slate-500">to</span>
+                              <select
+                                value={locPerDay[d.id]?.close || "18:00"}
+                                onChange={(e) =>
+                                  setLocPerDay({
+                                    ...locPerDay,
+                                    [d.id]: { ...locPerDay[d.id], close: e.target.value }
+                                  })
+                                }
+                                className="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white"
+                              >
+                                {TIME_OPTIONS_30M.map((t) => (
+                                  <option key={t} value={t}>{formatTime12(t)}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2221,9 +2253,11 @@ export default function SmartTapApp() {
   const shareUrl = typeof window !== "undefined" ? window.location.href : "https://smarttapapp.vercel.app/";
   const qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(shareUrl)}`;
   const totalInboxCount = messages.length + exchangedContacts.length + paymentReceipts.length + bookingsList.length;
+  const calData = buildCalendarMonth(calMonthOffset);
+  const availableTimeSlots = getAvailableBookingTimes();
 
   return (
-    <div className={`min-h-screen ${theme.bg} ${theme.text} ${largeTextMode ? "text-base" : "text-sm"} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
+    <div style={surfaceInlineStyle} className={`min-h-screen ${theme.bg} ${theme.text} ${largeTextMode ? "text-base" : "text-sm"} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
       <audio ref={audioRef} loop onEnded={() => setActiveAudioId(null)} />
 
       <div className="max-w-md w-full mx-auto space-y-5">
@@ -2240,7 +2274,7 @@ export default function SmartTapApp() {
           </div>
         )}
 
-        {/* TOP BAR WITH HIGH-CONTRAST / LARGE TEXT Aa TOGGLE */}
+        {/* TOP BAR */}
         <div className="flex items-center justify-between gap-1.5">
           <BrandLogo size="sm" />
           <div className="flex items-center gap-1.5">
@@ -2299,7 +2333,7 @@ export default function SmartTapApp() {
             >
               <BarChart3 className={`w-4 h-4 ${theme.accentText}`} />
               {totalInboxCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-[9px] font-bold flex items-center justify-center">
+                <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${theme.badgeIcon}`}>
                   {totalInboxCount > 9 ? "9+" : totalInboxCount}
                 </span>
               )}
@@ -2324,7 +2358,6 @@ export default function SmartTapApp() {
 
         {/* MAIN PROFILE CARD */}
         <div className={`rounded-3xl border p-6 space-y-6 shadow-xl ${theme.card}`}>
-          {/* Avatar & Header */}
           <div className="text-center space-y-3">
             {profile.avatar && (
               <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-current/30 shadow-md bg-slate-800 flex items-center justify-center">
@@ -2373,7 +2406,7 @@ export default function SmartTapApp() {
             </div>
           </div>
 
-          {/* Gallery & Featured Video (Respects Privacy Toggle) */}
+          {/* Gallery & Featured Video */}
           {profile.privacy.media && (
             <>
               {profile.photos.length > 0 && (
@@ -2403,14 +2436,14 @@ export default function SmartTapApp() {
             </>
           )}
 
-          {/* Main Contact Actions (Respects Privacy Toggle) */}
+          {/* Main Contact Actions */}
           <div ref={mainActionsRef} className="space-y-2.5">
             {profile.privacy.contact && (profile.phone || profile.email) && (
               <div className="space-y-2.5">
                 {profile.phone && (
                   <div className="grid grid-cols-2 gap-2.5">
                     <a href={`tel:${profile.phone}`} className={`py-3 px-3 rounded-xl border ${largeTextMode ? "text-sm" : "text-xs"} font-semibold flex items-center justify-center gap-2 transition active:scale-95 ${theme.pill}`}>
-                      <Phone className="w-4 h-4 text-emerald-400" />
+                      <Phone className={`w-4 h-4 ${theme.accentText}`} />
                       <span>Call</span>
                     </a>
                     <button
@@ -2444,6 +2477,17 @@ export default function SmartTapApp() {
                 type="button"
                 onClick={() => {
                   setBookingSuccess(false);
+                  setShowCalendarPicker(false);
+                  setCalMonthOffset(0);
+                  setBookingForm({
+                    clientName: "",
+                    clientPhone: "",
+                    selectedDateISO: "",
+                    selectedDateLabel: "",
+                    durationMins: 30,
+                    timeChoice: availableTimeSlots[0] || "09:00",
+                    notes: ""
+                  });
                   setShowBookingModal(true);
                 }}
                 className={`w-full py-3.5 px-4 rounded-xl ${largeTextMode ? "text-sm" : "text-xs"} font-bold flex items-center justify-center gap-2 shadow-md transition cursor-pointer active:scale-95 ${theme.accent}`}
@@ -2454,7 +2498,7 @@ export default function SmartTapApp() {
             )}
           </div>
 
-          {/* LOCATIONS + LIVE PH STATUS + RIDE-HAILING COPY */}
+          {/* LOCATIONS + LIVE PH STATUS */}
           {profile.privacy.locations && profile.locations && profile.locations.length > 0 && (
             <div className="space-y-2.5 pt-2 border-t border-slate-700/30">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
@@ -2468,7 +2512,7 @@ export default function SmartTapApp() {
                   return (
                     <div key={loc.id} className={`p-3.5 rounded-2xl border space-y-2.5 ${theme.pill}`}>
                       {status && (
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/25 text-[11px] font-semibold">
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-semibold">
                           <span className={`w-2 h-2 rounded-full ${status.isOpen ? "bg-emerald-400 animate-ping" : "bg-rose-500"}`} />
                           <span className={status.isOpen ? "text-emerald-400" : "text-rose-400"}>{status.label}</span>
                         </div>
@@ -2498,10 +2542,9 @@ export default function SmartTapApp() {
                           type="button"
                           onClick={() => copyToClipboard(fullPinText, `loc_${loc.id}`)}
                           className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95 ${theme.actionBtn}`}
-                          title="Copy Address for Grab / Angkas / JoyRide"
                         >
                           {copiedId === `loc_${loc.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedId === `loc_${loc.id}` ? "Address Copied" : "Copy for Grab"}</span>
+                          <span>{copiedId === `loc_${loc.id}` ? "Copied" : "Copy Address"}</span>
                         </button>
                       </div>
                     </div>
@@ -2518,7 +2561,6 @@ export default function SmartTapApp() {
                 Links & Categories
               </p>
 
-              {/* Audio Player Tracks */}
               {profile.links.filter(l => l.type === "music").map(musicItem => {
                 const isThisPlaying = activeAudioId === musicItem.id;
                 const hasAudioSrc = Boolean(audioObjectUrls[musicItem.id]);
@@ -2635,7 +2677,7 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* PAYMENTS & TRANSFERS (COPY + COPY ALL + OPEN APP + UPLOAD RECEIPT) */}
+          {/* PAYMENTS & TRANSFERS */}
           {profile.privacy.payments && profile.payments.length > 0 && (
             <div className="space-y-2.5 pt-2 border-t border-slate-700/30">
               <p className={`text-[11px] font-semibold uppercase tracking-wider ${theme.subtext}`}>
@@ -2648,7 +2690,7 @@ export default function SmartTapApp() {
                     <div key={pay.id} className={`p-3.5 rounded-2xl border space-y-2.5 ${theme.pill}`}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                          <span className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 shadow ${theme.badgeIcon}`}>
                             ₱
                           </span>
                           <div className="truncate">
@@ -2668,7 +2710,7 @@ export default function SmartTapApp() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between bg-black/15 rounded-xl px-3 py-2">
+                      <div className="flex items-center justify-between bg-black/10 rounded-xl px-3 py-2">
                         <span className={`font-mono ${largeTextMode ? "text-base" : "text-sm"} font-semibold tracking-wide`}>{pay.accountNumber}</span>
                         <div className="flex items-center gap-1.5">
                           <button
@@ -2690,7 +2732,6 @@ export default function SmartTapApp() {
                         </div>
                       </div>
 
-                      {/* OPEN BANK APP & UPLOAD PAYMENT RECEIPT BUTTONS */}
                       <div className="grid grid-cols-2 gap-2 pt-0.5">
                         <button
                           type="button"
@@ -2770,7 +2811,7 @@ export default function SmartTapApp() {
         </div>
       </div>
 
-      {/* FLOATING BOTTOM BAR NAVIGATION (HORIZONTAL SLIDE LEFT/RIGHT ARROWS + FULL THEME SYNC) */}
+      {/* FLOATING BOTTOM BAR NAVIGATION */}
       <div
         className={`fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto transition-all duration-500 ease-out ${
           showFloatingBar
@@ -2885,7 +2926,7 @@ export default function SmartTapApp() {
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-400" />
+                <Receipt className="w-4 h-4 text-indigo-400" />
                 <span className="text-sm font-bold">Send {receiptModalPay.bankName} Receipt</span>
               </div>
               <button onClick={() => setReceiptModalPay(null)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
@@ -2961,7 +3002,7 @@ export default function SmartTapApp() {
                 <button
                   type="submit"
                   disabled={!receiptImage}
-                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Submit Payment Receipt</span>
@@ -2972,10 +3013,10 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* ONE-TAP CALENDAR BOOKING MODAL (PRESET DROPDOWNS + .ICS DOWNLOAD) */}
+      {/* ONE-TAP CALENDAR BOOKING MODAL */}
       {showBookingModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-400" />
@@ -3006,7 +3047,7 @@ export default function SmartTapApp() {
             ) : (
               <form onSubmit={handleBookingSubmit} className="space-y-3">
                 <p className="text-xs text-slate-400">
-                  With <strong className="text-white">{profile.name || "SmartTap Owner"}</strong> ({profile.booking?.duration || "30 mins"})
+                  With <strong className="text-white">{profile.name || "SmartTap Owner"}</strong>
                   {profile.booking?.location ? ` • ${profile.booking.location}` : ""}
                 </p>
 
@@ -3027,18 +3068,94 @@ export default function SmartTapApp() {
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
                 />
 
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Select Date *</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCalendarPicker(!showCalendarPicker)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-left flex items-center justify-between hover:border-indigo-500 transition cursor-pointer"
+                  >
+                    <span className={bookingForm.selectedDateLabel ? "text-white font-semibold" : "text-slate-400"}>
+                      {bookingForm.selectedDateLabel || "Tap to open calendar & pick available date"}
+                    </span>
+                    <Calendar className="w-4 h-4 text-indigo-400" />
+                  </button>
+
+                  {showCalendarPicker && (
+                    <div className="mt-2 p-3 rounded-2xl bg-[#090d16] border border-slate-700 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          disabled={calMonthOffset === 0}
+                          onClick={() => setCalMonthOffset(Math.max(0, calMonthOffset - 1))}
+                          className="p-1 rounded-lg bg-slate-800 disabled:opacity-30 cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="text-xs font-bold">{calData.monthLabel}</span>
+                        <button
+                          type="button"
+                          onClick={() => setCalMonthOffset(calMonthOffset + 1)}
+                          className="p-1 rounded-lg bg-slate-800 cursor-pointer"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-slate-500 font-bold">
+                        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((w) => (
+                          <span key={w}>{w}</span>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1">
+                        {calData.cells.map((cell, i) => {
+                          if (!cell) return <span key={i} />;
+                          const isSelected = bookingForm.selectedDateISO === cell.iso;
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              disabled={!cell.isAvailable}
+                              onClick={() => {
+                                setBookingForm({
+                                  ...bookingForm,
+                                  selectedDateISO: cell.iso,
+                                  selectedDateLabel: cell.label
+                                });
+                                setShowCalendarPicker(false);
+                              }}
+                              className={`py-1.5 rounded-lg text-[11px] font-semibold transition ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white font-bold"
+                                  : cell.isAvailable
+                                  ? "bg-slate-800/90 hover:bg-indigo-600/40 text-white cursor-pointer"
+                                  : "text-slate-600 opacity-40 cursor-not-allowed"
+                              }`}
+                            >
+                              {cell.dayNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-slate-400 text-center">
+                        Highlighted dates are open for booking.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Select Day</label>
+                    <label className="block text-[11px] text-slate-400 mb-1">Session Duration</label>
                     <select
-                      value={bookingForm.dayChoice}
-                      onChange={(e) => setBookingForm({ ...bookingForm, dayChoice: e.target.value })}
+                      value={bookingForm.durationMins}
+                      onChange={(e) => setBookingForm({ ...bookingForm, durationMins: Number(e.target.value) })}
                       className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
                     >
-                      <option value="Today">Today</option>
-                      <option value="Tomorrow">Tomorrow</option>
-                      <option value="In 2 Days">In 2 Days</option>
-                      <option value="Next Monday">Next Monday</option>
+                      {DURATION_OPTIONS.map((d) => (
+                        <option key={d.mins} value={d.mins}>{d.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -3048,14 +3165,9 @@ export default function SmartTapApp() {
                       onChange={(e) => setBookingForm({ ...bookingForm, timeChoice: e.target.value })}
                       className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
                     >
-                      <option value="09:00 AM">09:00 AM</option>
-                      <option value="10:00 AM">10:00 AM</option>
-                      <option value="11:00 AM">11:00 AM</option>
-                      <option value="01:00 PM">01:00 PM</option>
-                      <option value="02:00 PM">02:00 PM</option>
-                      <option value="03:00 PM">03:00 PM</option>
-                      <option value="04:00 PM">04:00 PM</option>
-                      <option value="05:00 PM">05:00 PM</option>
+                      {availableTimeSlots.map((t) => (
+                        <option key={t} value={t}>{formatTime12(t)}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -3070,7 +3182,8 @@ export default function SmartTapApp() {
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                  disabled={!bookingForm.selectedDateISO}
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <Calendar className="w-3.5 h-3.5" />
                   <span>Confirm & Add to Phone Calendar</span>
@@ -3207,7 +3320,7 @@ export default function SmartTapApp() {
         </p>
       </footer>
 
-      {/* SHARE PROFILE MODAL (NATIVE PHONE SHARE SHEET + QR CODE) */}
+      {/* SHARE PROFILE MODAL */}
       {showShareQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-sm rounded-3xl p-6 text-center space-y-4">
@@ -3281,7 +3394,7 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* OWNER ANALYTICS & 4-TAB SEPARATED INBOX MODAL */}
+      {/* OWNER ANALYTICS & 4-TAB INBOX MODAL */}
       {showAnalyticsModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -3332,7 +3445,6 @@ export default function SmartTapApp() {
               </div>
             ) : (
               <div className="space-y-5">
-                {/* Tap Statistics */}
                 <div className="grid grid-cols-4 gap-2">
                   <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-center">
                     <p className="text-[10px] text-slate-400">1 Day</p>
@@ -3375,7 +3487,6 @@ export default function SmartTapApp() {
                     ))}
                   </div>
 
-                  {/* TAB 1: MESSAGES */}
                   {inboxTab === "messages" && (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {messages.length === 0 ? (
@@ -3395,7 +3506,6 @@ export default function SmartTapApp() {
                     </div>
                   )}
 
-                  {/* TAB 2: EXCHANGED CONTACTS */}
                   {inboxTab === "contacts" && (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {exchangedContacts.length === 0 ? (
@@ -3423,7 +3533,6 @@ export default function SmartTapApp() {
                     </div>
                   )}
 
-                  {/* TAB 3: PAYMENT RECEIPTS */}
                   {inboxTab === "receipts" && (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {paymentReceipts.length === 0 ? (
@@ -3432,7 +3541,7 @@ export default function SmartTapApp() {
                         paymentReceipts.map((r) => (
                           <div key={r.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3">
                             <div className="space-y-1 min-w-0 flex-1">
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">{r.bankName}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">{r.bankName}</span>
                               <p className="text-xs font-bold text-white truncate">{r.senderName}</p>
                               {r.refNo && <p className="text-[11px] text-slate-400 font-mono truncate">Ref: {r.refNo}</p>}
                               <p className="text-[10px] text-slate-500">{r.date}</p>
@@ -3451,7 +3560,6 @@ export default function SmartTapApp() {
                     </div>
                   )}
 
-                  {/* TAB 4: BOOKINGS */}
                   {inboxTab === "bookings" && (
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                       {bookingsList.length === 0 ? (
