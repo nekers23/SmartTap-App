@@ -7,10 +7,25 @@ import {
   QrCode, ExternalLink, Search, BarChart3, Lock, ArrowLeft, X, Image as ImageIcon,
   Send, Navigation, Calendar, Clock, ShieldCheck, Palette, Layers, AlertTriangle,
   WifiOff, RefreshCw, UserPlus, Receipt, Smartphone, Play, Pause, Volume2, VolumeX,
-  ChevronLeft, ChevronRight, CheckCircle2, Download
+  ChevronLeft, ChevronRight, CheckCircle2, Download, KeyRound, ShieldAlert
 } from "lucide-react";
 
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttapph";
+const SUPER_ADMIN_PASSCODE = "SMARTTAP-ADMIN-2026";
+
+// Non-sequential randomized SmartTap Card Activation Codes (One-Time Use)
+const INITIAL_ACTIVATION_CODES = [
+  "STPH-8K9M-2X7Q", "STPH-4928-7315", "STPH-3R7W-9P4L", "STPH-6194-8052", "STPH-9V2N-5H8C",
+  "STPH-7403-2961", "STPH-2M6F-8D3Z", "STPH-5831-9470", "STPH-4J8B-1Q9R", "STPH-9275-3604",
+  "STPH-6T3Y-7K2M", "STPH-1549-8237", "STPH-8C5P-4W9N", "STPH-3086-5149", "STPH-7H2X-6L8V"
+];
+
+function generateRandomActivationCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const part2 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `STPH-${part1}-${part2}`;
+}
 
 const DAYS_OF_WEEK = [
   { id: 0, short: "Sun", name: "Sunday" },
@@ -53,7 +68,42 @@ function formatTime12(time24) {
   return `${h}:${mStr} ${ampm}`;
 }
 
+// 9 COLOR THEMES (INCLUDING PURE BLACK & BLUSH PINK)
 const THEMES = {
+  black: {
+    id: "black",
+    name: "Pure Black",
+    swatch: "bg-black border-neutral-400",
+    bg: "bg-[#000000]",
+    text: "text-neutral-100",
+    subtext: "text-neutral-400",
+    card: "bg-[#0a0a0a]/95 border-neutral-800",
+    pill: "bg-[#121212] border-neutral-800 hover:border-neutral-600",
+    input: "bg-black border-neutral-700 text-white focus:border-white",
+    accent: "bg-white hover:bg-neutral-200 text-black",
+    accentSoft: "bg-white/10 text-neutral-200 border-neutral-700",
+    accentText: "text-neutral-300",
+    badgeIcon: "bg-white text-black",
+    actionBtn: "bg-neutral-900 hover:bg-neutral-800 text-neutral-200",
+    floatingBar: "bg-[#0a0a0a]/95 border-neutral-700"
+  },
+  blush: {
+    id: "blush",
+    name: "Blush Pink",
+    swatch: "bg-pink-400 border-pink-200",
+    bg: "bg-[#1a0b12]",
+    text: "text-pink-50",
+    subtext: "text-pink-300/75",
+    card: "bg-[#26101b]/95 border-pink-900/70",
+    pill: "bg-[#1f0d16] border-pink-900/60 hover:border-pink-700",
+    input: "bg-[#1a0b12] border-pink-800 text-white focus:border-pink-400",
+    accent: "bg-pink-500 hover:bg-pink-400 text-white",
+    accentSoft: "bg-pink-500/15 text-pink-300 border-pink-500/30",
+    accentText: "text-pink-400",
+    badgeIcon: "bg-pink-500 text-white",
+    actionBtn: "bg-pink-950 hover:bg-pink-900 text-pink-200",
+    floatingBar: "bg-[#26101b]/95 border-pink-800/80"
+  },
   midnight: {
     id: "midnight",
     name: "Midnight Indigo",
@@ -155,6 +205,23 @@ const THEMES = {
     badgeIcon: "bg-cyan-500 text-slate-950",
     actionBtn: "bg-cyan-950 hover:bg-cyan-900 text-cyan-200",
     floatingBar: "bg-[#0b202b]/95 border-cyan-800/80"
+  },
+  violet: {
+    id: "violet",
+    name: "Royal Violet",
+    swatch: "bg-purple-600 border-purple-300",
+    bg: "bg-[#11081c]",
+    text: "text-purple-50",
+    subtext: "text-purple-300/70",
+    card: "bg-[#1c0e2e]/95 border-purple-900/70",
+    pill: "bg-[#160b24] border-purple-900/60 hover:border-purple-700",
+    input: "bg-[#11081c] border-purple-800 text-white focus:border-purple-500",
+    accent: "bg-purple-600 hover:bg-purple-500 text-white",
+    accentSoft: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+    accentText: "text-purple-400",
+    badgeIcon: "bg-purple-600 text-white",
+    actionBtn: "bg-purple-950 hover:bg-purple-900 text-purple-200",
+    floatingBar: "bg-[#1c0e2e]/95 border-purple-800/80"
   }
 };
 
@@ -166,7 +233,8 @@ const SOCIAL_PLATFORMS = [
   { id: "x", name: "X (Twitter)", badge: "X", placeholder: "https://x.com/username" },
   { id: "linkedin", name: "LinkedIn", badge: "IN", placeholder: "https://linkedin.com/in/username" },
   { id: "viber", name: "Viber", badge: "VB", placeholder: "viber://chat?number=%2B63917..." },
-  { id: "telegram", name: "Telegram", badge: "TG", placeholder: "https://t.me/username" }
+  { id: "telegram", name: "Telegram", badge: "TG", placeholder: "https://t.me/username" },
+  { id: "others", name: "Others (Custom Social)", badge: "SOC", placeholder: "https://threads.net/@username" }
 ];
 
 const MUSIC_PLATFORMS = [
@@ -179,7 +247,8 @@ const GAMING_PLATFORMS = [
   { id: "roblox", name: "Roblox", badge: "RBX", fields: ["Roblox Username", "Display Name (Optional)"] },
   { id: "codm", name: "Call of Duty Mobile", badge: "COD", fields: ["IGN / Username", "Player UID"] },
   { id: "genshin", name: "Genshin Impact", badge: "GI", fields: ["UID (Asia/America)", "Adventure Rank / IGN"] },
-  { id: "steam", name: "Steam", badge: "STM", fields: ["Steam Friend Code", "Profile Name"] }
+  { id: "steam", name: "Steam", badge: "STM", fields: ["Steam Friend Code", "Profile Name"] },
+  { id: "others", name: "Others (Custom Game)", badge: "GAM", fields: ["Game Name (e.g. PUBG / Farlight)", "IGN / Player ID"] }
 ];
 
 const BUSINESS_PLATFORMS = [
@@ -204,15 +273,30 @@ const PAYMENT_PROVIDERS = [
   { id: "others", name: "Other Bank / E-Wallet", badge: "OTH", label: "Account / Mobile Number", placeholder: "Enter account number", minLen: 8, maxLen: 16 }
 ];
 
-function BrandLogo({ size = "md" }) {
+// Theme-Synced SmartTap Brand Logo (Uses /smarttap-logo.png from public/ folder + syncs "Tap" color with theme)
+function BrandLogo({ size = "md", accentTextClass = "text-indigo-400", onSecretTap }) {
   const isSm = size === "sm";
+  const [imgFailed, setImgFailed] = useState(false);
+
   return (
-    <div className="inline-flex items-center gap-2 select-none">
-      <div className={`${isSm ? "w-7 h-7 rounded-lg text-xs" : "w-9 h-9 rounded-xl text-sm"} bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white font-black flex items-center justify-center shadow-md`}>
-        ST
-      </div>
+    <div
+      onClick={onSecretTap}
+      className="inline-flex items-center gap-2 select-none cursor-pointer"
+    >
+      {!imgFailed ? (
+        <img
+          src="/smarttap-logo.png"
+          alt="SmartTap Logo"
+          onError={() => setImgFailed(true)}
+          className={`${isSm ? "w-7 h-7 rounded-lg" : "w-9 h-9 rounded-xl"} object-contain shrink-0`}
+        />
+      ) : (
+        <div className={`${isSm ? "w-7 h-7 rounded-lg text-xs" : "w-9 h-9 rounded-xl text-sm"} bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white font-black flex items-center justify-center shadow-md shrink-0`}>
+          ST
+        </div>
+      )}
       <span className={`${isSm ? "text-sm" : "text-lg"} font-extrabold tracking-tight`}>
-        Smart<span className="text-indigo-400">Tap</span>
+        Smart<span className={`${accentTextClass} transition-colors duration-200`}>Tap</span>
       </span>
     </div>
   );
@@ -229,7 +313,7 @@ function getGmailComposeUrl(email) {
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}`;
 }
 
-async function compressImage(file, maxWidth = 600, quality = 0.8) {
+async function compressImage(file, maxWidth = 800, quality = 0.85) {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -304,10 +388,13 @@ function openWithNativeDeepLink(e, platformId, fallbackUrl) {
   const scheme = schemes[platformId];
   if (scheme && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
     e.preventDefault();
+    const start = Date.now();
     window.location.href = scheme;
     setTimeout(() => {
-      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-    }, 650);
+      if (Date.now() - start < 1500) {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      }
+    }, 700);
   }
 }
 
@@ -318,7 +405,10 @@ function openBankMobileApp(providerId) {
     maribank: "seabankph://",
     gotyme: "gotyme://",
     bdo: "bdoonline://",
-    bpi: "bpi://"
+    bpi: "bpi://",
+    metrobank: "metrobank://",
+    landbank: "landbank://",
+    chinabank: "chinabank://"
   };
   const scheme = bankSchemes[providerId];
   if (scheme && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
@@ -379,8 +469,18 @@ export default function SmartTapApp() {
   const [account, setAccount] = useState(null);
   const [authIdentifier, setAuthIdentifier] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [activationCodeInput, setActivationCodeInput] = useState("");
   const [showAuthPass, setShowAuthPass] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  // Super Admin Hidden Vault States (Only accessible via 5-tap secret logo trigger + Master Admin PIN)
+  const [secretTapCount, setSecretTapCount] = useState(0);
+  const [showSuperAdminModal, setShowSuperAdminModal] = useState(false);
+  const [adminPinInput, setAdminPinInput] = useState("");
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminPinError, setAdminPinError] = useState("");
+  const [validCodes, setValidCodes] = useState(INITIAL_ACTIVATION_CODES);
+  const [usedCodes, setUsedCodes] = useState([]);
 
   const [isOffline, setIsOffline] = useState(false);
   const [largeTextMode, setLargeTextMode] = useState(false);
@@ -395,7 +495,7 @@ export default function SmartTapApp() {
     email: "",
     avatar: "",
     photos: [],
-    theme: "midnight",
+    theme: "black",
     surfaceStyle: "solid",
     verifiedBadge: { enabled: true, color: "text-blue-500" },
     privacy: {
@@ -523,6 +623,11 @@ export default function SmartTapApp() {
     const savedExch = localStorage.getItem("smarttap_v32_exchanged");
     const savedRcpt = localStorage.getItem("smarttap_v32_receipts");
     const savedBook = localStorage.getItem("smarttap_v32_bookings");
+    const savedValidCodes = localStorage.getItem("smarttap_admin_valid_codes");
+    const savedUsedCodes = localStorage.getItem("smarttap_admin_used_codes");
+
+    if (savedValidCodes) setValidCodes(JSON.parse(savedValidCodes));
+    if (savedUsedCodes) setUsedCodes(JSON.parse(savedUsedCodes));
 
     if (savedAcc) {
       const parsedAcc = JSON.parse(savedAcc);
@@ -586,7 +691,7 @@ export default function SmartTapApp() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const theme = THEMES[profile.theme] || THEMES.midnight;
+  const theme = THEMES[profile.theme] || THEMES.black;
 
   const surfaceInlineStyle = (() => {
     const style = profile.surfaceStyle || "solid";
@@ -619,6 +724,30 @@ export default function SmartTapApp() {
     })
     .filter(Boolean);
 
+  function handleSecretLogoTap() {
+    const next = secretTapCount + 1;
+    if (next >= 5) {
+      setSecretTapCount(0);
+      setAdminPinInput("");
+      setAdminPinError("");
+      setAdminUnlocked(false);
+      setShowSuperAdminModal(true);
+    } else {
+      setSecretTapCount(next);
+      setTimeout(() => setSecretTapCount(0), 2500);
+    }
+  }
+
+  function handleGenerateNewAdminCode() {
+    let code = generateRandomActivationCode();
+    while (validCodes.includes(code) || usedCodes.some((u) => u.code === code)) {
+      code = generateRandomActivationCode();
+    }
+    const updated = [code, ...validCodes];
+    setValidCodes(updated);
+    localStorage.setItem("smarttap_admin_valid_codes", JSON.stringify(updated));
+  }
+
   function copyToClipboard(text, id) {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -640,7 +769,32 @@ export default function SmartTapApp() {
         setAuthError("Invalid username or password. Please try again.");
       }
     } else {
-      const newAcc = { identifier: idTrim, password: passTrim };
+      const codeClean = activationCodeInput.trim().toUpperCase();
+      if (!codeClean) {
+        setAuthError("Please enter the One-Time Activation Code included with your SmartTap card.");
+        return;
+      }
+      if (usedCodes.some((u) => u.code === codeClean)) {
+        setAuthError("This Activation Code has already been used and burned. Each SmartTap card requires a unique unused code.");
+        return;
+      }
+      if (!validCodes.includes(codeClean)) {
+        setAuthError("Invalid Activation Code. Please check the card insert from SmartTap PH.");
+        return;
+      }
+
+      // Burn the one-time code permanently so it cannot be reused
+      const remainingValid = validCodes.filter((c) => c !== codeClean);
+      const updatedUsed = [
+        { code: codeClean, claimedBy: idTrim, date: new Date().toLocaleDateString("en-PH") },
+        ...usedCodes
+      ];
+      setValidCodes(remainingValid);
+      setUsedCodes(updatedUsed);
+      localStorage.setItem("smarttap_admin_valid_codes", JSON.stringify(remainingValid));
+      localStorage.setItem("smarttap_admin_used_codes", JSON.stringify(updatedUsed));
+
+      const newAcc = { identifier: idTrim, password: passTrim, activationCode: codeClean };
       setAccount(newAcc);
       setEditUser(idTrim);
       setEditPass(passTrim);
@@ -662,7 +816,7 @@ export default function SmartTapApp() {
   async function handleAvatarUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const compressed = await compressImage(file, 400, 0.85);
+    const compressed = await compressImage(file, 450, 0.85);
     setProfile({ ...profile, avatar: compressed });
   }
 
@@ -671,7 +825,7 @@ export default function SmartTapApp() {
     if (!files.length) return;
     const slotsLeft = 4 - profile.photos.length;
     const selected = files.slice(0, slotsLeft);
-    const compressedList = await Promise.all(selected.map((f) => compressImage(f, 700, 0.8)));
+    const compressedList = await Promise.all(selected.map((f) => compressImage(f, 800, 0.85)));
     setProfile({ ...profile, photos: [...profile.photos, ...compressedList] });
   }
 
@@ -701,21 +855,30 @@ export default function SmartTapApp() {
       });
       setEditingLinkItem(null);
       setInputField1("");
+      setInputField2("");
       return;
     }
+
+    const customLabel =
+      selectedSubPlatform.id === "others" && inputField2.trim()
+        ? inputField2.trim()
+        : selectedSubPlatform.name;
 
     const newItem = {
       id: Date.now().toString(),
       type: activeModal,
       platformId: selectedSubPlatform.id,
-      label: selectedSubPlatform.name,
-      badge: selectedSubPlatform.badge,
+      label: customLabel,
+      badge: selectedSubPlatform.id === "others" && inputField2.trim()
+        ? inputField2.trim().slice(0, 3).toUpperCase()
+        : selectedSubPlatform.badge,
       url: cleanUrl
     };
     setProfile({ ...profile, links: [...profile.links, newItem] });
     setActiveModal(null);
     setSelectedSubPlatform(null);
     setInputField1("");
+    setInputField2("");
   }
 
   async function saveMusicItem(e) {
@@ -743,13 +906,18 @@ export default function SmartTapApp() {
 
   function saveGamingItem(e) {
     e.preventDefault();
+    const isCustomGame = selectedSubPlatform.id === "others";
+    const gameTitle = isCustomGame && inputField1.trim() ? inputField1.trim() : selectedSubPlatform.name;
+
     const newItem = {
       id: Date.now().toString(),
       type: "gaming",
       platformId: selectedSubPlatform.id,
-      label: selectedSubPlatform.name,
-      badge: selectedSubPlatform.badge,
-      gameDetails: { field1: inputField1.trim(), field2: inputField2.trim(), field3: inputField3.trim() },
+      label: gameTitle,
+      badge: isCustomGame ? gameTitle.slice(0, 3).toUpperCase() : selectedSubPlatform.badge,
+      gameDetails: isCustomGame
+        ? { field1: inputField2.trim(), field2: inputField3.trim(), field3: "" }
+        : { field1: inputField1.trim(), field2: inputField2.trim(), field3: inputField3.trim() },
       url: "#"
     };
     setProfile({ ...profile, links: [...profile.links, newItem] });
@@ -1027,26 +1195,123 @@ export default function SmartTapApp() {
     a.click();
   }
 
+  // --- SECRET SUPER ADMIN VAULT MODAL (5-Tap Logo Trigger) ---
+  const superAdminModalUI = showSuperAdminModal && (
+    <div className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-[#0d1117] border border-amber-500/40 text-white w-full max-w-md rounded-3xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5 text-amber-400" />
+            <h3 className="font-bold text-base text-amber-300">SmartTap Founder Vault</h3>
+          </div>
+          <button onClick={() => setShowSuperAdminModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {!adminUnlocked ? (
+          <div className="space-y-4 py-3 text-center">
+            <p className="text-xs text-slate-400">
+              Restricted Area: Enter your Master Super Admin Passcode to generate or audit one-time NFC activation codes.
+            </p>
+            <input
+              type="password"
+              autoFocus
+              value={adminPinInput}
+              onChange={(e) => setAdminPinInput(e.target.value)}
+              placeholder="Master Admin Passcode"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-slate-700 text-sm text-white text-center font-mono"
+            />
+            {adminPinError && <p className="text-xs text-rose-400">{adminPinError}</p>}
+            <button
+              type="button"
+              onClick={() => {
+                if (adminPinInput.trim() === SUPER_ADMIN_PASSCODE) {
+                  setAdminUnlocked(true);
+                  setAdminPinError("");
+                } else {
+                  setAdminPinError("Unauthorized passcode.");
+                }
+              }}
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs cursor-pointer"
+            >
+              Unlock Founder Vault
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={handleGenerateNewAdminCode}
+              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+            >
+              <KeyRound className="w-4 h-4" /> Generate New Random Activation Code
+            </button>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-emerald-400">
+                Available Unused Codes ({validCodes.length})
+              </p>
+              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                {validCodes.map((code) => (
+                  <div key={code} className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
+                    <span className="text-emerald-300 font-bold">{code}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(code, code)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-sans font-semibold cursor-pointer"
+                    >
+                      {copiedId === code ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <p className="text-xs font-bold text-rose-400">
+                Burned / Used Codes ({usedCodes.length})
+              </p>
+              {usedCodes.length === 0 ? (
+                <p className="text-[11px] text-slate-500">No codes have been redeemed yet.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                  {usedCodes.map((u, idx) => (
+                    <div key={idx} className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-rose-950/20 border border-rose-900/30 text-[11px]">
+                      <span className="font-mono line-through text-rose-300">{u.code}</span>
+                      <span className="text-slate-400">Used by @{u.claimedBy} ({u.date})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   // --- SCREEN 1: CLAIM CARD ---
   if (screen === "claim") {
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between p-6">
+      <div className="min-h-screen bg-[#000000] text-white flex flex-col justify-between p-6">
+        {superAdminModalUI}
         <header className="max-w-md w-full mx-auto pt-2 flex items-center justify-between">
-          <BrandLogo />
-          <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+          <BrandLogo accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
+          <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-neutral-300 border border-neutral-700 font-medium">
             Unclaimed Card
           </span>
         </header>
 
         <main className="max-w-md w-full mx-auto my-auto text-center space-y-6 py-8">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-neutral-800 text-white flex items-center justify-center mx-auto shadow-lg">
             <QrCode className="w-8 h-8" />
           </div>
 
           <div className="space-y-2">
             <h1 className="text-2xl font-extrabold tracking-tight">Claim Your SmartTap Card</h1>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              This NFC card is ready to be activated. Set up your digital profile, links, payment QRs, and booking calendar in under 2 minutes.
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Enter the One-Time Activation Code included with your official SmartTap PH card to unlock and customize your digital profile.
             </p>
           </div>
 
@@ -1057,10 +1322,11 @@ export default function SmartTapApp() {
                 setAuthMode("signup");
                 setAuthIdentifier("");
                 setAuthPassword("");
+                setActivationCodeInput("");
                 setAuthError("");
                 setScreen("auth");
               }}
-              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition cursor-pointer active:scale-95"
+              className="w-full py-3.5 rounded-xl bg-white hover:bg-neutral-200 text-black font-bold text-sm shadow-lg transition cursor-pointer active:scale-95"
             >
               Activate & Set Up Card
             </button>
@@ -1075,7 +1341,7 @@ export default function SmartTapApp() {
                   setAuthError("");
                   setScreen("auth");
                 }}
-                className="w-full py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 text-sm font-medium transition cursor-pointer active:scale-95"
+                className="w-full py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 text-sm font-medium transition cursor-pointer active:scale-95"
               >
                 Already claimed? Sign in to Edit
               </button>
@@ -1083,61 +1349,81 @@ export default function SmartTapApp() {
           </div>
         </main>
 
-        <footer className="max-w-md w-full mx-auto text-center pb-4 text-xs text-slate-500">
-          Powered by SmartTap PH
+        <footer className="max-w-md w-full mx-auto text-center pb-4 text-xs text-neutral-500">
+          Official SmartTap PH Hardware Required •{" "}
+          <a href={TIKTOK_SHOP_URL} target="_blank" rel="noopener noreferrer" className="text-neutral-300 underline">
+            Get a Card
+          </a>
         </footer>
       </div>
     );
   }
 
-  // --- SCREEN 2: AUTH ---
+  // --- SCREEN 2: AUTH (WITH ONE-TIME ACTIVATION CODE GATEKEEPER) ---
   if (screen === "auth" || screen === "login_to_edit") {
     const isOwnerLogin = authMode === "login" || screen === "login_to_edit";
 
     return (
-      <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between p-6">
+      <div className="min-h-screen bg-[#000000] text-white flex flex-col justify-between p-6">
+        {superAdminModalUI}
         <header className="max-w-md w-full mx-auto pt-2 flex items-center justify-between">
           <button
             onClick={() => setScreen(isOwnerLogin ? "view" : "claim")}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-          <BrandLogo size="sm" />
+          <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
         </header>
 
         <main className="max-w-md w-full mx-auto my-auto py-8">
-          <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="bg-[#0a0a0a] border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-xl">
             <div className="text-center space-y-1.5">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto mb-3">
-                <Lock className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-neutral-700 text-white flex items-center justify-center mx-auto mb-3">
+                {isOwnerLogin ? <Lock className="w-6 h-6" /> : <KeyRound className="w-6 h-6" />}
               </div>
               <h2 className="text-xl font-bold">
-                {isOwnerLogin ? "Owner Login" : "Create SmartTap Account"}
+                {isOwnerLogin ? "Owner Login" : "Activate SmartTap Card"}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-neutral-400">
                 {isOwnerLogin
                   ? "Sign in with your existing username & password to edit."
-                  : "Choose a unique username for your card."}
+                  : "Enter your unique One-Time Activation Code and create your account."}
               </p>
             </div>
 
             <form onSubmit={handleManualAuth} className="space-y-4">
+              {!isOwnerLogin && (
+                <div>
+                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">
+                    One-Time Card Activation Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={activationCodeInput}
+                    onChange={(e) => setActivationCodeInput(e.target.value.toUpperCase())}
+                    placeholder="e.g. STPH-8K9M-2X7Q"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-neutral-700 text-sm text-white font-mono tracking-wider uppercase focus:outline-none focus:border-white"
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Username</label>
+                <label className="block text-xs font-medium text-neutral-400 mb-1.5">Username</label>
                 <input
                   type="text"
                   required
                   value={authIdentifier}
                   onChange={(e) => setAuthIdentifier(e.target.value)}
                   placeholder="e.g. juandelacruz"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-neutral-700 text-sm text-white focus:outline-none focus:border-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+                <label className="block text-xs font-medium text-neutral-400 mb-1.5">Password</label>
                 <div className="relative">
                   <input
                     type={showAuthPass ? "text" : "password"}
@@ -1145,12 +1431,12 @@ export default function SmartTapApp() {
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-black border border-neutral-700 text-sm text-white focus:outline-none focus:border-white"
                   />
                   <button
                     type="button"
                     onClick={() => setShowAuthPass(!showAuthPass)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-white cursor-pointer"
+                    className="absolute right-3 top-3 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     {showAuthPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1165,9 +1451,9 @@ export default function SmartTapApp() {
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition cursor-pointer active:scale-95"
+                className="w-full py-3 rounded-xl bg-white hover:bg-neutral-200 text-black font-bold text-sm transition cursor-pointer active:scale-95"
               >
-                {isOwnerLogin ? "Log In & Open Editor" : "Create Account & Start Setup"}
+                {isOwnerLogin ? "Log In & Open Editor" : "Verify Code & Start Setup"}
               </button>
             </form>
           </div>
@@ -1204,9 +1490,10 @@ export default function SmartTapApp() {
 
     return (
       <div style={surfaceInlineStyle} className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-36`}>
+        {superAdminModalUI}
         <header className={`sticky top-0 z-30 border-b backdrop-blur-md ${theme.card}`}>
           <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between">
-            <BrandLogo size="sm" />
+            <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
             <button
               type="button"
               onClick={() => setScreen("view")}
@@ -1384,7 +1671,7 @@ export default function SmartTapApp() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {profile.photos.map((photo, idx) => (
-                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-700/60 group">
+                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-700/60 group bg-black/40">
                   <img src={photo} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
@@ -1691,14 +1978,14 @@ export default function SmartTapApp() {
             )}
           </section>
 
-          {/* SECTION 6: PROFILE THEMES + SURFACE STYLE */}
+          {/* SECTION 6: 9 PROFILE THEMES + SURFACE STYLE */}
           <section className={`rounded-2xl border p-5 space-y-4 ${theme.card}`}>
             <div className="flex items-center gap-2 font-semibold text-base">
               <Palette className={`w-5 h-5 ${theme.accentText}`} />
-              <h2>Profile Theme & Surface Style</h2>
+              <h2>Profile Theme (9 Colors) & Surface Finish</h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2.5">
               {Object.values(THEMES).map((t) => {
                 const isSelected = profile.theme === t.id;
                 return (
@@ -2057,7 +2344,7 @@ export default function SmartTapApp() {
           </div>
         )}
 
-        {/* PLATFORM ADD MODAL */}
+        {/* PLATFORM ADD MODAL (SUPPORTS CUSTOM "OTHERS" FOR SOCIAL & GAMING) */}
         {activeModal && (
           <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
             <div className="bg-[#111827] border border-slate-800 text-white w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[85vh] overflow-y-auto">
@@ -2065,7 +2352,7 @@ export default function SmartTapApp() {
                 <h3 className="font-bold text-base capitalize">
                   {selectedSubPlatform ? `Add ${selectedSubPlatform.name}` : `Select ${activeModal} Platform`}
                 </h3>
-                <button onClick={() => { setActiveModal(null); setSelectedSubPlatform(null); setPendingAudioFile(null); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                <button onClick={() => { setActiveModal(null); setSelectedSubPlatform(null); setPendingAudioFile(null); setInputField1(""); setInputField2(""); setInputField3(""); }} className="p-1 text-slate-400 hover:text-white cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -2079,7 +2366,12 @@ export default function SmartTapApp() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setSelectedSubPlatform(item)}
+                      onClick={() => {
+                        setInputField1("");
+                        setInputField2("");
+                        setInputField3("");
+                        setSelectedSubPlatform(item);
+                      }}
                       className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-left transition cursor-pointer"
                     >
                       <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
@@ -2141,7 +2433,7 @@ export default function SmartTapApp() {
                       <label className="block text-xs text-slate-400 mb-1">{fieldName}</label>
                       <input
                         type="text"
-                        required={idx === 0}
+                        required
                         value={idx === 0 ? inputField1 : idx === 1 ? inputField2 : inputField3}
                         onChange={(e) => {
                           if (idx === 0) setInputField1(e.target.value);
@@ -2153,6 +2445,18 @@ export default function SmartTapApp() {
                       />
                     </div>
                   ))}
+                  {selectedSubPlatform.id === "others" && (
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Server / Rank / Extra Info (Optional)</label>
+                      <input
+                        type="text"
+                        value={inputField3}
+                        onChange={(e) => setInputField3(e.target.value)}
+                        placeholder="e.g. Asia Server / Mythic"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                      />
+                    </div>
+                  )}
                   <div className="flex gap-2 pt-2">
                     <button type="button" onClick={() => setSelectedSubPlatform(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold cursor-pointer">Back</button>
                     <button type="submit" className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-xs font-semibold cursor-pointer">Save Gaming ID</button>
@@ -2225,8 +2529,21 @@ export default function SmartTapApp() {
                 </form>
               ) : (
                 <form onSubmit={saveLinkItem} className="space-y-3.5">
+                  {selectedSubPlatform.id === "others" && (
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Custom Platform Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={inputField2}
+                        onChange={(e) => setInputField2(e.target.value)}
+                        placeholder="e.g. Threads, Discord, WhatsApp"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                      />
+                    </div>
+                  )}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Destination URL / Link</label>
+                    <label className="block text-xs text-slate-400 mb-1">Destination URL / Link *</label>
                     <input
                       type="text"
                       required
@@ -2258,6 +2575,7 @@ export default function SmartTapApp() {
 
   return (
     <div style={surfaceInlineStyle} className={`min-h-screen ${theme.bg} ${theme.text} ${largeTextMode ? "text-base" : "text-sm"} transition-colors duration-200 flex flex-col justify-between py-6 px-4 pb-32`}>
+      {superAdminModalUI}
       <audio ref={audioRef} loop onEnded={() => setActiveAudioId(null)} />
 
       <div className="max-w-md w-full mx-auto space-y-5">
@@ -2276,7 +2594,7 @@ export default function SmartTapApp() {
 
         {/* TOP BAR */}
         <div className="flex items-center justify-between gap-1.5">
-          <BrandLogo size="sm" />
+          <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -2406,13 +2724,48 @@ export default function SmartTapApp() {
             </div>
           </div>
 
-          {/* Gallery & Featured Video */}
+          {/* SMART GALLERY LAYOUT (1: Natural Aspect, 2: Equal Pair, 3: 2 Top + 1 Centered Bottom, 4: 2x2 Grid) & FEATURED VIDEO */}
           {profile.privacy.media && (
             <>
-              {profile.photos.length > 0 && (
-                <div className={`grid gap-2 ${profile.photos.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+              {profile.photos.length === 1 && (
+                <div className="rounded-2xl overflow-hidden border border-slate-700/40 bg-black/30 flex items-center justify-center">
+                  <img
+                    src={profile.photos[0]}
+                    alt="Featured 1"
+                    className="w-full max-h-80 object-contain"
+                  />
+                </div>
+              )}
+
+              {profile.photos.length === 2 && (
+                <div className="grid grid-cols-2 gap-2">
                   {profile.photos.map((photo, index) => (
-                    <div key={index} className={`rounded-2xl overflow-hidden border border-slate-700/40 ${profile.photos.length === 1 ? "aspect-video" : "aspect-square"}`}>
+                    <div key={index} className="rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                      <img src={photo} alt={`Featured ${index + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {profile.photos.length === 3 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {profile.photos.slice(0, 2).map((photo, index) => (
+                    <div key={index} className="rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                      <img src={photo} alt={`Featured ${index + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  <div className="col-span-2 flex justify-center">
+                    <div className="w-1/2 rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                      <img src={profile.photos[2]} alt="Featured 3" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {profile.photos.length >= 4 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {profile.photos.map((photo, index) => (
+                    <div key={index} className="rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
                       <img src={photo} alt={`Featured ${index + 1}`} className="w-full h-full object-cover" />
                     </div>
                   ))}
@@ -2635,26 +2988,14 @@ export default function SmartTapApp() {
 
                           <div className="flex items-center gap-1.5 ml-2 shrink-0">
                             {item.type === "gaming" ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 transition cursor-pointer active:scale-95 ${theme.accent}`}
-                                >
-                                  {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                  <span>{copiedId === item.id ? "Copied" : "Copy"}</span>
-                                </button>
-                                <a
-                                  href={item.url || "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={(e) => openWithNativeDeepLink(e, item.platformId, item.url)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 transition active:scale-95 ${theme.actionBtn}`}
-                                >
-                                  <span>Open App</span>
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
-                              </>
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(`${item.gameDetails?.field1} ${item.gameDetails?.field2 ? `(${item.gameDetails.field2})` : ""}`, item.id)}
+                                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1 transition cursor-pointer active:scale-95 ${theme.accent}`}
+                              >
+                                {copiedId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                <span>{copiedId === item.id ? "Copied" : "Copy ID"}</span>
+                              </button>
                             ) : (
                               <a
                                 href={item.url}
@@ -3310,7 +3651,9 @@ export default function SmartTapApp() {
       )}
 
       <footer className="max-w-md w-full mx-auto text-center pt-8 pb-4 space-y-1.5">
-        <div className="flex justify-center opacity-80"><BrandLogo size="sm" /></div>
+        <div className="flex justify-center opacity-80">
+          <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
+        </div>
         <p className={`text-xs ${theme.subtext}`}>Tap smarter. Share your world in one touch.</p>
         <p className={`text-[11px] ${theme.subtext}`}>
           Want to get your own SmartTap card?{" "}
@@ -3614,7 +3957,7 @@ export default function SmartTapApp() {
                       <button
                         type="button"
                         onClick={() => {
-                          const updatedAcc = { identifier: editUser.trim(), password: editPass.trim() };
+                          const updatedAcc = { ...account, identifier: editUser.trim(), password: editPass.trim() };
                           setAccount(updatedAcc);
                           localStorage.setItem("smarttap_v32_account", JSON.stringify(updatedAcc));
                           setIsEditingCreds(false);
