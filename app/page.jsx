@@ -13,7 +13,7 @@ import {
 const TIKTOK_SHOP_URL = "https://www.tiktok.com/@smarttapph";
 const SUPER_ADMIN_PASSCODE = "SMARTTAP-ADMIN-2026";
 
-// Non-sequential randomized SmartTap Card Activation Codes (One-Time Use)
+// Valid One-Time SmartTap Card Activation Codes (Do NOT put any of these as input placeholder examples)
 const INITIAL_ACTIVATION_CODES = [
   "STPH-8K9M-2X7Q", "STPH-4928-7315", "STPH-3R7W-9P4L", "STPH-6194-8052", "STPH-9V2N-5H8C",
   "STPH-7403-2961", "STPH-2M6F-8D3Z", "STPH-5831-9470", "STPH-4J8B-1Q9R", "STPH-9275-3604",
@@ -281,25 +281,42 @@ function BrandLogo({ size = "md", accentTextClass = "text-indigo-400", onSecretT
   return (
     <div
       onClick={onSecretTap}
-      className="inline-flex items-center gap-2 select-none cursor-pointer"
+      className="inline-flex items-center gap-1.5 select-none cursor-pointer shrink-0 whitespace-nowrap"
     >
       {!imgFailed ? (
         <img
           src="/smarttap-logo.png"
           alt="SmartTap Logo"
           onError={() => setImgFailed(true)}
-          className={`${isSm ? "w-7 h-7 rounded-lg" : "w-9 h-9 rounded-xl"} object-contain shrink-0`}
+          className={`${isSm ? "w-6 h-6 rounded-md" : "w-9 h-9 rounded-xl"} object-contain shrink-0`}
         />
       ) : (
-        <div className={`${isSm ? "w-7 h-7 rounded-lg text-xs" : "w-9 h-9 rounded-xl text-sm"} bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white font-black flex items-center justify-center shadow-md shrink-0`}>
+        <div className={`${isSm ? "w-6 h-6 rounded-md text-[10px]" : "w-9 h-9 rounded-xl text-sm"} bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white font-black flex items-center justify-center shadow-md shrink-0`}>
           ST
         </div>
       )}
-      <span className={`${isSm ? "text-sm" : "text-lg"} font-extrabold tracking-tight`}>
+      <span className={`${isSm ? "text-xs sm:text-sm" : "text-lg"} font-extrabold tracking-tight`}>
         Smart<span className={`${accentTextClass} transition-colors duration-200`}>Tap</span>
       </span>
     </div>
   );
+}
+
+// Helper to reset mobile zoom & scroll position after closing keyboard or changing screens
+function resetMobileViewportZoom() {
+  if (typeof window === "undefined") return;
+  if (document.activeElement && typeof document.activeElement.blur === "function") {
+    document.activeElement.blur();
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  if (viewportMeta) {
+    const original = viewportMeta.getAttribute("content") || "width=device-width, initial-scale=1";
+    viewportMeta.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1");
+    setTimeout(() => {
+      viewportMeta.setAttribute("content", original);
+    }, 150);
+  }
 }
 
 function normalizeUrl(url) {
@@ -463,6 +480,37 @@ async function deleteMediaBlob(key) {
     tx.onerror = () => reject(tx.error);
   });
 }
+const DEFAULT_PROFILE_STATE = {
+  name: "",
+  bio: "",
+  phone: "",
+  email: "",
+  avatar: "",
+  photos: [],
+  theme: "black",
+  surfaceStyle: "solid",
+  verifiedBadge: { enabled: true, color: "text-blue-500" },
+  privacy: {
+    contact: true,
+    media: true,
+    booking: true,
+    links: true,
+    locations: true,
+    payments: true
+  },
+  booking: {
+    enabled: false,
+    title: "Book a Meeting / Appointment",
+    availableDays: [1, 2, 3, 4, 5],
+    startTime: "09:00",
+    endTime: "18:00",
+    location: ""
+  },
+  links: [],
+  locations: [],
+  payments: []
+};
+
 export default function SmartTapApp() {
   const [screen, setScreen] = useState("view");
   const [authMode, setAuthMode] = useState("signup");
@@ -472,6 +520,13 @@ export default function SmartTapApp() {
   const [activationCodeInput, setActivationCodeInput] = useState("");
   const [showAuthPass, setShowAuthPass] = useState(false);
   const [authError, setAuthError] = useState("");
+
+  // Floating Live Preview & Password-Verified Reset Modals (Inside Editor)
+  const [showFloatingPreview, setShowFloatingPreview] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetPassInput, setResetPassInput] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetToast, setResetToast] = useState(false);
 
   // Super Admin Hidden Vault States (Only accessible via 5-tap secret logo trigger + Master Admin PIN)
   const [secretTapCount, setSecretTapCount] = useState(0);
@@ -488,36 +543,7 @@ export default function SmartTapApp() {
   const [saveToast, setSaveToast] = useState(false);
   const [copiedId, setCopiedId] = useState("");
 
-  const [profile, setProfile] = useState({
-    name: "",
-    bio: "",
-    phone: "",
-    email: "",
-    avatar: "",
-    photos: [],
-    theme: "black",
-    surfaceStyle: "solid",
-    verifiedBadge: { enabled: true, color: "text-blue-500" },
-    privacy: {
-      contact: true,
-      media: true,
-      booking: true,
-      links: true,
-      locations: true,
-      payments: true
-    },
-    booking: {
-      enabled: false,
-      title: "Book a Meeting / Appointment",
-      availableDays: [1, 2, 3, 4, 5],
-      startTime: "09:00",
-      endTime: "18:00",
-      location: ""
-    },
-    links: [],
-    locations: [],
-    payments: []
-  });
+  const [profile, setProfile] = useState(DEFAULT_PROFILE_STATE);
 
   const [videoObjectUrl, setVideoObjectUrl] = useState("");
   const [audioObjectUrls, setAudioObjectUrls] = useState({});
@@ -724,6 +750,11 @@ export default function SmartTapApp() {
     })
     .filter(Boolean);
 
+  function navigateWithZoomReset(targetScreen) {
+    resetMobileViewportZoom();
+    setScreen(targetScreen);
+  }
+
   function handleSecretLogoTap() {
     const next = secretTapCount + 1;
     if (next >= 5) {
@@ -764,7 +795,7 @@ export default function SmartTapApp() {
     if (authMode === "login" || screen === "login_to_edit") {
       if (account && account.identifier === idTrim && account.password === passTrim) {
         setAuthError("");
-        setScreen("edit");
+        navigateWithZoomReset("edit");
       } else {
         setAuthError("Invalid username or password. Please try again.");
       }
@@ -783,7 +814,6 @@ export default function SmartTapApp() {
         return;
       }
 
-      // Burn the one-time code permanently so it cannot be reused
       const remainingValid = validCodes.filter((c) => c !== codeClean);
       const updatedUsed = [
         { code: codeClean, claimedBy: idTrim, date: new Date().toLocaleDateString("en-PH") },
@@ -800,7 +830,7 @@ export default function SmartTapApp() {
       setEditPass(passTrim);
       localStorage.setItem("smarttap_v32_account", JSON.stringify(newAcc));
       setAuthError("");
-      setScreen("edit");
+      navigateWithZoomReset("edit");
     }
   }
 
@@ -809,8 +839,40 @@ export default function SmartTapApp() {
     setSaveToast(true);
     setTimeout(() => {
       setSaveToast(false);
-      setScreen("view");
-    }, 900);
+      navigateWithZoomReset("view");
+    }, 850);
+  }
+
+  async function handleConfirmResetProfile(e) {
+    e.preventDefault();
+    if (!account || resetPassInput.trim() !== account.password) {
+      setResetError("Incorrect password. Layout reset cancelled.");
+      return;
+    }
+
+    // Delete stored audio & video blobs in IndexedDB while preserving owner account
+    for (const item of profile.links || []) {
+      if (item.type === "music") {
+        await deleteMediaBlob(`audio_${item.id}`);
+      }
+    }
+    await deleteMediaBlob("featured_video");
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setActiveAudioId(null);
+    }
+
+    setVideoObjectUrl("");
+    setAudioObjectUrls({});
+    setProfile(DEFAULT_PROFILE_STATE);
+    localStorage.setItem("smarttap_v32_profile", JSON.stringify(DEFAULT_PROFILE_STATE));
+
+    setResetPassInput("");
+    setResetError("");
+    setShowResetModal(false);
+    resetMobileViewportZoom();
+    setResetToast(true);
+    setTimeout(() => setResetToast(false), 3000);
   }
 
   async function handleAvatarUpload(e) {
@@ -856,6 +918,7 @@ export default function SmartTapApp() {
       setEditingLinkItem(null);
       setInputField1("");
       setInputField2("");
+      resetMobileViewportZoom();
       return;
     }
 
@@ -879,6 +942,7 @@ export default function SmartTapApp() {
     setSelectedSubPlatform(null);
     setInputField1("");
     setInputField2("");
+    resetMobileViewportZoom();
   }
 
   async function saveMusicItem(e) {
@@ -902,6 +966,7 @@ export default function SmartTapApp() {
     setSelectedSubPlatform(null);
     setInputField1("");
     setPendingAudioFile(null);
+    resetMobileViewportZoom();
   }
 
   function saveGamingItem(e) {
@@ -926,6 +991,7 @@ export default function SmartTapApp() {
     setInputField1("");
     setInputField2("");
     setInputField3("");
+    resetMobileViewportZoom();
   }
 
   function savePaymentItem(e) {
@@ -947,6 +1013,7 @@ export default function SmartTapApp() {
     setInputField3("");
     setPayQrImage("");
     setModalError("");
+    resetMobileViewportZoom();
   }
 
   function saveLocationItem(e) {
@@ -967,6 +1034,7 @@ export default function SmartTapApp() {
     };
     setProfile({ ...profile, locations: [...profile.locations, newLoc] });
     setShowLocModal(false);
+    resetMobileViewportZoom();
   }
 
   async function removeItem(id, type) {
@@ -1042,6 +1110,7 @@ export default function SmartTapApp() {
     localStorage.setItem("smarttap_v32_messages", JSON.stringify(updated));
     setContactForm({ name: "", contact: "", message: "" });
     setContactSent(true);
+    resetMobileViewportZoom();
     setTimeout(() => setContactSent(false), 3500);
   }
 
@@ -1059,6 +1128,7 @@ export default function SmartTapApp() {
     setExchangedContacts(updated);
     localStorage.setItem("smarttap_v32_exchanged", JSON.stringify(updated));
     setExchangeSuccess(true);
+    resetMobileViewportZoom();
   }
 
   function handleReceiptSubmit(e) {
@@ -1076,6 +1146,7 @@ export default function SmartTapApp() {
     setPaymentReceipts(updated);
     localStorage.setItem("smarttap_v32_receipts", JSON.stringify(updated));
     setReceiptSuccess(true);
+    resetMobileViewportZoom();
   }
 
   function getAvailableBookingTimes() {
@@ -1172,6 +1243,7 @@ export default function SmartTapApp() {
     URL.revokeObjectURL(url);
 
     setBookingSuccess(true);
+    resetMobileViewportZoom();
   }
 
   async function handleNativeShare(url) {
@@ -1220,7 +1292,7 @@ export default function SmartTapApp() {
               value={adminPinInput}
               onChange={(e) => setAdminPinInput(e.target.value)}
               placeholder="Master Admin Passcode"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-slate-700 text-sm text-white text-center font-mono"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-slate-700 text-base sm:text-sm text-white text-center font-mono"
             />
             {adminPinError && <p className="text-xs text-rose-400">{adminPinError}</p>}
             <button
@@ -1229,6 +1301,7 @@ export default function SmartTapApp() {
                 if (adminPinInput.trim() === SUPER_ADMIN_PASSCODE) {
                   setAdminUnlocked(true);
                   setAdminPinError("");
+                  resetMobileViewportZoom();
                 } else {
                   setAdminPinError("Unauthorized passcode.");
                 }
@@ -1324,7 +1397,7 @@ export default function SmartTapApp() {
                 setAuthPassword("");
                 setActivationCodeInput("");
                 setAuthError("");
-                setScreen("auth");
+                navigateWithZoomReset("auth");
               }}
               className="w-full py-3.5 rounded-xl bg-white hover:bg-neutral-200 text-black font-bold text-sm shadow-lg transition cursor-pointer active:scale-95"
             >
@@ -1339,7 +1412,7 @@ export default function SmartTapApp() {
                   setAuthIdentifier("");
                   setAuthPassword("");
                   setAuthError("");
-                  setScreen("auth");
+                  navigateWithZoomReset("auth");
                 }}
                 className="w-full py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-300 text-sm font-medium transition cursor-pointer active:scale-95"
               >
@@ -1351,7 +1424,7 @@ export default function SmartTapApp() {
 
         <footer className="max-w-md w-full mx-auto text-center pb-4 text-xs text-neutral-500">
           Official SmartTap PH Hardware Required •{" "}
-          <a href={TIKTOK_SHOP_URL} target="_blank" rel="noopener noreferrer" className="text-neutral-300 underline">
+          <a href={TIKTOK_SHOP_URL} target="_blank" rel="noopener noreferrer" className="text-neutral-300 underline whitespace-nowrap">
             Get a Card
           </a>
         </footer>
@@ -1368,7 +1441,7 @@ export default function SmartTapApp() {
         {superAdminModalUI}
         <header className="max-w-md w-full mx-auto pt-2 flex items-center justify-between">
           <button
-            onClick={() => setScreen(isOwnerLogin ? "view" : "claim")}
+            onClick={() => navigateWithZoomReset(isOwnerLogin ? "view" : "claim")}
             className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -1404,8 +1477,8 @@ export default function SmartTapApp() {
                     required
                     value={activationCodeInput}
                     onChange={(e) => setActivationCodeInput(e.target.value.toUpperCase())}
-                    placeholder="e.g. STPH-8K9M-2X7Q"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-neutral-700 text-sm text-white font-mono tracking-wider uppercase focus:outline-none focus:border-white"
+                    placeholder="e.g. STPH-XXXX-XXXX"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-neutral-700 text-base sm:text-sm text-white font-mono tracking-wider uppercase focus:outline-none focus:border-white"
                   />
                 </div>
               )}
@@ -1418,7 +1491,7 @@ export default function SmartTapApp() {
                   value={authIdentifier}
                   onChange={(e) => setAuthIdentifier(e.target.value)}
                   placeholder="e.g. juandelacruz"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-neutral-700 text-sm text-white focus:outline-none focus:border-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-neutral-700 text-base sm:text-sm text-white focus:outline-none focus:border-white"
                 />
               </div>
 
@@ -1431,7 +1504,7 @@ export default function SmartTapApp() {
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-black border border-neutral-700 text-sm text-white focus:outline-none focus:border-white"
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-black border border-neutral-700 text-base sm:text-sm text-white focus:outline-none focus:border-white"
                   />
                   <button
                     type="button"
@@ -1492,20 +1565,30 @@ export default function SmartTapApp() {
       <div style={surfaceInlineStyle} className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-200 pb-36`}>
         {superAdminModalUI}
         <header className={`sticky top-0 z-30 border-b backdrop-blur-md ${theme.card}`}>
-          <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between">
+          <div className="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between gap-2">
             <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
             <button
               type="button"
-              onClick={() => setScreen("view")}
+              onClick={() => {
+                resetMobileViewportZoom();
+                setShowFloatingPreview(true);
+              }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer active:scale-95 ${theme.accentSoft} border`}
             >
               <Eye className="w-3.5 h-3.5" />
-              <span>Preview View</span>
+              <span>Live Preview</span>
             </button>
           </div>
         </header>
 
         <main className="max-w-xl mx-auto px-4 pt-6 space-y-6">
+          {resetToast && (
+            <div className="px-4 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>Profile layout and settings have been reset to clean defaults!</span>
+            </div>
+          )}
+
           <div>
             <h1 className="text-2xl font-bold">Edit SmartTap Profile</h1>
             <p className={`text-xs mt-1 ${theme.subtext}`}>
@@ -1571,7 +1654,7 @@ export default function SmartTapApp() {
                   value={profile.name}
                   onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                   placeholder="Juan Dela Cruz"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none ${theme.input}`}
                 />
               </div>
 
@@ -1621,7 +1704,7 @@ export default function SmartTapApp() {
                   value={profile.bio}
                   onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                   placeholder="Entrepreneur | Cafe Owner | Manila, PH"
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none ${theme.input}`}
                 />
               </div>
 
@@ -1633,7 +1716,7 @@ export default function SmartTapApp() {
                     value={profile.phone}
                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                     placeholder="09171234567"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none ${theme.input}`}
                   />
                 </div>
                 <div>
@@ -1643,7 +1726,7 @@ export default function SmartTapApp() {
                     value={profile.email}
                     onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                     placeholder="you@gmail.com"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-sm focus:outline-none ${theme.input}`}
                   />
                 </div>
               </div>
@@ -1755,7 +1838,7 @@ export default function SmartTapApp() {
                   <select
                     value={profile.booking.title}
                     onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, title: e.target.value } })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-medium ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-xs font-medium ${theme.input}`}
                   >
                     {BOOKING_LABELS.map((lbl) => (
                       <option key={lbl} value={lbl}>{lbl}</option>
@@ -1792,7 +1875,7 @@ export default function SmartTapApp() {
                     <select
                       value={profile.booking.startTime || "09:00"}
                       onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, startTime: e.target.value } })}
-                      className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-base sm:text-xs ${theme.input}`}
                     >
                       {TIME_OPTIONS_30M.map((t) => (
                         <option key={t} value={t}>{formatTime12(t)}</option>
@@ -1804,7 +1887,7 @@ export default function SmartTapApp() {
                     <select
                       value={profile.booking.endTime || "18:00"}
                       onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, endTime: e.target.value } })}
-                      className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-base sm:text-xs ${theme.input}`}
                     >
                       {TIME_OPTIONS_30M.map((t) => (
                         <option key={t} value={t}>{formatTime12(t)}</option>
@@ -1820,7 +1903,7 @@ export default function SmartTapApp() {
                     value={profile.booking.location || ""}
                     onChange={(e) => setProfile({ ...profile, booking: { ...profile.booking, location: e.target.value } })}
                     placeholder="e.g. Starbucks BGC / Google Meet"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-base sm:text-xs ${theme.input}`}
                   />
                 </div>
               </div>
@@ -2086,6 +2169,30 @@ export default function SmartTapApp() {
               </div>
             )}
           </section>
+
+          {/* SECTION 8: RESET PROFILE & LAYOUT TO DEFAULT (PASSWORD VERIFIED) */}
+          <section className={`rounded-2xl border border-rose-500/30 p-5 space-y-3 ${theme.card}`}>
+            <div className="flex items-center gap-2 font-semibold text-sm text-rose-400">
+              <RefreshCw className="w-4 h-4" />
+              <h2>Reset Profile & Layout</h2>
+            </div>
+            <p className={`text-xs leading-relaxed ${theme.subtext}`}>
+              Restore your profile fields, uploaded media, links, locations, and payment methods back to clean startup defaults. Your SmartTap account login will remain active.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setResetPassInput("");
+                setResetError("");
+                resetMobileViewportZoom();
+                setShowResetModal(true);
+              }}
+              className="w-full py-2.5 px-4 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs flex items-center justify-center gap-2 transition cursor-pointer active:scale-95"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Layout & Settings to Default</span>
+            </button>
+          </section>
         </main>
 
         {/* FLOATING LINK HEALTH POP-UP ALERT */}
@@ -2139,6 +2246,236 @@ export default function SmartTapApp() {
           </div>
         </div>
 
+        {/* FLOATING LIVE PREVIEW MODAL (STAYS INSIDE EDITOR WITHOUT LOGGING OUT) */}
+        {showFloatingPreview && (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+            <div className={`w-full max-w-md rounded-3xl border shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${theme.bg} ${theme.text} border-slate-700`}>
+              {/* Floating Preview Header with Close X */}
+              <div className={`px-4 py-3 border-b flex items-center justify-between shrink-0 ${theme.card}`}>
+                <div className="flex items-center gap-2">
+                  <Eye className={`w-4 h-4 ${theme.accentText}`} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Live Viewer Preview</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetMobileViewportZoom();
+                    setShowFloatingPreview(false);
+                  }}
+                  className="p-1.5 rounded-full bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 transition cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Scrollable Live Preview Body */}
+              <div style={surfaceInlineStyle} className="p-5 overflow-y-auto space-y-5 flex-1">
+                <div className="text-center space-y-2.5">
+                  {profile.avatar && (
+                    <div className="w-20 h-20 rounded-full mx-auto overflow-hidden border-2 border-current/30 shadow-md bg-slate-800">
+                      <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="inline-flex items-center justify-center gap-1.5">
+                      <h2 className="text-lg font-extrabold tracking-tight">
+                        {profile.name || "SmartTap User"}
+                      </h2>
+                      {profile.verifiedBadge?.enabled && (
+                        <ShieldCheck className={`w-4 h-4 shrink-0 ${profile.verifiedBadge.color || "text-blue-500"}`} />
+                      )}
+                    </div>
+                    {profile.bio && (
+                      <p className={`text-xs mt-1 leading-relaxed ${theme.subtext}`}>{profile.bio}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Live Gallery Layout Preview */}
+                {profile.privacy.media && (
+                  <>
+                    {profile.photos.length === 1 && (
+                      <div className="rounded-2xl overflow-hidden border border-slate-700/40 bg-black/30 flex items-center justify-center">
+                        <img src={profile.photos[0]} alt="Preview 1" className="w-full max-h-64 object-contain" />
+                      </div>
+                    )}
+                    {profile.photos.length === 2 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {profile.photos.map((photo, index) => (
+                          <div key={index} className="rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                            <img src={photo} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {profile.photos.length === 3 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {profile.photos.slice(0, 2).map((photo, index) => (
+                          <div key={index} className="rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                            <img src={photo} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                        <div className="col-span-2 flex justify-center">
+                          <div className="w-1/2 rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                            <img src={profile.photos[2]} alt="Preview 3" className="w-full h-full object-cover" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {profile.photos.length >= 4 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {profile.photos.map((photo, index) => (
+                          <div key={index} className="rounded-2xl overflow-hidden border border-slate-700/40 aspect-square bg-black/30">
+                            <img src={photo} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {videoObjectUrl && (
+                      <div className="rounded-2xl overflow-hidden border border-slate-700/60 bg-black">
+                        <video src={videoObjectUrl} autoPlay loop muted playsInline className="w-full aspect-video object-cover" />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Contact & Booking Preview */}
+                {profile.privacy.contact && (profile.phone || profile.email) && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {profile.phone && (
+                      <div className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 ${theme.pill}`}>
+                        <Phone className={`w-3.5 h-3.5 ${theme.accentText}`} />
+                        <span>Call</span>
+                      </div>
+                    )}
+                    {profile.phone && (
+                      <div className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 ${theme.accent}`}>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>Save Contact</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {profile.privacy.booking && profile.booking?.enabled && (
+                  <div className={`w-full py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 ${theme.accent}`}>
+                    <Calendar className="w-4 h-4" />
+                    <span>{profile.booking.title || "Book a Meeting"}</span>
+                  </div>
+                )}
+
+                {/* Links Preview */}
+                {profile.privacy.links && profile.links.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-700/30">
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.subtext}`}>Links ({profile.links.length})</p>
+                    {profile.links.map((item) => (
+                      <div key={item.id} className={`flex items-center justify-between p-2.5 rounded-xl border ${theme.pill}`}>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className={`w-7 h-7 rounded-lg text-[10px] font-bold flex items-center justify-center shrink-0 uppercase ${theme.badgeIcon}`}>
+                            {item.badge || item.type.slice(0, 2)}
+                          </span>
+                          <span className="text-xs font-semibold truncate">{item.label}</span>
+                        </div>
+                        <ExternalLink className={`w-3.5 h-3.5 shrink-0 ${theme.subtext}`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Locations Preview */}
+                {profile.privacy.locations && profile.locations.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-700/30">
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.subtext}`}>Locations ({profile.locations.length})</p>
+                    {profile.locations.map((loc) => (
+                      <div key={loc.id} className={`p-2.5 rounded-xl border flex items-center gap-2 ${theme.pill}`}>
+                        <MapPin className={`w-4 h-4 shrink-0 ${theme.accentText}`} />
+                        <span className="text-xs font-semibold truncate">{loc.address}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Payments Preview */}
+                {profile.privacy.payments && profile.payments.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-700/30">
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${theme.subtext}`}>Payments ({profile.payments.length})</p>
+                    {profile.payments.map((pay) => (
+                      <div key={pay.id} className={`p-2.5 rounded-xl border flex items-center justify-between ${theme.pill}`}>
+                        <span className="text-xs font-bold">{pay.bankName}</span>
+                        <span className="text-xs font-mono opacity-80">{pay.accountNumber}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Action inside Floating Preview */}
+              <div className={`p-3 border-t shrink-0 ${theme.card}`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetMobileViewportZoom();
+                    setShowFloatingPreview(false);
+                  }}
+                  className={`w-full py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${theme.accent}`}
+                >
+                  Back to Editing
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PASSWORD-VERIFIED RESET SETTINGS & LAYOUT MODAL */}
+        {showResetModal && (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#111827] border border-rose-500/40 text-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-rose-400">
+                  <AlertTriangle className="w-5 h-5" />
+                  <h3 className="font-bold text-base">Reset Profile & Layout?</h3>
+                </div>
+                <button onClick={() => setShowResetModal(false)} className="p-1 text-slate-400 hover:text-white cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Are you sure? This will clear all your profile details, photos, videos, links, locations, and payment accounts back to clean startup defaults. Please type your owner password to proceed:
+              </p>
+
+              <form onSubmit={handleConfirmResetProfile} className="space-y-3">
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={resetPassInput}
+                  onChange={(e) => setResetPassInput(e.target.value)}
+                  placeholder="Enter your owner password"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white text-center"
+                />
+                {resetError && <p className="text-xs text-rose-400 text-center">{resetError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetModal(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer"
+                  >
+                    Confirm Reset
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* DIRECT EDIT BROKEN LINK MODAL */}
         {editingLinkItem && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -2157,7 +2494,7 @@ export default function SmartTapApp() {
                     value={inputField1}
                     onChange={(e) => setInputField1(e.target.value)}
                     placeholder="https://instagram.com/yourusername"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -2186,7 +2523,7 @@ export default function SmartTapApp() {
                     value={locAddress}
                     onChange={(e) => setLocAddress(e.target.value)}
                     placeholder="e.g. Balai Seafood Restaurant, Station 2, Boracay"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                   />
                 </div>
                 <div>
@@ -2196,7 +2533,7 @@ export default function SmartTapApp() {
                     value={locLandmark}
                     onChange={(e) => setLocLandmark(e.target.value)}
                     placeholder="e.g. Beside main entrance, second floor"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                   />
                 </div>
                 <div>
@@ -2206,7 +2543,7 @@ export default function SmartTapApp() {
                     value={locMapUrl}
                     onChange={(e) => setLocMapUrl(e.target.value)}
                     placeholder="https://maps.google.com/?q=..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                   />
                 </div>
 
@@ -2273,7 +2610,7 @@ export default function SmartTapApp() {
                             <select
                               value={locOpenTime}
                               onChange={(e) => setLocOpenTime(e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                              className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                             >
                               {TIME_OPTIONS_30M.map((t) => (
                                 <option key={t} value={t}>{formatTime12(t)}</option>
@@ -2285,7 +2622,7 @@ export default function SmartTapApp() {
                             <select
                               value={locCloseTime}
                               onChange={(e) => setLocCloseTime(e.target.value)}
-                              className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-xs text-white"
+                              className="w-full px-3 py-2 rounded-lg bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                             >
                               {TIME_OPTIONS_30M.map((t) => (
                                 <option key={t} value={t}>{formatTime12(t)}</option>
@@ -2306,7 +2643,7 @@ export default function SmartTapApp() {
                                     [d.id]: { ...locPerDay[d.id], open: e.target.value }
                                   })
                                 }
-                                className="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white"
+                                className="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-base sm:text-[11px] text-white"
                               >
                                 {TIME_OPTIONS_30M.map((t) => (
                                   <option key={t} value={t}>{formatTime12(t)}</option>
@@ -2321,7 +2658,7 @@ export default function SmartTapApp() {
                                     [d.id]: { ...locPerDay[d.id], close: e.target.value }
                                   })
                                 }
-                                className="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-[11px] text-white"
+                                className="flex-1 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-base sm:text-[11px] text-white"
                               >
                                 {TIME_OPTIONS_30M.map((t) => (
                                   <option key={t} value={t}>{formatTime12(t)}</option>
@@ -2391,7 +2728,7 @@ export default function SmartTapApp() {
                       value={inputField1}
                       onChange={(e) => setInputField1(e.target.value)}
                       placeholder="e.g. Dilaw - Maki"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                     />
                   </div>
                   <div>
@@ -2441,7 +2778,7 @@ export default function SmartTapApp() {
                           else setInputField3(e.target.value);
                         }}
                         placeholder={`Enter ${fieldName}`}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                       />
                     </div>
                   ))}
@@ -2453,7 +2790,7 @@ export default function SmartTapApp() {
                         value={inputField3}
                         onChange={(e) => setInputField3(e.target.value)}
                         placeholder="e.g. Asia Server / Mythic"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                       />
                     </div>
                   )}
@@ -2473,7 +2810,7 @@ export default function SmartTapApp() {
                         value={inputField3}
                         onChange={(e) => setInputField3(e.target.value)}
                         placeholder="e.g. UnionBank"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                       />
                     </div>
                   )}
@@ -2485,7 +2822,7 @@ export default function SmartTapApp() {
                       value={inputField1}
                       onChange={(e) => setInputField1(e.target.value)}
                       placeholder="Juan Dela Cruz"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                     />
                   </div>
                   <div>
@@ -2497,7 +2834,7 @@ export default function SmartTapApp() {
                       value={inputField2}
                       onChange={(e) => setInputField2(e.target.value.replace(/\D/g, ""))}
                       placeholder={selectedSubPlatform.placeholder}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white font-mono"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white font-mono"
                     />
                   </div>
 
@@ -2538,7 +2875,7 @@ export default function SmartTapApp() {
                         value={inputField2}
                         onChange={(e) => setInputField2(e.target.value)}
                         placeholder="e.g. Threads, Discord, WhatsApp"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                       />
                     </div>
                   )}
@@ -2550,7 +2887,7 @@ export default function SmartTapApp() {
                       value={inputField1}
                       onChange={(e) => setInputField1(e.target.value)}
                       placeholder={selectedSubPlatform.placeholder}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-sm text-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-sm text-white"
                     />
                   </div>
                   <div className="flex gap-2 pt-2">
@@ -2592,14 +2929,14 @@ export default function SmartTapApp() {
           </div>
         )}
 
-        {/* TOP BAR */}
-        <div className="flex items-center justify-between gap-1.5">
+        {/* TOP BAR WITH BREATHING ROOM ON MOBILE */}
+        <div className="flex items-center justify-between gap-2">
           <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               type="button"
               onClick={() => setLargeTextMode(!largeTextMode)}
-              className={`px-2.5 py-1.5 rounded-full border text-xs font-extrabold transition cursor-pointer active:scale-95 ${
+              className={`px-2 py-1 rounded-full border text-[11px] font-extrabold transition cursor-pointer active:scale-95 ${
                 largeTextMode ? theme.accent : theme.pill
               }`}
               title="Toggle Large Text & High Contrast"
@@ -2616,26 +2953,26 @@ export default function SmartTapApp() {
                 setThemeToast(`Theme: ${nextTheme.name}`);
                 setTimeout(() => setThemeToast(""), 1800);
               }}
-              className={`p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              className={`p-1.5 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Switch Theme"
             >
-              <Palette className={`w-4 h-4 ${theme.accentText}`} />
+              <Palette className={`w-3.5 h-3.5 ${theme.accentText}`} />
             </button>
             <button
               type="button"
               onClick={() => setShowShareQrModal(true)}
-              className={`p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              className={`p-1.5 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Share Profile"
             >
-              <Share2 className={`w-4 h-4 ${theme.accentText}`} />
+              <Share2 className={`w-3.5 h-3.5 ${theme.accentText}`} />
             </button>
             <button
               type="button"
               onClick={() => setShowSearchModal(true)}
-              className={`p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              className={`p-1.5 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Search Profile"
             >
-              <Search className={`w-4 h-4 ${theme.accentText}`} />
+              <Search className={`w-3.5 h-3.5 ${theme.accentText}`} />
             </button>
             <button
               type="button"
@@ -2646,12 +2983,12 @@ export default function SmartTapApp() {
                 setIsEditingCreds(false);
                 setShowAnalyticsModal(true);
               }}
-              className={`relative p-2 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
+              className={`relative p-1.5 rounded-full border transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Owner Analytics & Inbox"
             >
-              <BarChart3 className={`w-4 h-4 ${theme.accentText}`} />
+              <BarChart3 className={`w-3.5 h-3.5 ${theme.accentText}`} />
               {totalInboxCount > 0 && (
-                <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${theme.badgeIcon}`}>
+                <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center ${theme.badgeIcon}`}>
                   {totalInboxCount > 9 ? "9+" : totalInboxCount}
                 </span>
               )}
@@ -2663,12 +3000,12 @@ export default function SmartTapApp() {
                 setAuthIdentifier("");
                 setAuthPassword("");
                 setAuthError("");
-                setScreen("login_to_edit");
+                navigateWithZoomReset("login_to_edit");
               }}
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer active:scale-95 ${theme.pill}`}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[11px] font-medium transition cursor-pointer active:scale-95 ${theme.pill}`}
               title="Owner Edit Profile"
             >
-              <Pencil className={`w-3.5 h-3.5 ${theme.accentText}`} />
+              <Pencil className={`w-3 h-3 ${theme.accentText}`} />
               <span>Edit</span>
             </button>
           </div>
@@ -3122,14 +3459,14 @@ export default function SmartTapApp() {
                   value={contactForm.name}
                   onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                   placeholder="Your Name"
-                  className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-base sm:text-xs ${theme.input}`}
                 />
                 <input
                   type="text"
                   value={contactForm.contact}
                   onChange={(e) => setContactForm({ ...contactForm, contact: e.target.value })}
                   placeholder="Your Email or Phone (Optional)"
-                  className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-base sm:text-xs ${theme.input}`}
                 />
                 <textarea
                   rows={2}
@@ -3137,7 +3474,7 @@ export default function SmartTapApp() {
                   value={contactForm.message}
                   onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                   placeholder="Type your message here..."
-                  className={`w-full px-3 py-2.5 rounded-xl border text-xs ${theme.input}`}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-base sm:text-xs ${theme.input}`}
                 />
                 <button
                   type="submit"
@@ -3300,14 +3637,14 @@ export default function SmartTapApp() {
                   value={receiptSenderName}
                   onChange={(e) => setReceiptSenderName(e.target.value)}
                   placeholder="Your Name / Sender Name *"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
                 <input
                   type="text"
                   value={receiptRefNo}
                   onChange={(e) => setReceiptRefNo(e.target.value)}
                   placeholder="Reference No. / Amount (Optional)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
 
                 <div>
@@ -3398,7 +3735,7 @@ export default function SmartTapApp() {
                   value={bookingForm.clientName}
                   onChange={(e) => setBookingForm({ ...bookingForm, clientName: e.target.value })}
                   placeholder="Your Full Name *"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
                 <input
                   type="tel"
@@ -3406,7 +3743,7 @@ export default function SmartTapApp() {
                   value={bookingForm.clientPhone}
                   onChange={(e) => setBookingForm({ ...bookingForm, clientPhone: e.target.value })}
                   placeholder="Your Mobile Number *"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
 
                 <div>
@@ -3492,7 +3829,7 @@ export default function SmartTapApp() {
                     <select
                       value={bookingForm.durationMins}
                       onChange={(e) => setBookingForm({ ...bookingForm, durationMins: Number(e.target.value) })}
-                      className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                     >
                       {DURATION_OPTIONS.map((d) => (
                         <option key={d.mins} value={d.mins}>{d.label}</option>
@@ -3504,7 +3841,7 @@ export default function SmartTapApp() {
                     <select
                       value={bookingForm.timeChoice}
                       onChange={(e) => setBookingForm({ ...bookingForm, timeChoice: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                     >
                       {availableTimeSlots.map((t) => (
                         <option key={t} value={t}>{formatTime12(t)}</option>
@@ -3518,7 +3855,7 @@ export default function SmartTapApp() {
                   value={bookingForm.notes}
                   onChange={(e) => setBookingForm({ ...bookingForm, notes: e.target.value })}
                   placeholder="Agenda / Other Details (Optional)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
 
                 <button
@@ -3577,7 +3914,7 @@ export default function SmartTapApp() {
                   value={exchangeForm.name}
                   onChange={(e) => setExchangeForm({ ...exchangeForm, name: e.target.value })}
                   placeholder="Your Full Name *"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
                 <input
                   type="tel"
@@ -3585,21 +3922,21 @@ export default function SmartTapApp() {
                   value={exchangeForm.phone}
                   onChange={(e) => setExchangeForm({ ...exchangeForm, phone: e.target.value })}
                   placeholder="Your Mobile Number *"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
                 <input
                   type="email"
                   value={exchangeForm.email}
                   onChange={(e) => setExchangeForm({ ...exchangeForm, email: e.target.value })}
                   placeholder="Your Email (Optional)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
                 <input
                   type="text"
                   value={exchangeForm.social}
                   onChange={(e) => setExchangeForm({ ...exchangeForm, social: e.target.value })}
                   placeholder="IG / FB / Company Note (Optional)"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                 />
                 <button
                   type="submit"
@@ -3650,15 +3987,22 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      <footer className="max-w-md w-full mx-auto text-center pt-8 pb-4 space-y-1.5">
+      {/* CLEAN SINGLE-LINE FOOTER LINK */}
+      <footer className="max-w-md w-full mx-auto text-center pt-8 pb-4 space-y-1.5 px-2">
         <div className="flex justify-center opacity-80">
           <BrandLogo size="sm" accentTextClass={theme.accentText} onSecretTap={handleSecretLogoTap} />
         </div>
         <p className={`text-xs ${theme.subtext}`}>Tap smarter. Share your world in one touch.</p>
-        <p className={`text-[11px] ${theme.subtext}`}>
+        <p className={`text-[11px] leading-relaxed ${theme.subtext}`}>
           Want to get your own SmartTap card?{" "}
-          <a href={TIKTOK_SHOP_URL} target="_blank" rel="noopener noreferrer" className={`${theme.accentText} hover:underline font-semibold`}>
-            Order here on our TikTok Shop →
+          <a
+            href={TIKTOK_SHOP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${theme.accentText} hover:underline font-semibold inline-flex items-center gap-1 whitespace-nowrap`}
+          >
+            <span>Order here on our TikTok Shop</span>
+            <span>→</span>
           </a>
         </p>
       </footer>
@@ -3708,7 +4052,7 @@ export default function SmartTapApp() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search links, payments, games..."
-                  className="bg-transparent text-xs text-white focus:outline-none w-full"
+                  className="bg-transparent text-base sm:text-xs text-white focus:outline-none w-full"
                 />
               </div>
               <button onClick={() => setShowSearchModal(false)} className="ml-2 p-1 text-slate-400 hover:text-white cursor-pointer">
@@ -3767,7 +4111,7 @@ export default function SmartTapApp() {
                     value={analyticsPin}
                     onChange={(e) => setAnalyticsPin(e.target.value)}
                     placeholder="Enter owner password"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white text-center"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-base sm:text-sm text-white text-center"
                   />
                   {analyticsPinError && <p className="text-xs text-rose-400">{analyticsPinError}</p>}
                 </div>
@@ -3777,6 +4121,7 @@ export default function SmartTapApp() {
                     if (account && analyticsPin === account.password) {
                       setAnalyticsUnlocked(true);
                       setAnalyticsPinError("");
+                      resetMobileViewportZoom();
                     } else {
                       setAnalyticsPinError("Incorrect password. Access denied.");
                     }
@@ -3945,14 +4290,14 @@ export default function SmartTapApp() {
                         value={editUser}
                         onChange={(e) => setEditUser(e.target.value)}
                         placeholder="New Username"
-                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                       />
                       <input
                         type="password"
                         value={editPass}
                         onChange={(e) => setEditPass(e.target.value)}
                         placeholder="New Password"
-                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-xs text-white"
+                        className="w-full px-3 py-2 rounded-xl bg-[#090d16] border border-slate-700 text-base sm:text-xs text-white"
                       />
                       <button
                         type="button"
@@ -3961,6 +4306,7 @@ export default function SmartTapApp() {
                           setAccount(updatedAcc);
                           localStorage.setItem("smarttap_v32_account", JSON.stringify(updatedAcc));
                           setIsEditingCreds(false);
+                          resetMobileViewportZoom();
                           alert("Credentials updated!");
                         }}
                         className="w-full py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold cursor-pointer"
