@@ -43,8 +43,6 @@ import {
   FileSpreadsheet,
   Image as ImageIcon,
   Lock,
-  Layers,
-  Smartphone,
 } from "lucide-react";
 
 const FOUNDER_PASSCODE = "SMARTTAP2026";
@@ -355,6 +353,7 @@ async function uploadMediaToCloud(file, folder = "general") {
   const { data } = supabase.storage.from("smarttap-media").getPublicUrl(filePath);
   return data?.publicUrl || "";
 }
+
 export default function SmartTapApp() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -416,7 +415,7 @@ export default function SmartTapApp() {
   const [bookingForm, setBookingForm] = useState({ name: "", contact: "", date: "", slot: "10:00 AM", notes: "" });
 
   // Editor states
-  const [editorTab, setEditorTab] = useState("profile"); // "profile" | "links" | "payments" | "inbox" | "analytics"
+  const [editorTab, setEditorTab] = useState("profile");
   const [editingLink, setEditingLink] = useState(null);
   const [newPasswordInput, setNewPasswordInput] = useState("");
   const [newLink, setNewLink] = useState({
@@ -443,10 +442,12 @@ export default function SmartTapApp() {
   const [founderPassInput, setFounderPassInput] = useState("");
   const [batchQty, setBatchQty] = useState(50);
   const [batchLabel, setBatchLabel] = useState("Batch 1");
+  const [generatingBatch, setGeneratingBatch] = useState(false);
+  const [batchMessage, setBatchMessage] = useState(null);
   const [allCodes, setAllCodes] = useState([]);
   const [allProfiles, setAllProfiles] = useState([]);
   const [adminSearch, setAdminSearch] = useState("");
-  const [adminTab, setAdminTab] = useState("codes"); // "codes" | "buyers"
+  const [adminTab, setAdminTab] = useState("codes");
 
   const notify = (text, type = "success") => {
     setToast({ text, type });
@@ -511,7 +512,6 @@ export default function SmartTapApp() {
             .maybeSingle();
 
           if (codeRow && !codeRow.is_used) {
-            // Transit security: keep Activation Code field blank!
             setUnclaimedCode(cardParam);
             setScreen("claim");
             setShowActivateModal(true);
@@ -782,7 +782,6 @@ export default function SmartTapApp() {
       return;
     }
 
-    // Built-in Demo Account for instant testing
     if (user === "demo" && loginPassword === "demo1234") {
       localStorage.setItem("smarttap_device_user", "demo");
       setProfile(DEFAULT_PROFILE);
@@ -849,7 +848,6 @@ export default function SmartTapApp() {
     notify("Owner password updated!");
   };
 
-  // Move link up or down
   const handleMoveLink = (index, direction) => {
     const list = [...(profile.links || [])];
     const targetIndex = index + direction;
@@ -860,7 +858,6 @@ export default function SmartTapApp() {
     saveProfileToCloud({ ...profile, links: list });
   };
 
-  // Copy text helper
   const copyText = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -868,7 +865,6 @@ export default function SmartTapApp() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Download vCard (.vcf)
   const handleSaveContact = () => {
     const vcard = [
       "BEGIN:VCARD",
@@ -894,7 +890,6 @@ export default function SmartTapApp() {
     notify("Contact saved to phone!");
   };
 
-  // Audio player toggle
   const toggleAudio = (link) => {
     if (!link.audioUrl) return;
     if (playingId === link.id) {
@@ -912,7 +907,7 @@ export default function SmartTapApp() {
     setPlayingId(link.id);
   };
 
-  // Viewer Submissions (Race-Safe Cloud Appends)
+  // Viewer Submissions
   const submitExchangeContact = async (e) => {
     e.preventDefault();
     if (!contactForm.name.trim()) return;
@@ -968,7 +963,7 @@ export default function SmartTapApp() {
     notify("Booking request sent!");
   };
 
-  // Founder Vault Actions (Unlimited Batch CSV + Full Inventory Export + Remote Reset)
+  // Founder Vault Actions (Unlimited Batch CSV + Executive Excel Report + Remote Reset)
   const handleLogoSecretTap = () => {
     const next = logoTapCount + 1;
     if (next >= 5) {
@@ -1016,53 +1011,145 @@ export default function SmartTapApp() {
   };
 
   const handleGenerateBulkCsv = async () => {
-    const count = Math.max(1, Math.min(2000, Number(batchQty) || 50));
-    const label = batchLabel.trim() || "Batch";
-    const generated = [];
-    const existingSet = new Set(allCodes.map((c) => c.code));
+    if (generatingBatch) return;
+    setGeneratingBatch(true);
+    setBatchMessage(null);
+    try {
+      const count = Math.max(1, Math.min(2000, Number(batchQty) || 50));
+      const label = batchLabel.trim() || "Batch";
+      const generated = [];
+      const existingSet = new Set(allCodes.map((c) => c.code));
 
-    while (generated.length < count) {
-      const code = generateCardCode();
-      if (!existingSet.has(code)) {
-        existingSet.add(code);
-        generated.push({
-          code,
-          batch_label: label,
-          is_used: false,
-        });
+      while (generated.length < count) {
+        const code = generateCardCode();
+        if (!existingSet.has(code)) {
+          existingSet.add(code);
+          generated.push({
+            code,
+            batch_label: label,
+            is_used: false,
+          });
+        }
       }
-    }
 
-    if (supabase) {
-      const { error } = await supabase.from("smarttap_codes").insert(generated);
-      if (error) {
-        setFounderError("Error saving codes to Supabase.");
+      if (!supabase) {
+        setBatchMessage({
+          type: "error",
+          text: "Supabase environment variables are missing in Vercel. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then Redeploy.",
+        });
+        setGeneratingBatch(false);
         return;
       }
-      await loadFounderData();
-    }
 
-    downloadCsvRows(
-      `SmartTap_${label.replace(/\s+/g, "_")}_${count}cards.csv`,
-      ["Card_Code", "Full_URL", "Serial_Label"],
-      generated.map((item) => [item.code, `${APP_BASE_URL}/?c=${item.code}`, `ID: ${item.code}`])
-    );
-    notify(`Generated & exported ${count} card codes!`);
+      const { error } = await supabase.from("smarttap_codes").insert(generated);
+      if (error) {
+        setBatchMessage({
+          type: "error",
+          text: `Database insert failed: ${error.message}. Run the SQL table/policy setup in Supabase.`,
+        });
+        setGeneratingBatch(false);
+        return;
+      }
+
+      await loadFounderData();
+      setBatchMessage({
+        type: "success",
+        text: `Successfully generated & saved ${count} cards (${label})! Canva CSV downloaded.`,
+      });
+
+      downloadCsvRows(
+        `SmartTap_${label.replace(/\s+/g, "_")}_${count}cards_Canva.csv`,
+        ["Card_Code", "Full_URL", "Serial_Label"],
+        generated.map((item) => [item.code, `${APP_BASE_URL}/?c=${item.code}`, `ID: ${item.code}`])
+      );
+      notify(`Generated ${count} card codes!`);
+    } catch (err) {
+      setBatchMessage({ type: "error", text: err?.message || "Unexpected error while generating." });
+    } finally {
+      setGeneratingBatch(false);
+    }
   };
 
   const handleExportAllInventoryCsv = () => {
-    downloadCsvRows(
-      `SmartTap_Full_Inventory_${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Card_Code", "Batch_Label", "Status", "Claimed_By", "Full_URL"],
-      allCodes.map((c) => [
-        c.code,
-        c.batch_label || "",
-        c.is_used ? "Claimed" : "Available",
-        c.claimed_by || "",
-        `${APP_BASE_URL}/?c=${c.code}`,
-      ])
-    );
-    notify("Full inventory CSV downloaded!");
+    const total = allCodes.length;
+    const claimed = allCodes.filter((c) => c.is_used).length;
+    const available = total - claimed;
+    const rate = total > 0 ? ((claimed / total) * 100).toFixed(1) : "0.0";
+    const generatedDate = new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+
+    const esc = (v) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const rowsHtml = allCodes
+      .map((c, i) => {
+        const bg = i % 2 === 0 ? "#FFFFFF" : "#F8FAFC";
+        const statusBg = c.is_used ? "#FEF3C7" : "#DCFCE7";
+        const statusColor = c.is_used ? "#92400E" : "#166534";
+        const statusLabel = c.is_used ? "CLAIMED" : "AVAILABLE";
+        const fullUrl = `${APP_BASE_URL}/?c=${c.code}`;
+        const claimedDate = c.claimed_at ? new Date(c.claimed_at).toLocaleDateString("en-PH") : "—";
+        return `
+          <tr style="background:${bg};">
+            <td style="padding:8px 10px;border:1px solid #E2E8F0;text-align:center;color:#64748B;">${i + 1}</td>
+            <td style="padding:8px 12px;border:1px solid #E2E8F0;font-family:Consolas,monospace;font-weight:bold;color:#0F172A;">${esc(c.code)}</td>
+            <td style="padding:8px 12px;border:1px solid #E2E8F0;color:#334155;">${esc(c.batch_label || "General")}</td>
+            <td style="padding:8px 10px;border:1px solid #E2E8F0;text-align:center;background:${statusBg};color:${statusColor};font-weight:bold;">${statusLabel}</td>
+            <td style="padding:8px 12px;border:1px solid #E2E8F0;color:#0F172A;font-weight:${c.claimed_by ? "bold" : "normal"};">${c.claimed_by ? "@" + esc(c.claimed_by) : "Unassigned"}</td>
+            <td style="padding:8px 10px;border:1px solid #E2E8F0;text-align:center;color:#475569;">${esc(claimedDate)}</td>
+            <td style="padding:8px 12px;border:1px solid #E2E8F0;color:#2563EB;"><a href="${esc(fullUrl)}">${esc(fullUrl)}</a></td>
+          </tr>`;
+      })
+      .join("");
+
+    const excelHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8" /></head>
+      <body style="font-family:Calibri,Arial,sans-serif;">
+        <table style="border-collapse:collapse;width:100%;">
+          <tr>
+            <td colspan="7" style="background:#09090B;color:#FBBF24;font-size:18px;font-weight:bold;padding:14px 16px;">
+              SMARTTAP PHILIPPINES — MASTER NFC CARD INVENTORY &amp; MONITORING REPORT
+            </td>
+          </tr>
+          <tr>
+            <td colspan="7" style="background:#18181B;color:#A1A1AA;font-size:11px;padding:6px 16px 12px 16px;">
+              Generated on: ${esc(generatedDate)} • Official Inventory &amp; Activation Tracker
+            </td>
+          </tr>
+          <tr><td colspan="7" style="height:10px;"></td></tr>
+          <tr>
+            <td colspan="2" style="background:#F1F5F9;border:1px solid #CBD5E1;padding:10px;font-weight:bold;color:#334155;">TOTAL CARDS: ${total}</td>
+            <td colspan="2" style="background:#DCFCE7;border:1px solid #86EFAC;padding:10px;font-weight:bold;color:#166534;">AVAILABLE STOCK: ${available}</td>
+            <td colspan="2" style="background:#FEF3C7;border:1px solid #FCD34D;padding:10px;font-weight:bold;color:#92400E;">CLAIMED CARDS: ${claimed}</td>
+            <td style="background:#EFF6FF;border:1px solid #93C5FD;padding:10px;font-weight:bold;color:#1E40AF;">ACTIVATION RATE: ${rate}%</td>
+          </tr>
+          <tr><td colspan="7" style="height:12px;"></td></tr>
+          <tr style="background:#0F172A;color:#FFFFFF;font-weight:bold;font-size:12px;">
+            <th style="padding:10px;border:1px solid #0F172A;">#</th>
+            <th style="padding:10px;border:1px solid #0F172A;">ACTIVATION CODE</th>
+            <th style="padding:10px;border:1px solid #0F172A;">BATCH LABEL</th>
+            <th style="padding:10px;border:1px solid #0F172A;">STATUS</th>
+            <th style="padding:10px;border:1px solid #0F172A;">CLAIMED BY</th>
+            <th style="padding:10px;border:1px solid #0F172A;">DATE CLAIMED</th>
+            <th style="padding:10px;border:1px solid #0F172A;">CARD TAP URL</th>
+          </tr>
+          ${rowsHtml}
+        </table>
+      </body>
+      </html>`;
+
+    const blob = new Blob([excelHtml], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SmartTap_Inventory_Report_${new Date().toISOString().slice(0, 10)}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify("Executive Excel Inventory Report downloaded!");
   };
 
   const handleAdminResetCard = async (code, claimedBy) => {
@@ -1080,6 +1167,7 @@ export default function SmartTapApp() {
     await loadFounderData();
     notify(`Card ${code} reset to Available!`);
   };
+
   const activeTheme = THEMES[screen === "editor" ? profile.theme : viewerTheme] || THEMES.obsidian;
   const activeTexture = TEXTURES[screen === "editor" ? profile.texture : viewerTexture] || TEXTURES.aurora;
   const shareUrl = `${APP_BASE_URL}/?u=${encodeURIComponent(profile.username || "demo")}`;
@@ -1129,7 +1217,6 @@ export default function SmartTapApp() {
       {/* Clean, Uncrowded Sticky Header */}
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-black/35 border-b border-white/10">
         <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
-          {/* SmartTap Brand Logo (5-tap secret Founder Vault trigger, no subtext clutter) */}
           <button
             type="button"
             onClick={handleLogoSecretTap}
@@ -1142,7 +1229,6 @@ export default function SmartTapApp() {
           </button>
 
           <div className="flex items-center gap-2 relative">
-            {/* Single Theme & Texture Button (Cleaner on Mobile) */}
             {(screen === "editor" || (screen === "viewer" && profile.allowViewerThemeSwitch)) && (
               <div className="relative">
                 <button
@@ -1218,7 +1304,6 @@ export default function SmartTapApp() {
               </div>
             )}
 
-            {/* Single Unified Editor / Preview Toggle + Logout */}
             {isOwnerLoggedIn ? (
               <>
                 <button
@@ -1349,9 +1434,7 @@ export default function SmartTapApp() {
       {/* ================= SCREEN 2: VIEWER PROFILE ================= */}
       {screen === "viewer" && (
         <main className="max-w-xl mx-auto px-4 pt-5 space-y-5">
-          {/* Profile Hero Card with Facebook-style Cover & Profile Photo */}
           <section className={`rounded-3xl border ${activeTheme.card} ${activeTheme.glow} overflow-hidden`}>
-            {/* Facebook-Style Cover Photo Banner */}
             <div className="h-36 sm:h-44 relative bg-gradient-to-r from-zinc-800 via-zinc-900 to-black group">
               {profile.coverUrl ? (
                 <img src={profile.coverUrl} alt="Cover" className="w-full h-full object-cover" />
@@ -1359,7 +1442,6 @@ export default function SmartTapApp() {
                 <div className={`w-full h-full bg-gradient-to-r ${activeTheme.accent} opacity-30`} />
               )}
 
-              {/* Top-Right Share & QR Controls on Cover */}
               <div className="absolute top-3 right-3 flex items-center gap-2">
                 <button
                   type="button"
@@ -1384,7 +1466,6 @@ export default function SmartTapApp() {
               </div>
             </div>
 
-            {/* Avatar & Identity */}
             <div className="px-5 pb-6 -mt-12 relative">
               <div className="flex items-end justify-between gap-3">
                 <div className="w-24 h-24 rounded-2xl border-4 border-zinc-950 bg-zinc-800 overflow-hidden shadow-xl flex items-center justify-center text-2xl font-bold text-white">
@@ -1423,7 +1504,6 @@ export default function SmartTapApp() {
                 {profile.bio && <p className="text-xs leading-relaxed opacity-85 mt-3">{profile.bio}</p>}
               </div>
 
-              {/* Primary Action Buttons */}
               <div className="grid grid-cols-2 gap-2.5 mt-5">
                 <button
                   type="button"
@@ -1441,7 +1521,6 @@ export default function SmartTapApp() {
                 </button>
               </div>
 
-              {/* Custom CTA Banner */}
               {sanitizeUrl(profile.ctaUrl) && (
                 <a
                   href={sanitizeUrl(profile.ctaUrl)}
@@ -1456,7 +1535,6 @@ export default function SmartTapApp() {
                 </a>
               )}
 
-              {/* Quick Direct Chips */}
               <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
                 {profile.phone && (
                   <a
@@ -1488,7 +1566,6 @@ export default function SmartTapApp() {
             </div>
           </section>
 
-          {/* Links & Hub Directory */}
           {(profile.links || []).length > 0 && (
             <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
               <div className="flex items-center justify-between gap-2">
@@ -1505,7 +1582,6 @@ export default function SmartTapApp() {
                 </div>
               </div>
 
-              {/* Category Filter Tabs */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                 {[
                   { id: "all", label: "All" },
@@ -1529,7 +1605,6 @@ export default function SmartTapApp() {
                 ))}
               </div>
 
-              {/* Filtered Link Cards */}
               <div className="space-y-2.5">
                 {filteredLinks.map((item) => {
                   const validHref = sanitizeUrl(item.url);
@@ -1594,7 +1669,6 @@ export default function SmartTapApp() {
             </section>
           )}
 
-          {/* Instant Payment & E-Wallets */}
           {profile.showPaymentSection && (profile.payments || []).length > 0 && (
             <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
               <h2 className="text-sm font-bold flex items-center gap-2">
@@ -1636,7 +1710,6 @@ export default function SmartTapApp() {
             </section>
           )}
 
-          {/* Appointment & Booking */}
           {profile.showBookingSection && (
             <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
               <h2 className="text-sm font-bold flex items-center gap-2">
@@ -1688,7 +1761,6 @@ export default function SmartTapApp() {
             </section>
           )}
 
-          {/* Direct Message Box */}
           {profile.showContactForm && (
             <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
               <h2 className="text-sm font-bold flex items-center gap-2">
@@ -1727,7 +1799,6 @@ export default function SmartTapApp() {
             </section>
           )}
 
-          {/* SmartTap Branded Conversion Footer ("Order Your Own SmartTap Card Here") */}
           <footer className={`rounded-3xl border ${activeTheme.card} p-5 text-center space-y-3`}>
             <div className="flex items-center justify-center gap-2">
               <div className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${activeTheme.accent} text-zinc-950 flex items-center justify-center`}>
@@ -1748,7 +1819,6 @@ export default function SmartTapApp() {
             </a>
           </footer>
 
-          {/* Floating Bottom Quick-Action Dock */}
           <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-md">
             <div className="rounded-full bg-zinc-900/90 backdrop-blur-xl border border-white/15 px-3 py-2 shadow-2xl flex items-center justify-around text-zinc-100">
               <button
@@ -1788,7 +1858,6 @@ export default function SmartTapApp() {
       {/* ================= SCREEN 3: UNIFIED OWNER EDITOR STUDIO ================= */}
       {screen === "editor" && (
         <main className="max-w-xl mx-auto px-4 pt-5 space-y-4">
-          {/* Unique Share URL Banner */}
           <div className={`rounded-2xl border ${activeTheme.card} p-4 flex items-center justify-between gap-3`}>
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-wider opacity-60">Your Live SmartTap Link</p>
@@ -1803,7 +1872,6 @@ export default function SmartTapApp() {
             </button>
           </div>
 
-          {/* Unified Editor Sub-Navigation (Includes Analytics & Inbox) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             {[
               { id: "profile", label: "Profile & Cover" },
@@ -1825,12 +1893,10 @@ export default function SmartTapApp() {
             ))}
           </div>
 
-          {/* TAB 1: PROFILE, FACEBOOK-STYLE COVER & THEME/TEXTURE */}
           {editorTab === "profile" && (
             <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
               <h3 className="text-sm font-bold">Profile Photo, Cover Banner & Appearance</h3>
 
-              {/* Live Mini Cover + Avatar Preview & Upload Buttons */}
               <div className="rounded-2xl overflow-hidden border border-white/10">
                 <div className="h-28 relative bg-zinc-800">
                   {profile.coverUrl ? (
@@ -1887,7 +1953,6 @@ export default function SmartTapApp() {
                 </div>
               </div>
 
-              {/* Default Theme (9) + Texture (5) + Viewer Lock */}
               <div className="space-y-2.5 pt-2 border-t border-white/10">
                 <label className="text-xs font-semibold block">Default Card Theme (9)</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -1937,7 +2002,6 @@ export default function SmartTapApp() {
                 </label>
               </div>
 
-              {/* Basic Fields (16px font on mobile prevents iOS zoom) */}
               <div className="space-y-2.5 pt-2 border-t border-white/10">
                 <input
                   type="text"
@@ -2016,7 +2080,6 @@ export default function SmartTapApp() {
                   />
                 </div>
 
-                {/* Section Visibility Toggles */}
                 <div className="space-y-1.5 pt-2 text-xs">
                   <label className="flex items-center justify-between">
                     <span>Show Instant Payment Section</span>
@@ -2044,7 +2107,6 @@ export default function SmartTapApp() {
                   </label>
                 </div>
 
-                {/* Custom Booking Time Slots Manager */}
                 <div className="space-y-2 pt-2 border-t border-white/10">
                   <label className="text-xs font-semibold block">Booking Time Slots</label>
                   <div className="flex flex-wrap gap-1.5">
@@ -2106,7 +2168,6 @@ export default function SmartTapApp() {
                 </button>
               </div>
 
-              {/* Account Security & Card Serial Info */}
               <div className="space-y-2.5 pt-3 border-t border-white/10">
                 <div className="flex items-center justify-between text-xs">
                   <span className="opacity-70">Linked Card Serial:</span>
@@ -2132,7 +2193,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* TAB 2: LINKS & MEDIA */}
           {editorTab === "links" && (
             <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
               <h3 className="text-sm font-bold">Add New Link / Gaming ID / Track</h3>
@@ -2231,7 +2291,6 @@ export default function SmartTapApp() {
                 </button>
               </div>
 
-              {/* Existing Links List with Reorder, Edit & Delete */}
               <div className="space-y-2 pt-3 border-t border-white/10">
                 {(profile.links || []).map((l, idx) => (
                   <div key={l.id} className={`p-3 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between gap-2`}>
@@ -2287,7 +2346,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* TAB 3: PAYMENTS */}
           {editorTab === "payments" && (
             <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
               <h3 className="text-sm font-bold">Payment Accounts & QR Codes</h3>
@@ -2384,7 +2442,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* TAB 4: INBOX & LEADS */}
           {editorTab === "inbox" && (
             <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
               <h3 className="text-sm font-bold">Messages, Leads, Receipts & Bookings</h3>
@@ -2437,7 +2494,6 @@ export default function SmartTapApp() {
             </div>
           )}
 
-          {/* TAB 5: ANALYTICS (Unified Inside Editor) */}
           {editorTab === "analytics" && (
             <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
               <h3 className="text-sm font-bold flex items-center gap-2">
@@ -2461,9 +2517,8 @@ export default function SmartTapApp() {
         </main>
       )}
 
-      {/* ================= MODALS (With Inline Error Banners & 16px Inputs) ================= */}
+      {/* ================= MODALS ================= */}
 
-      {/* QR Share Modal */}
       {showQrModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 text-center space-y-4">
@@ -2492,7 +2547,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Exchange Contact Modal */}
       {showExchangeModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
@@ -2541,7 +2595,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Payment QR & Receipt Submission Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
@@ -2616,7 +2669,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Edit Link Modal */}
       {editingLink && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-3">
@@ -2687,7 +2739,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Owner Login Modal (With Inline Error Banner + Demo Shortcut) */}
       {showLoginModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
@@ -2760,7 +2811,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Activate Physical SmartTap Card Modal (With Inline Error Banner) */}
       {showActivateModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-amber-400/30 p-6 space-y-4">
@@ -2844,7 +2894,6 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Founder Vault Admin Modal (5-Tap Secret Trigger) */}
       {showFounderModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
@@ -2884,7 +2933,6 @@ export default function SmartTapApp() {
               </form>
             ) : (
               <div className="space-y-4">
-                {/* Bulk Generator + Canva CSV Export */}
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-bold flex items-center gap-1.5">
@@ -2893,9 +2941,9 @@ export default function SmartTapApp() {
                     <button
                       type="button"
                       onClick={handleExportAllInventoryCsv}
-                      className="text-[11px] text-amber-400 underline"
+                      className="text-[11px] text-amber-400 font-semibold underline"
                     >
-                      Export Full Inventory CSV
+                      Export Excel Report (.xls)
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -2918,14 +2966,25 @@ export default function SmartTapApp() {
                   </div>
                   <button
                     type="button"
+                    disabled={generatingBatch}
                     onClick={handleGenerateBulkCsv}
-                    className="w-full py-2.5 rounded-xl text-xs font-semibold bg-emerald-400 text-zinc-950"
+                    className="w-full py-2.5 rounded-xl text-xs font-semibold bg-emerald-400 text-zinc-950 disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    Generate Cards & Download Canva CSV
+                    {generatingBatch ? "Generating & Saving to Cloud..." : "Generate Cards & Download Canva CSV"}
                   </button>
+                  {batchMessage && (
+                    <div
+                      className={`p-2.5 rounded-xl text-xs border ${
+                        batchMessage.type === "error"
+                          ? "bg-rose-500/15 border-rose-400/40 text-rose-200"
+                          : "bg-emerald-500/15 border-emerald-400/40 text-emerald-200"
+                      }`}
+                    >
+                      {batchMessage.text}
+                    </div>
+                  )}
                 </div>
 
-                {/* Admin Tabs & Search */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex gap-1.5">
                     <button
