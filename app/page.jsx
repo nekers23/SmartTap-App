@@ -22,12 +22,14 @@ import {
   Play,
   Pause,
   Sparkles,
+  Palette,
   Edit3,
   Eye,
-  Plus,
   Trash2,
   ChevronUp,
   ChevronDown,
+  ArrowUp,
+  ArrowRight,
   X,
   Upload,
   Shield,
@@ -40,7 +42,9 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Image as ImageIcon,
-  Zap,
+  Lock,
+  Layers,
+  Smartphone,
 } from "lucide-react";
 
 const FOUNDER_PASSCODE = "SMARTTAP2026";
@@ -117,6 +121,48 @@ const THEMES = {
     button: "bg-gradient-to-r from-fuchsia-400 to-purple-500 text-purple-950 font-semibold",
     glow: "shadow-[0_0_40px_-12px_rgba(217,70,239,0.35)]",
   },
+  sunset: {
+    id: "sunset",
+    name: "Sunset Copper",
+    bg: "bg-[#140a06]",
+    card: "bg-[#21110a]/90 border-orange-400/15",
+    subCard: "bg-orange-950/40 border-orange-400/15",
+    text: "text-orange-50",
+    muted: "text-orange-300/70",
+    accent: "from-orange-400 via-amber-500 to-red-500",
+    accentText: "text-orange-400",
+    accentBg: "bg-orange-500/15 border-orange-400/30 text-orange-300",
+    button: "bg-gradient-to-r from-orange-400 to-amber-500 text-zinc-950 font-semibold",
+    glow: "shadow-[0_0_40px_-12px_rgba(251,146,60,0.35)]",
+  },
+  midnight: {
+    id: "midnight",
+    name: "Midnight Rose",
+    bg: "bg-[#110814]",
+    card: "bg-[#1c0e21]/90 border-pink-400/15",
+    subCard: "bg-pink-950/40 border-pink-400/15",
+    text: "text-pink-50",
+    muted: "text-pink-300/70",
+    accent: "from-pink-400 via-rose-400 to-purple-500",
+    accentText: "text-pink-400",
+    accentBg: "bg-pink-500/15 border-pink-400/30 text-pink-300",
+    button: "bg-gradient-to-r from-pink-400 to-rose-400 text-zinc-950 font-semibold",
+    glow: "shadow-[0_0_40px_-12px_rgba(244,114,182,0.35)]",
+  },
+  arctic: {
+    id: "arctic",
+    name: "Arctic Frost",
+    bg: "bg-slate-100",
+    card: "bg-white/95 border-sky-200/90",
+    subCard: "bg-sky-50/80 border-sky-200/70",
+    text: "text-slate-900",
+    muted: "text-slate-500",
+    accent: "from-sky-500 via-blue-600 to-indigo-600",
+    accentText: "text-sky-600",
+    accentBg: "bg-sky-500/10 border-sky-500/25 text-sky-700",
+    button: "bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold",
+    glow: "shadow-[0_12px_36px_-12px_rgba(14,165,233,0.2)]",
+  },
   pearl: {
     id: "pearl",
     name: "Minimal Pearl",
@@ -133,6 +179,45 @@ const THEMES = {
   },
 };
 
+const TEXTURES = {
+  matte: { id: "matte", name: "Clean Matte", style: {} },
+  glass: {
+    id: "glass",
+    name: "Frosted Glass",
+    style: {
+      backgroundImage:
+        "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08) 0%, transparent 45%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.06) 0%, transparent 45%)",
+    },
+  },
+  carbon: {
+    id: "carbon",
+    name: "Carbon Weave",
+    style: {
+      backgroundImage:
+        "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+      backgroundSize: "16px 16px",
+      backgroundPosition: "0 0, 8px 8px",
+    },
+  },
+  grid: {
+    id: "grid",
+    name: "Tech Grid",
+    style: {
+      backgroundImage:
+        "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
+      backgroundSize: "24px 24px",
+    },
+  },
+  aurora: {
+    id: "aurora",
+    name: "Aurora Glow",
+    style: {
+      backgroundImage:
+        "radial-gradient(ellipse at top, rgba(251,191,36,0.14), transparent 60%), radial-gradient(ellipse at bottom, rgba(56,189,248,0.12), transparent 60%)",
+    },
+  },
+};
+
 const PAYMENT_PROVIDERS = [
   { id: "GCash", label: "GCash", digits: 11, placeholder: "09XXXXXXXXX (11 digits)" },
   { id: "Maya", label: "Maya", digits: 11, placeholder: "09XXXXXXXXX (11 digits)" },
@@ -146,7 +231,7 @@ const PAYMENT_PROVIDERS = [
 
 const DEFAULT_PROFILE = {
   fullName: "Juan Dela Cruz",
-  username: "juandelacruz",
+  username: "demo",
   headline: "Founder & Digital Creator",
   company: "SmartTap Philippines",
   location: "Metro Manila, Philippines",
@@ -155,12 +240,14 @@ const DEFAULT_PROFILE = {
   coverUrl: "",
   verified: true,
   theme: "obsidian",
+  texture: "aurora",
   allowViewerThemeSwitch: true,
   phone: "+63 917 123 4567",
   email: "hello@smarttap.ph",
   website: "https://smarttapapp.vercel.app",
   ctaLabel: "Order SmartTap NFC Cards",
   ctaUrl: "https://www.tiktok.com/@smarttap.ph",
+  orderFooterUrl: "https://www.tiktok.com/@smarttap.ph",
   showBookingSection: true,
   showPaymentSection: true,
   showContactForm: true,
@@ -216,6 +303,26 @@ const DEFAULT_PROFILE = {
   bookingSlots: ["10:00 AM", "01:30 PM", "04:00 PM", "07:00 PM"],
 };
 
+function SmartTapLogoMark({ className = "w-5 h-5" }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden="true">
+      <rect x="2" y="2" width="28" height="28" rx="8" fill="currentColor" fillOpacity="0.14" />
+      <path
+        d="M19.5 10.5C18.2 9.5 16.4 9 14.5 9C11.7 9 9.8 10.5 9.8 12.6C9.8 14.9 12 15.7 15 16.3C17.8 16.9 19.6 17.6 19.6 19.8C19.6 21.9 17.6 23.2 14.7 23.2C12.4 23.2 10.5 22.4 9.2 21.1"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M22.2 11.2C23.5 12.6 24.2 14.3 24.2 16.1C24.2 17.9 23.5 19.6 22.2 21"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function sanitizeUrl(raw) {
   if (!raw || typeof raw !== "string") return "";
   const trimmed = raw.trim();
@@ -253,15 +360,17 @@ export default function SmartTapApp() {
   const [syncing, setSyncing] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Route & Activation states
+  // Screen & Route states: "claim" (Startup Landing) | "viewer" | "editor"
+  const [screen, setScreen] = useState("claim");
   const [unclaimedCode, setUnclaimedCode] = useState("");
   const [activeCardCode, setActiveCardCode] = useState("");
-  const [mode, setMode] = useState("viewer"); // "viewer" | "editor"
   const [isOwnerLoggedIn, setIsOwnerLoggedIn] = useState(false);
 
   // Core profile & cloud collections
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [viewerTheme, setViewerTheme] = useState("obsidian");
+  const [viewerTexture, setViewerTexture] = useState("aurora");
+  const [showThemePopover, setShowThemePopover] = useState(false);
   const [analytics, setAnalytics] = useState({
     taps1d: 0,
     taps1w: 0,
@@ -280,13 +389,17 @@ export default function SmartTapApp() {
   const [playingId, setPlayingId] = useState(null);
   const audioRef = useRef(null);
 
-  // Modals
+  // Modals & Inline Form Errors
   const [showQrModal, setShowQrModal] = useState(false);
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showActivateModal, setShowActivateModal] = useState(false);
   const [showFounderModal, setShowFounderModal] = useState(false);
+
+  const [loginError, setLoginError] = useState("");
+  const [activateError, setActivateError] = useState("");
+  const [founderError, setFounderError] = useState("");
 
   // Auth & Activation form inputs
   const [loginUsername, setLoginUsername] = useState("");
@@ -340,8 +453,19 @@ export default function SmartTapApp() {
     setTimeout(() => setToast(null), 3200);
   };
 
-  // Cleanup audio on unmount
+  // Enforce iOS / Mobile Viewport Anti-Zoom Guard + Audio Cleanup
   useEffect(() => {
+    let meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "viewport";
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute(
+      "content",
+      "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    );
+
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -350,7 +474,7 @@ export default function SmartTapApp() {
     };
   }, []);
 
-  // Load initial profile from URL params (?c=CODE or ?u=USERNAME) + device-locked session
+  // Load initial route (?c=CODE, ?u=USERNAME, device session, or Claim Landing Page)
   useEffect(() => {
     const initApp = async () => {
       setLoading(true);
@@ -360,7 +484,20 @@ export default function SmartTapApp() {
         const userParam = (params.get("u") || "").trim().toLowerCase();
         const savedSessionUser = localStorage.getItem("smarttap_device_user") || "";
 
+        // Built-in local demo session restore
+        if (!cardParam && !userParam && savedSessionUser === "demo") {
+          setProfile(DEFAULT_PROFILE);
+          setViewerTheme(DEFAULT_PROFILE.theme);
+          setViewerTexture(DEFAULT_PROFILE.texture);
+          setActiveCardCode("STPH-DEMO-CARD");
+          setIsOwnerLoggedIn(true);
+          setScreen("viewer");
+          setLoading(false);
+          return;
+        }
+
         if (!supabase) {
+          setScreen("claim");
           setLoading(false);
           return;
         }
@@ -374,8 +511,9 @@ export default function SmartTapApp() {
             .maybeSingle();
 
           if (codeRow && !codeRow.is_used) {
-            // Transit security: never auto-fill activation code from URL
+            // Transit security: keep Activation Code field blank!
             setUnclaimedCode(cardParam);
+            setScreen("claim");
             setShowActivateModal(true);
             setLoading(false);
             return;
@@ -390,6 +528,7 @@ export default function SmartTapApp() {
 
             if (profRow) {
               await hydrateProfileRow(profRow, savedSessionUser, true);
+              setScreen("viewer");
               setLoading(false);
               return;
             }
@@ -398,6 +537,16 @@ export default function SmartTapApp() {
 
         // 2. Direct Username Route (?u=username)
         if (userParam) {
+          if (userParam === "demo") {
+            setProfile(DEFAULT_PROFILE);
+            setViewerTheme(DEFAULT_PROFILE.theme);
+            setViewerTexture(DEFAULT_PROFILE.texture);
+            setIsOwnerLoggedIn(savedSessionUser === "demo");
+            setScreen("viewer");
+            setLoading(false);
+            return;
+          }
+
           const { data: profRow } = await supabase
             .from("smarttap_profiles")
             .select("*")
@@ -406,6 +555,7 @@ export default function SmartTapApp() {
 
           if (profRow) {
             await hydrateProfileRow(profRow, savedSessionUser, true);
+            setScreen("viewer");
             setLoading(false);
             return;
           }
@@ -421,16 +571,17 @@ export default function SmartTapApp() {
 
           if (profRow) {
             await hydrateProfileRow(profRow, savedSessionUser, false);
+            setScreen("viewer");
             setLoading(false);
             return;
           }
         }
 
-        // 4. Default Showcase Demo Profile
-        setProfile(DEFAULT_PROFILE);
-        setViewerTheme(DEFAULT_PROFILE.theme);
+        // 4. Default Startup Screen -> Claim Your SmartTap Card Landing Page
+        setScreen("claim");
       } catch (err) {
         console.error("Init error:", err);
+        setScreen("claim");
       } finally {
         setLoading(false);
       }
@@ -443,6 +594,7 @@ export default function SmartTapApp() {
     const merged = { ...DEFAULT_PROFILE, ...(row.profile_data || {}), username: row.username };
     setProfile(merged);
     setViewerTheme(merged.theme || "obsidian");
+    setViewerTexture(merged.texture || "aurora");
     setActiveCardCode(row.activation_code || "");
     setMessages(Array.isArray(row.messages) ? row.messages : []);
     setExchangedContacts(Array.isArray(row.exchanged_contacts) ? row.exchanged_contacts : []);
@@ -479,8 +631,9 @@ export default function SmartTapApp() {
     setProfile(updatedProfile);
     if (!updatedProfile.allowViewerThemeSwitch) {
       setViewerTheme(updatedProfile.theme);
+      setViewerTexture(updatedProfile.texture || "aurora");
     }
-    if (!supabase || !isOwnerLoggedIn) return;
+    if (!supabase || !isOwnerLoggedIn || updatedProfile.username === "demo") return;
     setSyncing(true);
     try {
       const payload = {
@@ -503,7 +656,7 @@ export default function SmartTapApp() {
 
   // Race-safe cloud array append helper for public viewers
   const appendCloudArrayField = async (columnName, newItem, localSetter) => {
-    if (!supabase || profile.username === "juandelacruz") {
+    if (!supabase || profile.username === "demo") {
       localSetter((prev) => [newItem, ...prev]);
       return;
     }
@@ -523,17 +676,18 @@ export default function SmartTapApp() {
       .eq("username", profile.username);
   };
 
-  // Activate a physical SmartTap card (Requires manual entry of printed insert code)
+  // Activate a physical SmartTap card
   const handleActivateCard = async (e) => {
     e.preventDefault();
+    setActivateError("");
     const code = actCodeInput.trim().toUpperCase();
     const cleanUser = actUsername.trim().toLowerCase().replace(/[^a-z0-9._]/g, "");
     if (!code || !actFullName.trim() || !cleanUser || actPassword.length < 4) {
-      notify("Please complete all fields (password min 4 chars).", "error");
+      setActivateError("Please complete all fields (password minimum 4 characters).");
       return;
     }
     if (!supabase) {
-      notify("Database not connected yet.", "error");
+      setActivateError("Database connection is not configured yet.");
       return;
     }
     setSyncing(true);
@@ -545,12 +699,12 @@ export default function SmartTapApp() {
         .maybeSingle();
 
       if (!codeRow) {
-        notify("Invalid Activation Code. Check your card insert.", "error");
+        setActivateError("Invalid Activation Code. Check the printed card insert inside your package.");
         setSyncing(false);
         return;
       }
       if (codeRow.is_used) {
-        notify("This Activation Code has already been claimed.", "error");
+        setActivateError("This Activation Code has already been claimed by another user.");
         setSyncing(false);
         return;
       }
@@ -561,8 +715,8 @@ export default function SmartTapApp() {
         .eq("username", cleanUser)
         .maybeSingle();
 
-      if (existingUser) {
-        notify("Username is already taken. Choose another.", "error");
+      if (existingUser || cleanUser === "demo") {
+        setActivateError("Username is already taken. Please choose another username.");
         setSyncing(false);
         return;
       }
@@ -602,28 +756,49 @@ export default function SmartTapApp() {
       setActiveCardCode(code);
       setProfile(initialProfile);
       setViewerTheme(initialProfile.theme);
+      setViewerTexture(initialProfile.texture);
       setMessages([]);
       setExchangedContacts([]);
       setPaymentReceipts([]);
       setBookings([]);
       setShowActivateModal(false);
-      setMode("editor");
+      setScreen("editor");
       notify("Card activated! Welcome to SmartTap.");
     } catch (err) {
       console.error(err);
-      notify("Activation error. Try again.", "error");
+      setActivateError("Activation failed. Please try again.");
     } finally {
       setSyncing(false);
     }
   };
 
-  // Owner Login (Device-locked to current phone browser)
+  // Owner Login (Supports both Supabase cloud accounts and built-in demo / demo1234)
   const handleOwnerLogin = async (e) => {
     e.preventDefault();
+    setLoginError("");
     const user = loginUsername.trim().toLowerCase();
-    if (!user || !loginPassword) return;
+    if (!user || !loginPassword) {
+      setLoginError("Please enter both username and password.");
+      return;
+    }
+
+    // Built-in Demo Account for instant testing
+    if (user === "demo" && loginPassword === "demo1234") {
+      localStorage.setItem("smarttap_device_user", "demo");
+      setProfile(DEFAULT_PROFILE);
+      setViewerTheme(DEFAULT_PROFILE.theme);
+      setViewerTexture(DEFAULT_PROFILE.texture);
+      setActiveCardCode("STPH-DEMO-CARD");
+      setIsOwnerLoggedIn(true);
+      setShowLoginModal(false);
+      setScreen("editor");
+      setLoginPassword("");
+      notify("Logged in to Demo Editor (@demo)");
+      return;
+    }
+
     if (!supabase) {
-      notify("Database not connected.", "error");
+      setLoginError("Database not connected.");
       return;
     }
     setSyncing(true);
@@ -635,7 +810,7 @@ export default function SmartTapApp() {
         .maybeSingle();
 
       if (!row || row.password !== loginPassword) {
-        notify("Invalid username or password.", "error");
+        setLoginError("Invalid username or password. Please check and try again.");
         setSyncing(false);
         return;
       }
@@ -643,11 +818,11 @@ export default function SmartTapApp() {
       localStorage.setItem("smarttap_device_user", row.username);
       await hydrateProfileRow(row, row.username, false);
       setShowLoginModal(false);
-      setMode("editor");
+      setScreen("editor");
       setLoginPassword("");
       notify(`Logged in as @${row.username}`);
     } catch (err) {
-      notify("Login failed.", "error");
+      setLoginError("Network error while logging in. Try again.");
     } finally {
       setSyncing(false);
     }
@@ -656,13 +831,17 @@ export default function SmartTapApp() {
   const handleLogout = () => {
     localStorage.removeItem("smarttap_device_user");
     setIsOwnerLoggedIn(false);
-    setMode("viewer");
+    setScreen("claim");
     notify("Logged out on this device.");
   };
 
   const handleUpdatePassword = async () => {
     if (newPasswordInput.trim().length < 4) {
       notify("New password must be at least 4 characters.", "error");
+      return;
+    }
+    if (profile.username === "demo") {
+      notify("Demo account password cannot be changed.", "error");
       return;
     }
     await saveProfileToCloud(profile, { password: newPasswordInput.trim() });
@@ -794,6 +973,7 @@ export default function SmartTapApp() {
     const next = logoTapCount + 1;
     if (next >= 5) {
       setLogoTapCount(0);
+      setFounderError("");
       setShowFounderModal(true);
     } else {
       setLogoTapCount(next);
@@ -812,12 +992,13 @@ export default function SmartTapApp() {
 
   const unlockFounderVault = async (e) => {
     e.preventDefault();
+    setFounderError("");
     if (founderPassInput.trim() === FOUNDER_PASSCODE) {
       setFounderUnlocked(true);
       await loadFounderData();
       notify("Founder Vault unlocked.");
     } else {
-      notify("Incorrect Founder Passcode.", "error");
+      setFounderError("Incorrect Founder Passcode.");
     }
   };
 
@@ -855,7 +1036,7 @@ export default function SmartTapApp() {
     if (supabase) {
       const { error } = await supabase.from("smarttap_codes").insert(generated);
       if (error) {
-        notify("Error saving codes to cloud.", "error");
+        setFounderError("Error saving codes to Supabase.");
         return;
       }
       await loadFounderData();
@@ -899,8 +1080,9 @@ export default function SmartTapApp() {
     await loadFounderData();
     notify(`Card ${code} reset to Available!`);
   };
-  const activeTheme = THEMES[mode === "editor" ? profile.theme : viewerTheme] || THEMES.obsidian;
-  const shareUrl = `${APP_BASE_URL}/?u=${encodeURIComponent(profile.username || "juandelacruz")}`;
+  const activeTheme = THEMES[screen === "editor" ? profile.theme : viewerTheme] || THEMES.obsidian;
+  const activeTexture = TEXTURES[screen === "editor" ? profile.texture : viewerTexture] || TEXTURES.aurora;
+  const shareUrl = `${APP_BASE_URL}/?u=${encodeURIComponent(profile.username || "demo")}`;
 
   const filteredLinks = (profile.links || [])
     .filter((l) => (activeCategory === "all" ? true : l.category === activeCategory))
@@ -919,83 +1101,142 @@ export default function SmartTapApp() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col items-center justify-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center animate-pulse">
-          <Zap className="w-5 h-5 text-zinc-950" />
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-zinc-950 flex items-center justify-center animate-pulse">
+          <SmartTapLogoMark className="w-7 h-7" />
         </div>
-        <p className="text-xs tracking-widest uppercase text-zinc-400">Loading SmartTap Cloud...</p>
+        <p className="text-xs tracking-widest uppercase text-zinc-400">Loading SmartTap...</p>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${activeTheme.bg} ${activeTheme.text} transition-colors duration-300 pb-20`}>
-      {/* Toast Notification */}
+    <div
+      style={activeTexture.style}
+      className={`min-h-screen ${activeTheme.bg} ${activeTheme.text} transition-colors duration-300 pb-28`}
+    >
+      {/* Top-Level Toast Notification (z-[100] above all modals) */}
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-zinc-900/95 border border-white/15 text-xs font-medium text-white shadow-xl flex items-center gap-2 backdrop-blur-md">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-full bg-zinc-900/95 border border-white/15 text-xs font-medium text-white shadow-2xl flex items-center gap-2 backdrop-blur-md">
           {toast.type === "error" ? (
-            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
           ) : (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           )}
           <span>{toast.text}</span>
         </div>
       )}
 
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-black/30 border-b border-white/10">
-        <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
+      {/* Clean, Uncrowded Sticky Header */}
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-black/35 border-b border-white/10">
+        <div className="max-w-xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
+          {/* SmartTap Brand Logo (5-tap secret Founder Vault trigger, no subtext clutter) */}
           <button
             type="button"
             onClick={handleLogoSecretTap}
-            className="flex items-center gap-2 select-none group"
+            className="flex items-center gap-2 select-none shrink-0"
           >
-            <div className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${activeTheme.accent} flex items-center justify-center shadow-md`}>
-              <Zap className="w-4 h-4 text-zinc-950" />
+            <div className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${activeTheme.accent} text-zinc-950 flex items-center justify-center shadow-md`}>
+              <SmartTapLogoMark className="w-5 h-5" />
             </div>
-            <div className="text-left">
-              <span className="font-bold tracking-tight text-sm block leading-none">SmartTap</span>
-              <span className="text-[10px] opacity-60 tracking-wider uppercase">
-                {syncing ? "Syncing..." : "Cloud NFC"}
-              </span>
-            </div>
+            <span className="font-bold tracking-tight text-base">SmartTap</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            {/* Viewer Theme Switcher (Only if Owner allowed it) */}
-            {mode === "viewer" && profile.allowViewerThemeSwitch && (
-              <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-1">
-                {Object.values(THEMES).map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    title={t.name}
-                    onClick={() => setViewerTheme(t.id)}
-                    className={`w-3.5 h-3.5 rounded-full bg-gradient-to-tr ${t.accent} transition-transform ${
-                      viewerTheme === t.id ? "scale-125 ring-2 ring-white" : "opacity-60 hover:opacity-100"
-                    }`}
-                  />
-                ))}
+          <div className="flex items-center gap-2 relative">
+            {/* Single Theme & Texture Button (Cleaner on Mobile) */}
+            {(screen === "editor" || (screen === "viewer" && profile.allowViewerThemeSwitch)) && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowThemePopover(!showThemePopover)}
+                  className={`p-2 rounded-full border ${activeTheme.subCard} hover:opacity-90 transition`}
+                  title="Themes & Surface Textures"
+                >
+                  <Palette className="w-4 h-4" />
+                </button>
+
+                {showThemePopover && (
+                  <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-zinc-900/95 border border-white/15 p-4 shadow-2xl backdrop-blur-xl z-40 space-y-3 text-zinc-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">Themes (9)</span>
+                      <button type="button" onClick={() => setShowThemePopover(false)}>
+                        <X className="w-3.5 h-3.5 opacity-60" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {Object.values(THEMES).map((t) => {
+                        const isSelected = (screen === "editor" ? profile.theme : viewerTheme) === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              if (screen === "editor") {
+                                saveProfileToCloud({ ...profile, theme: t.id });
+                              } else {
+                                setViewerTheme(t.id);
+                              }
+                            }}
+                            className={`p-1.5 rounded-xl border text-[11px] flex items-center gap-1.5 ${
+                              isSelected ? "border-amber-400 bg-white/15" : "border-white/10 bg-white/5"
+                            }`}
+                          >
+                            <span className={`w-3 h-3 rounded-full shrink-0 bg-gradient-to-tr ${t.accent}`} />
+                            <span className="truncate">{t.name.split(" ")[0]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/10 space-y-1.5">
+                      <span className="text-xs font-bold block">Surface Texture (5)</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.values(TEXTURES).map((tx) => {
+                          const isSelected = (screen === "editor" ? profile.texture : viewerTexture) === tx.id;
+                          return (
+                            <button
+                              key={tx.id}
+                              type="button"
+                              onClick={() => {
+                                if (screen === "editor") {
+                                  saveProfileToCloud({ ...profile, texture: tx.id });
+                                } else {
+                                  setViewerTexture(tx.id);
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-full text-[11px] border ${
+                                isSelected ? "border-amber-400 bg-amber-400/20 text-amber-300" : "border-white/10 bg-white/5"
+                              }`}
+                            >
+                              {tx.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Single Unified Editor / Preview Toggle + Logout */}
             {isOwnerLoggedIn ? (
-              <div className="flex items-center gap-1.5">
+              <>
                 <button
                   type="button"
-                  onClick={() => setMode(mode === "viewer" ? "editor" : "viewer")}
+                  onClick={() => setScreen(screen === "viewer" ? "editor" : "viewer")}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border transition ${
-                    mode === "editor"
+                    screen === "editor"
                       ? "bg-white text-zinc-950 border-white"
                       : `${activeTheme.accentBg}`
                   }`}
                 >
-                  {mode === "editor" ? (
+                  {screen === "editor" ? (
                     <>
                       <Eye className="w-3.5 h-3.5" /> View Card
                     </>
                   ) : (
                     <>
-                      <Edit3 className="w-3.5 h-3.5" /> Edit Card
+                      <Edit3 className="w-3.5 h-3.5" /> Editor
                     </>
                   )}
                 </button>
@@ -1007,447 +1248,598 @@ export default function SmartTapApp() {
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <>
                 <button
                   type="button"
-                  onClick={() => setShowActivateModal(true)}
-                  className="px-2.5 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 hover:bg-white/10 transition"
+                  onClick={() => {
+                    setActivateError("");
+                    setShowActivateModal(true);
+                  }}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 hover:bg-white/10 transition"
                 >
                   Activate
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowLoginModal(true)}
+                  onClick={() => {
+                    setLoginError("");
+                    setShowLoginModal(true);
+                  }}
                   className={`px-3 py-1.5 rounded-full text-xs ${activeTheme.button} transition`}
                 >
-                  Owner Login
+                  Login
                 </button>
-              </div>
+              </>
             )}
           </div>
         </div>
       </header>
 
-      {/* Main Content Container */}
-      <main className="max-w-xl mx-auto px-4 pt-5 space-y-5">
-        {mode === "viewer" ? (
-          <>
-            {/* Profile Hero Card */}
-            <section className={`rounded-3xl border ${activeTheme.card} ${activeTheme.glow} overflow-hidden`}>
-              {/* Cover Banner */}
-              <div className="h-28 relative bg-gradient-to-r from-zinc-800 via-zinc-900 to-black">
-                {profile.coverUrl ? (
-                  <img src={profile.coverUrl} alt="Cover" className="w-full h-full object-cover" />
-                ) : (
-                  <div className={`w-full h-full bg-gradient-to-r ${activeTheme.accent} opacity-25`} />
-                )}
+      {/* ================= SCREEN 1: STARTUP / CLAIM LANDING PAGE ================= */}
+      {screen === "claim" && (
+        <main className="max-w-md mx-auto px-4 pt-12 pb-16">
+          <div className={`rounded-3xl border ${activeTheme.card} ${activeTheme.glow} p-7 text-center space-y-6`}>
+            <div className={`w-16 h-16 rounded-2xl mx-auto bg-gradient-to-tr ${activeTheme.accent} text-zinc-950 flex items-center justify-center shadow-xl`}>
+              <SmartTapLogoMark className="w-9 h-9" />
+            </div>
+
+            <div className="space-y-2">
+              <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-semibold border ${activeTheme.accentBg}`}>
+                SmartTap Digital Identity
+              </span>
+              <h1 className="text-2xl font-bold tracking-tight">Claim Your SmartTap Card</h1>
+              <p className={`text-xs leading-relaxed ${activeTheme.muted}`}>
+                Tap your NFC card or enter the One-Time Activation Code from your sealed package insert to launch and customize your digital profile.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActivateError("");
+                  setShowActivateModal(true);
+                }}
+                className={`w-full py-3.5 px-5 rounded-2xl text-sm flex items-center justify-center gap-2 ${activeTheme.button} shadow-lg hover:opacity-95 transition`}
+              >
+                <KeyRound className="w-4 h-4" /> Activate & Setup Card
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginError("");
+                  setShowLoginModal(true);
+                }}
+                className={`w-full py-3 px-5 rounded-2xl text-xs font-semibold border ${activeTheme.subCard} flex items-center justify-center gap-2 hover:opacity-90 transition`}
+              >
+                <Lock className="w-3.5 h-3.5" /> Already Activated? Owner Login
+              </button>
+            </div>
+
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setProfile(DEFAULT_PROFILE);
+                  setViewerTheme(DEFAULT_PROFILE.theme);
+                  setViewerTexture(DEFAULT_PROFILE.texture);
+                  setScreen("viewer");
+                }}
+                className={`${activeTheme.accentText} font-medium flex items-center gap-1 hover:underline`}
+              >
+                Preview Live Demo Card <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+
+              <a
+                href={DEFAULT_PROFILE.orderFooterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${activeTheme.muted} hover:underline`}
+              >
+                Order Card →
+              </a>
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* ================= SCREEN 2: VIEWER PROFILE ================= */}
+      {screen === "viewer" && (
+        <main className="max-w-xl mx-auto px-4 pt-5 space-y-5">
+          {/* Profile Hero Card with Facebook-style Cover & Profile Photo */}
+          <section className={`rounded-3xl border ${activeTheme.card} ${activeTheme.glow} overflow-hidden`}>
+            {/* Facebook-Style Cover Photo Banner */}
+            <div className="h-36 sm:h-44 relative bg-gradient-to-r from-zinc-800 via-zinc-900 to-black group">
+              {profile.coverUrl ? (
+                <img src={profile.coverUrl} alt="Cover" className="w-full h-full object-cover" />
+              ) : (
+                <div className={`w-full h-full bg-gradient-to-r ${activeTheme.accent} opacity-30`} />
+              )}
+
+              {/* Top-Right Share & QR Controls on Cover */}
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyText(shareUrl, "cover-share")}
+                  className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white text-xs font-medium flex items-center gap-1.5 hover:bg-black/80 transition"
+                >
+                  {copiedId === "cover-share" ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Share2 className="w-3.5 h-3.5" />
+                  )}
+                  Share
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowQrModal(true)}
-                  className="absolute top-3 right-3 p-2 rounded-full bg-black/50 backdrop-blur-md border border-white/15 text-white hover:bg-black/70 transition"
-                  title="Show QR & Share Link"
+                  className="p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white hover:bg-black/80 transition"
+                  title="Show Profile QR"
                 >
                   <QrCode className="w-4 h-4" />
                 </button>
               </div>
+            </div>
 
-              {/* Avatar & Identity */}
-              <div className="px-5 pb-6 -mt-12 relative">
-                <div className="flex items-end justify-between gap-3">
-                  <div className="w-24 h-24 rounded-2xl border-4 border-zinc-950 bg-zinc-800 overflow-hidden shadow-xl flex items-center justify-center text-2xl font-bold">
-                    {profile.avatarUrl ? (
-                      <img src={profile.avatarUrl} alt={profile.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      <span>{(profile.fullName || "S").charAt(0).toUpperCase()}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 pb-1">
-                    <button
-                      type="button"
-                      onClick={() => copyText(shareUrl, "share-link")}
-                      className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5 hover:opacity-90 transition`}
-                    >
-                      {copiedId === "share-link" ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
-                      Share
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <div className="flex items-center gap-1.5">
-                    <h1 className="text-xl font-bold tracking-tight">{profile.fullName}</h1>
-                    {profile.verified && <CheckCircle2 className={`w-4 h-4 ${activeTheme.accentText}`} />}
-                  </div>
-                  <p className={`text-xs font-medium ${activeTheme.accentText} mt-0.5`}>
-                    {profile.headline}
-                    {profile.company ? ` • ${profile.company}` : ""}
-                  </p>
-                  {profile.location && (
-                    <p className={`text-xs ${activeTheme.muted} flex items-center gap-1 mt-1`}>
-                      <MapPin className="w-3.5 h-3.5" /> {profile.location}
-                    </p>
+            {/* Avatar & Identity */}
+            <div className="px-5 pb-6 -mt-12 relative">
+              <div className="flex items-end justify-between gap-3">
+                <div className="w-24 h-24 rounded-2xl border-4 border-zinc-950 bg-zinc-800 overflow-hidden shadow-xl flex items-center justify-center text-2xl font-bold text-white">
+                  {profile.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt={profile.fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{(profile.fullName || "S").charAt(0).toUpperCase()}</span>
                   )}
-                  {profile.bio && <p className="text-xs leading-relaxed opacity-85 mt-3">{profile.bio}</p>}
                 </div>
 
-                {/* Primary Action Buttons */}
-                <div className="grid grid-cols-2 gap-2.5 mt-5">
+                {profile.username === "demo" && !isOwnerLoggedIn && (
                   <button
                     type="button"
-                    onClick={handleSaveContact}
-                    className={`py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 ${activeTheme.button} shadow-md hover:opacity-95 transition`}
+                    onClick={() => setScreen("claim")}
+                    className="px-3 py-1.5 rounded-full text-xs border border-amber-400/30 bg-amber-500/15 text-amber-300"
                   >
-                    <Download className="w-4 h-4" /> Save Contact
+                    ← Back to Claim Page
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowExchangeModal(true)}
-                    className={`py-2.5 px-4 rounded-xl text-xs font-semibold border ${activeTheme.subCard} flex items-center justify-center gap-2 hover:opacity-90 transition`}
-                  >
-                    <UserPlus className="w-4 h-4" /> Exchange Contact
-                  </button>
-                </div>
+                )}
+              </div>
 
-                {/* Custom CTA Banner */}
-                {sanitizeUrl(profile.ctaUrl) && (
+              <div className="mt-3">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-xl font-bold tracking-tight">{profile.fullName}</h1>
+                  {profile.verified && <CheckCircle2 className={`w-4 h-4 ${activeTheme.accentText}`} />}
+                </div>
+                <p className={`text-xs font-medium ${activeTheme.accentText} mt-0.5`}>
+                  {profile.headline}
+                  {profile.company ? ` • ${profile.company}` : ""}
+                </p>
+                {profile.location && (
+                  <p className={`text-xs ${activeTheme.muted} flex items-center gap-1 mt-1`}>
+                    <MapPin className="w-3.5 h-3.5" /> {profile.location}
+                  </p>
+                )}
+                {profile.bio && <p className="text-xs leading-relaxed opacity-85 mt-3">{profile.bio}</p>}
+              </div>
+
+              {/* Primary Action Buttons */}
+              <div className="grid grid-cols-2 gap-2.5 mt-5">
+                <button
+                  type="button"
+                  onClick={handleSaveContact}
+                  className={`py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 ${activeTheme.button} shadow-md hover:opacity-95 transition`}
+                >
+                  <Download className="w-4 h-4" /> Save Contact
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExchangeModal(true)}
+                  className={`py-2.5 px-4 rounded-xl text-xs font-semibold border ${activeTheme.subCard} flex items-center justify-center gap-2 hover:opacity-90 transition`}
+                >
+                  <UserPlus className="w-4 h-4" /> Exchange Contact
+                </button>
+              </div>
+
+              {/* Custom CTA Banner */}
+              {sanitizeUrl(profile.ctaUrl) && (
+                <a
+                  href={sanitizeUrl(profile.ctaUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-2.5 w-full py-2.5 px-4 rounded-xl text-xs font-medium border ${activeTheme.accentBg} flex items-center justify-between hover:opacity-90 transition`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" /> {profile.ctaLabel || "Featured Link"}
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              {/* Quick Direct Chips */}
+              <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
+                {profile.phone && (
                   <a
-                    href={sanitizeUrl(profile.ctaUrl)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`mt-2.5 w-full py-2.5 px-4 rounded-xl text-xs font-medium border ${activeTheme.accentBg} flex items-center justify-between hover:opacity-90 transition`}
+                    href={`tel:${profile.phone}`}
+                    className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5`}
                   >
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" /> {profile.ctaLabel || "Featured Link"}
-                    </span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <Phone className="w-3.5 h-3.5" /> Call
                   </a>
                 )}
+                {profile.email && (
+                  <a
+                    href={`mailto:${profile.email}`}
+                    className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5`}
+                  >
+                    <Mail className="w-3.5 h-3.5" /> Email
+                  </a>
+                )}
+                {sanitizeUrl(profile.website) && (
+                  <a
+                    href={sanitizeUrl(profile.website)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5`}
+                  >
+                    <Globe className="w-3.5 h-3.5" /> Website
+                  </a>
+                )}
+              </div>
+            </div>
+          </section>
 
-                {/* Quick Direct Chips */}
-                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
-                  {profile.phone && (
-                    <a
-                      href={`tel:${profile.phone}`}
-                      className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5`}
-                    >
-                      <Phone className="w-3.5 h-3.5" /> Call
-                    </a>
-                  )}
-                  {profile.email && (
-                    <a
-                      href={`mailto:${profile.email}`}
-                      className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5`}
-                    >
-                      <Mail className="w-3.5 h-3.5" /> Email
-                    </a>
-                  )}
-                  {sanitizeUrl(profile.website) && (
-                    <a
-                      href={sanitizeUrl(profile.website)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`px-3 py-1.5 rounded-full text-xs border ${activeTheme.subCard} flex items-center gap-1.5`}
-                    >
-                      <Globe className="w-3.5 h-3.5" /> Website
-                    </a>
-                  )}
+          {/* Links & Hub Directory */}
+          {(profile.links || []).length > 0 && (
+            <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-bold tracking-tight">Links & Digital Hub</h2>
+                <div className="relative w-40">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 opacity-50" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search..."
+                    className="w-full pl-8 pr-2.5 py-1 rounded-full text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                  />
                 </div>
               </div>
-            </section>
 
-            {/* Links & Hub Directory */}
-            {(profile.links || []).length > 0 && (
-              <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-bold tracking-tight">Links & Digital Hub</h2>
-                  <div className="relative w-40">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 opacity-50" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search..."
-                      className="w-full pl-8 pr-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 focus:outline-none"
-                    />
-                  </div>
-                </div>
+              {/* Category Filter Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                {[
+                  { id: "all", label: "All" },
+                  { id: "social", label: "Social" },
+                  { id: "business", label: "Business" },
+                  { id: "gaming", label: "Gaming" },
+                  { id: "music", label: "Music" },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap border transition ${
+                      activeCategory === cat.id
+                        ? activeTheme.button
+                        : `${activeTheme.subCard} opacity-80 hover:opacity-100`
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
 
-                {/* Category Filter Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {[
-                    { id: "all", label: "All" },
-                    { id: "social", label: "Social" },
-                    { id: "business", label: "Business" },
-                    { id: "gaming", label: "Gaming" },
-                    { id: "music", label: "Music" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setActiveCategory(cat.id)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap border transition ${
-                        activeCategory === cat.id
-                          ? activeTheme.button
-                          : `${activeTheme.subCard} opacity-80 hover:opacity-100`
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Filtered Link Cards */}
-                <div className="space-y-2.5">
-                  {filteredLinks.map((item) => {
-                    const validHref = sanitizeUrl(item.url);
-                    return (
-                      <div
-                        key={item.id}
-                        className={`p-3.5 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between gap-3`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] uppercase tracking-wider font-semibold ${activeTheme.accentText}`}>
-                              {item.platform}
-                            </span>
-                            {item.pinned && <Pin className="w-3 h-3 text-amber-400" />}
-                          </div>
-                          <p className="text-sm font-semibold truncate">{item.title}</p>
-                          {(item.subtitle || item.gameId) && (
-                            <p className={`text-xs ${activeTheme.muted} truncate`}>
-                              {item.category === "gaming" && item.gameId ? `ID: ${item.gameId}` : item.subtitle}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {item.category === "music" && item.audioUrl && (
-                            <button
-                              type="button"
-                              onClick={() => toggleAudio(item)}
-                              className={`p-2 rounded-xl ${activeTheme.button}`}
-                              title="Play / Pause Preview"
-                            >
-                              {playingId === item.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
-
-                          {item.category === "gaming" && item.gameId && (
-                            <button
-                              type="button"
-                              onClick={() => copyText(item.gameId, item.id)}
-                              className={`px-2.5 py-1.5 rounded-xl text-xs font-medium border ${activeTheme.accentBg} flex items-center gap-1`}
-                            >
-                              {copiedId === item.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                              Copy ID
-                            </button>
-                          )}
-
-                          {validHref && (
-                            <a
-                              href={validHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeTheme.button} flex items-center gap-1`}
-                            >
-                              Open <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Instant Payment & E-Wallets */}
-            {profile.showPaymentSection && (profile.payments || []).length > 0 && (
-              <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold flex items-center gap-2">
-                    <CreditCard className={`w-4 h-4 ${activeTheme.accentText}`} /> Instant Payment & Transfer
-                  </h2>
-                </div>
-                <div className="space-y-2.5">
-                  {profile.payments.map((pay) => (
+              {/* Filtered Link Cards */}
+              <div className="space-y-2.5">
+                {filteredLinks.map((item) => {
+                  const validHref = sanitizeUrl(item.url);
+                  return (
                     <div
-                      key={pay.id}
+                      key={item.id}
                       className={`p-3.5 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between gap-3`}
                     >
-                      <div className="min-w-0">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${activeTheme.accentText}`}>
-                          {pay.provider}
-                        </span>
-                        <p className="text-sm font-semibold truncate">{pay.accountName}</p>
-                        <p className={`text-xs font-mono ${activeTheme.muted}`}>{pay.accountNumber}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] uppercase tracking-wider font-semibold ${activeTheme.accentText}`}>
+                            {item.platform}
+                          </span>
+                          {item.pinned && <Pin className="w-3 h-3 text-amber-400" />}
+                        </div>
+                        <p className="text-sm font-semibold truncate">{item.title}</p>
+                        {(item.subtitle || item.gameId) && (
+                          <p className={`text-xs ${activeTheme.muted} truncate`}>
+                            {item.category === "gaming" && item.gameId ? `ID: ${item.gameId}` : item.subtitle}
+                          </p>
+                        )}
                       </div>
+
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => copyText(pay.accountNumber, pay.id)}
-                          className={`p-2 rounded-xl border ${activeTheme.subCard}`}
-                          title="Copy Account Number"
-                        >
-                          {copiedId === pay.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowPaymentModal(pay)}
-                          className={`px-3 py-1.5 rounded-xl text-xs ${activeTheme.button}`}
-                        >
-                          Pay / QR
-                        </button>
+                        {item.category === "music" && item.audioUrl && (
+                          <button
+                            type="button"
+                            onClick={() => toggleAudio(item)}
+                            className={`p-2 rounded-xl ${activeTheme.button}`}
+                            title="Play / Pause Preview"
+                          >
+                            {playingId === item.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+
+                        {item.category === "gaming" && item.gameId && (
+                          <button
+                            type="button"
+                            onClick={() => copyText(item.gameId, item.id)}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-medium border ${activeTheme.accentBg} flex items-center gap-1`}
+                          >
+                            {copiedId === item.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                            Copy ID
+                          </button>
+                        )}
+
+                        {validHref && (
+                          <a
+                            href={validHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeTheme.button} flex items-center gap-1`}
+                          >
+                            Open <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Appointment & Booking */}
-            {profile.showBookingSection && (
-              <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
-                <h2 className="text-sm font-bold flex items-center gap-2">
-                  <Calendar className={`w-4 h-4 ${activeTheme.accentText}`} /> Book an Appointment
-                </h2>
-                <form onSubmit={submitBooking} className="space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Your Name"
-                      value={bookingForm.name}
-                      onChange={(e) => setBookingForm({ ...bookingForm, name: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:outline-none"
-                    />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Mobile / Email"
-                      value={bookingForm.contact}
-                      onChange={(e) => setBookingForm({ ...bookingForm, contact: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="date"
-                      required
-                      value={bookingForm.date}
-                      onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:outline-none"
-                    />
-                    <select
-                      value={bookingForm.slot}
-                      onChange={(e) => setBookingForm({ ...bookingForm, slot: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-zinc-900 border border-white/10 focus:outline-none"
-                    >
-                      {(profile.bookingSlots || ["10:00 AM", "02:00 PM"]).map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button type="submit" className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}>
-                    Request Booking
-                  </button>
-                </form>
-              </section>
-            )}
-
-            {/* Direct Message Box */}
-            {profile.showContactForm && (
-              <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
-                <h2 className="text-sm font-bold flex items-center gap-2">
-                  <MessageSquare className={`w-4 h-4 ${activeTheme.accentText}`} /> Send Direct Message
-                </h2>
-                <form onSubmit={submitDirectMessage} className="space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Your Name"
-                      value={msgForm.sender}
-                      onChange={(e) => setMsgForm({ ...msgForm, sender: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:outline-none"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Phone / Social Handle"
-                      value={msgForm.contact}
-                      onChange={(e) => setMsgForm({ ...msgForm, contact: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:outline-none"
-                    />
-                  </div>
-                  <textarea
-                    rows={2}
-                    required
-                    placeholder={`Write a message to ${profile.fullName}...`}
-                    value={msgForm.message}
-                    onChange={(e) => setMsgForm({ ...msgForm, message: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10 focus:outline-none"
-                  />
-                  <button type="submit" className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 ${activeTheme.button}`}>
-                    <Send className="w-3.5 h-3.5" /> Send Message
-                  </button>
-                </form>
-              </section>
-            )}
-          </>
-        ) : (
-          /* ================= OWNER EDITOR STUDIO ================= */
-          <section className="space-y-4">
-            {/* Unique Share URL Banner */}
-            <div className={`rounded-2xl border ${activeTheme.card} p-4 flex items-center justify-between gap-3`}>
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider opacity-60">Your Live SmartTap Link</p>
-                <p className={`text-xs font-mono truncate ${activeTheme.accentText}`}>{shareUrl}</p>
+                  );
+                })}
               </div>
+            </section>
+          )}
+
+          {/* Instant Payment & E-Wallets */}
+          {profile.showPaymentSection && (profile.payments || []).length > 0 && (
+            <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <CreditCard className={`w-4 h-4 ${activeTheme.accentText}`} /> Instant Payment & Transfer
+              </h2>
+              <div className="space-y-2.5">
+                {profile.payments.map((pay) => (
+                  <div
+                    key={pay.id}
+                    className={`p-3.5 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between gap-3`}
+                  >
+                    <div className="min-w-0">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${activeTheme.accentText}`}>
+                        {pay.provider}
+                      </span>
+                      <p className="text-sm font-semibold truncate">{pay.accountName}</p>
+                      <p className={`text-xs font-mono ${activeTheme.muted}`}>{pay.accountNumber}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => copyText(pay.accountNumber, pay.id)}
+                        className={`p-2 rounded-xl border ${activeTheme.subCard}`}
+                        title="Copy Account Number"
+                      >
+                        {copiedId === pay.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPaymentModal(pay)}
+                        className={`px-3 py-1.5 rounded-xl text-xs ${activeTheme.button}`}
+                      >
+                        Pay / QR
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Appointment & Booking */}
+          {profile.showBookingSection && (
+            <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <Calendar className={`w-4 h-4 ${activeTheme.accentText}`} /> Book an Appointment
+              </h2>
+              <form onSubmit={submitBooking} className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Your Name"
+                    value={bookingForm.name}
+                    onChange={(e) => setBookingForm({ ...bookingForm, name: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Mobile / Email"
+                    value={bookingForm.contact}
+                    onChange={(e) => setBookingForm({ ...bookingForm, contact: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    required
+                    value={bookingForm.date}
+                    onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                  />
+                  <select
+                    value={bookingForm.slot}
+                    onChange={(e) => setBookingForm({ ...bookingForm, slot: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-zinc-900 text-white border border-white/10 focus:outline-none"
+                  >
+                    {(profile.bookingSlots || ["10:00 AM", "02:00 PM"]).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button type="submit" className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}>
+                  Request Booking
+                </button>
+              </form>
+            </section>
+          )}
+
+          {/* Direct Message Box */}
+          {profile.showContactForm && (
+            <section className={`rounded-3xl border ${activeTheme.card} p-5 space-y-3`}>
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <MessageSquare className={`w-4 h-4 ${activeTheme.accentText}`} /> Send Direct Message
+              </h2>
+              <form onSubmit={submitDirectMessage} className="space-y-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Your Name"
+                    value={msgForm.sender}
+                    onChange={(e) => setMsgForm({ ...msgForm, sender: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Phone / Social Handle"
+                    value={msgForm.contact}
+                    onChange={(e) => setMsgForm({ ...msgForm, contact: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                  />
+                </div>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder={`Write a message to ${profile.fullName}...`}
+                  value={msgForm.message}
+                  onChange={(e) => setMsgForm({ ...msgForm, message: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10 focus:outline-none"
+                />
+                <button type="submit" className={`w-full py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 ${activeTheme.button}`}>
+                  <Send className="w-3.5 h-3.5" /> Send Message
+                </button>
+              </form>
+            </section>
+          )}
+
+          {/* SmartTap Branded Conversion Footer ("Order Your Own SmartTap Card Here") */}
+          <footer className={`rounded-3xl border ${activeTheme.card} p-5 text-center space-y-3`}>
+            <div className="flex items-center justify-center gap-2">
+              <div className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${activeTheme.accent} text-zinc-950 flex items-center justify-center`}>
+                <SmartTapLogoMark className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-bold tracking-tight">Powered by SmartTap</span>
+            </div>
+            <p className={`text-xs ${activeTheme.muted}`}>
+              Want your own tap-to-share NFC digital business card & review stand?
+            </p>
+            <a
+              href={sanitizeUrl(profile.orderFooterUrl || DEFAULT_PROFILE.orderFooterUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs ${activeTheme.button} shadow-md hover:opacity-95 transition`}
+            >
+              Get Your Own SmartTap Card • Order Here <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </footer>
+
+          {/* Floating Bottom Quick-Action Dock */}
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-md">
+            <div className="rounded-full bg-zinc-900/90 backdrop-blur-xl border border-white/15 px-3 py-2 shadow-2xl flex items-center justify-around text-zinc-100">
               <button
                 type="button"
-                onClick={() => copyText(shareUrl, "owner-url")}
-                className={`px-3 py-1.5 rounded-xl text-xs shrink-0 ${activeTheme.button}`}
+                onClick={handleSaveContact}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-400 text-zinc-950"
               >
-                {copiedId === "owner-url" ? "Copied!" : "Copy Link"}
+                <Download className="w-3.5 h-3.5" /> Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowExchangeModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs hover:bg-white/10 transition"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Exchange
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowQrModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs hover:bg-white/10 transition"
+              >
+                <QrCode className="w-3.5 h-3.5" /> QR
+              </button>
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                className="p-2 rounded-full hover:bg-white/10 transition"
+                title="Back to Top"
+              >
+                <ArrowUp className="w-3.5 h-3.5" />
               </button>
             </div>
+          </div>
+        </main>
+      )}
 
-            {/* Editor Sub-Navigation */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-              {[
-                { id: "profile", label: "Profile & Theme" },
-                { id: "links", label: "Links & Media" },
-                { id: "payments", label: "Payments" },
-                { id: "inbox", label: `Inbox (${messages.length + exchangedContacts.length + paymentReceipts.length + bookings.length})` },
-                { id: "analytics", label: "Analytics" },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setEditorTab(t.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border ${
-                    editorTab === t.id ? activeTheme.button : `${activeTheme.subCard}`
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+      {/* ================= SCREEN 3: UNIFIED OWNER EDITOR STUDIO ================= */}
+      {screen === "editor" && (
+        <main className="max-w-xl mx-auto px-4 pt-5 space-y-4">
+          {/* Unique Share URL Banner */}
+          <div className={`rounded-2xl border ${activeTheme.card} p-4 flex items-center justify-between gap-3`}>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider opacity-60">Your Live SmartTap Link</p>
+              <p className={`text-xs font-mono truncate ${activeTheme.accentText}`}>{shareUrl}</p>
             </div>
+            <button
+              type="button"
+              onClick={() => copyText(shareUrl, "owner-url")}
+              className={`px-3 py-1.5 rounded-xl text-xs shrink-0 ${activeTheme.button}`}
+            >
+              {copiedId === "owner-url" ? "Copied!" : "Copy Link"}
+            </button>
+          </div>
 
-            {/* TAB 1: PROFILE & THEME */}
-            {editorTab === "profile" && (
-              <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
-                <h3 className="text-sm font-bold">Profile Identity & Appearance</h3>
+          {/* Unified Editor Sub-Navigation (Includes Analytics & Inbox) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {[
+              { id: "profile", label: "Profile & Cover" },
+              { id: "links", label: "Links & Media" },
+              { id: "payments", label: "Payments" },
+              { id: "inbox", label: `Inbox (${messages.length + exchangedContacts.length + paymentReceipts.length + bookings.length})` },
+              { id: "analytics", label: "Analytics" },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setEditorTab(t.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border ${
+                  editorTab === t.id ? activeTheme.button : `${activeTheme.subCard}`
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-                {/* Avatar & Cover Upload */}
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`p-3 rounded-2xl border ${activeTheme.subCard} cursor-pointer text-center space-y-1`}>
-                    <Upload className="w-4 h-4 mx-auto opacity-75" />
-                    <span className="text-xs font-medium block">Upload Profile Photo</span>
+          {/* TAB 1: PROFILE, FACEBOOK-STYLE COVER & THEME/TEXTURE */}
+          {editorTab === "profile" && (
+            <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
+              <h3 className="text-sm font-bold">Profile Photo, Cover Banner & Appearance</h3>
+
+              {/* Live Mini Cover + Avatar Preview & Upload Buttons */}
+              <div className="rounded-2xl overflow-hidden border border-white/10">
+                <div className="h-28 relative bg-zinc-800">
+                  {profile.coverUrl ? (
+                    <img src={profile.coverUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className={`w-full h-full bg-gradient-to-r ${activeTheme.accent} opacity-30`} />
+                  )}
+                  <label className="absolute bottom-2 right-2 px-3 py-1.5 rounded-full bg-black/70 text-white text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:bg-black/90">
+                    <ImageIcon className="w-3.5 h-3.5" /> Change Cover Photo
                     <input
                       type="file"
                       accept="image/*"
@@ -1455,23 +1847,7 @@ export default function SmartTapApp() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        notify("Uploading photo...");
-                        const url = await uploadMediaToCloud(file, "avatars");
-                        if (url) saveProfileToCloud({ ...profile, avatarUrl: url });
-                      }}
-                    />
-                  </label>
-                  <label className={`p-3 rounded-2xl border ${activeTheme.subCard} cursor-pointer text-center space-y-1`}>
-                    <ImageIcon className="w-4 h-4 mx-auto opacity-75" />
-                    <span className="text-xs font-medium block">Upload Cover Banner</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        notify("Uploading cover...");
+                        notify("Uploading cover photo...");
                         const url = await uploadMediaToCloud(file, "covers");
                         if (url) saveProfileToCloud({ ...profile, coverUrl: url });
                       }}
@@ -1479,422 +1855,22 @@ export default function SmartTapApp() {
                   </label>
                 </div>
 
-                {/* Default Card Theme Selector + Viewer Switch Lock */}
-                <div className="space-y-2 pt-2 border-t border-white/10">
-                  <label className="text-xs font-semibold block">Default Card Theme</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {Object.values(THEMES).map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => saveProfileToCloud({ ...profile, theme: t.id })}
-                        className={`p-2 rounded-xl border text-left text-xs flex items-center gap-2 ${
-                          profile.theme === t.id ? "border-amber-400 bg-white/10" : "border-white/10 bg-white/5"
-                        }`}
-                      >
-                        <span className={`w-3.5 h-3.5 rounded-full bg-gradient-to-tr ${t.accent}`} />
-                        <span className="truncate">{t.name}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <label className="flex items-center justify-between pt-2 text-xs">
-                    <span>Allow viewers to switch theme on their screen</span>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(profile.allowViewerThemeSwitch)}
-                      onChange={(e) =>
-                        saveProfileToCloud({ ...profile, allowViewerThemeSwitch: e.target.checked })
-                      }
-                      className="w-4 h-4 accent-amber-400"
-                    />
-                  </label>
-                </div>
-
-                {/* Basic Fields */}
-                <div className="space-y-2.5 pt-2 border-t border-white/10">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={profile.fullName}
-                    onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Headline / Role"
-                      value={profile.headline}
-                      onChange={(e) => setProfile({ ...profile, headline: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Company / Business"
-                      value={profile.company}
-                      onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    value={profile.location}
-                    onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <textarea
-                    rows={2}
-                    placeholder="Short Bio"
-                    value={profile.bio}
-                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Mobile Number"
-                      value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email Address"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Website URL (optional)"
-                    value={profile.website || ""}
-                    onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Featured Button Label"
-                      value={profile.ctaLabel}
-                      onChange={(e) => setProfile({ ...profile, ctaLabel: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Featured Button URL"
-                      value={profile.ctaUrl}
-                      onChange={(e) => setProfile({ ...profile, ctaUrl: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                  </div>
-
-                  {/* Section Visibility Toggles */}
-                  <div className="space-y-1.5 pt-2 text-xs">
-                    <label className="flex items-center justify-between">
-                      <span>Show Instant Payment Section</span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(profile.showPaymentSection)}
-                        onChange={(e) => setProfile({ ...profile, showPaymentSection: e.target.checked })}
-                      />
-                    </label>
-                    <label className="flex items-center justify-between">
-                      <span>Show Appointment Booking Section</span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(profile.showBookingSection)}
-                        onChange={(e) => setProfile({ ...profile, showBookingSection: e.target.checked })}
-                      />
-                    </label>
-                    <label className="flex items-center justify-between">
-                      <span>Show Direct Message Form</span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(profile.showContactForm)}
-                        onChange={(e) => setProfile({ ...profile, showContactForm: e.target.checked })}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Custom Booking Time Slots Manager */}
-                  <div className="space-y-2 pt-2 border-t border-white/10">
-                    <label className="text-xs font-semibold block">Booking Time Slots</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(profile.bookingSlots || []).map((slot) => (
-                        <span
-                          key={slot}
-                          className="px-2.5 py-1 rounded-full text-[11px] bg-white/10 flex items-center gap-1"
-                        >
-                          {slot}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setProfile({
-                                ...profile,
-                                bookingSlots: (profile.bookingSlots || []).filter((s) => s !== slot),
-                              })
-                            }
-                            className="text-rose-400 hover:text-rose-300"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
+                <div className="p-3 bg-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-zinc-800 overflow-hidden border border-white/15 flex items-center justify-center font-bold">
+                      {profile.avatarUrl ? (
+                        <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{(profile.fullName || "S").charAt(0)}</span>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Add slot (e.g. 05:30 PM)"
-                        value={newSlot}
-                        onChange={(e) => setNewSlot(e.target.value)}
-                        className="flex-1 px-3 py-1.5 rounded-xl text-xs bg-white/5 border border-white/10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!newSlot.trim()) return;
-                          const updatedSlots = Array.from(
-                            new Set([...(profile.bookingSlots || []), newSlot.trim()])
-                          );
-                          setProfile({ ...profile, bookingSlots: updatedSlots });
-                          setNewSlot("");
-                        }}
-                        className="px-3 py-1.5 rounded-xl text-xs bg-white/15 font-semibold"
-                      >
-                        Add Slot
-                      </button>
+                    <div>
+                      <p className="text-xs font-bold">{profile.fullName}</p>
+                      <p className="text-[11px] opacity-60">@{profile.username}</p>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      saveProfileToCloud(profile);
-                      notify("Profile saved to cloud!");
-                    }}
-                    className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}
-                  >
-                    Save Profile Changes
-                  </button>
-                </div>
-
-                {/* Account Security & Card Serial Info */}
-                <div className="space-y-2.5 pt-3 border-t border-white/10">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="opacity-70">Linked Card Serial:</span>
-                    <span className="font-mono font-bold text-amber-400">{activeCardCode || "DEMO-CARD"}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      placeholder="New Owner Password (min 4 chars)"
-                      value={newPasswordInput}
-                      onChange={(e) => setNewPasswordInput(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleUpdatePassword}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/15 font-semibold"
-                    >
-                      Update Password
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: LINKS & MEDIA */}
-            {editorTab === "links" && (
-              <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
-                <h3 className="text-sm font-bold">Add New Link / Gaming ID / Track</h3>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={newLink.category}
-                      onChange={(e) => setNewLink({ ...newLink, category: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-zinc-900 border border-white/10"
-                    >
-                      <option value="social">Social Media</option>
-                      <option value="business">Business / Store</option>
-                      <option value="gaming">Gaming Profile</option>
-                      <option value="music">Music / Audio</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Platform (e.g. TikTok, MLBB)"
-                      value={newLink.platform}
-                      onChange={(e) => setNewLink({ ...newLink, platform: e.target.value })}
-                      className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Display Title"
-                    value={newLink.title}
-                    onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  {newLink.category === "gaming" && (
-                    <input
-                      type="text"
-                      placeholder="Game ID / IGN (e.g. 123456789 (3012))"
-                      value={newLink.gameId}
-                      onChange={(e) => setNewLink({ ...newLink, gameId: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                    />
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Subtitle / Handle (optional)"
-                    value={newLink.subtitle}
-                    onChange={(e) => setNewLink({ ...newLink, subtitle: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Destination URL (https://...)"
-                    value={newLink.url}
-                    onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  {newLink.category === "music" && (
-                    <label className="block p-2.5 rounded-xl border border-dashed border-white/20 text-xs text-center cursor-pointer">
-                      {newLink.audioUrl ? "Audio Uploaded ✓" : "Upload MP3 / Audio Preview (Optional)"}
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          notify("Uploading audio...");
-                          const url = await uploadMediaToCloud(file, "audio");
-                          if (url) setNewLink({ ...newLink, audioUrl: url });
-                        }}
-                      />
-                    </label>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!newLink.title.trim()) {
-                        notify("Please enter a link title.", "error");
-                        return;
-                      }
-                      const entry = { ...newLink, id: `lnk-${Date.now()}` };
-                      const updated = [...(profile.links || []), entry];
-                      saveProfileToCloud({ ...profile, links: updated });
-                      setNewLink({
-                        category: "social",
-                        platform: "Instagram",
-                        title: "",
-                        subtitle: "",
-                        url: "",
-                        gameId: "",
-                        audioUrl: "",
-                        pinned: false,
-                      });
-                      notify("Link added!");
-                    }}
-                    className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}
-                  >
-                    + Add Link Item
-                  </button>
-                </div>
-
-                {/* Existing Links List with Reorder, Edit & Delete */}
-                <div className="space-y-2 pt-3 border-t border-white/10">
-                  {(profile.links || []).map((l, idx) => (
-                    <div key={l.id} className={`p-3 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between gap-2`}>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold truncate">{l.title}</p>
-                        <p className="text-[11px] opacity-60 truncate">
-                          {l.platform} • {l.gameId || l.url || l.subtitle}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          disabled={idx === 0}
-                          onClick={() => handleMoveLink(idx, -1)}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30"
-                          title="Move Up"
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={idx === profile.links.length - 1}
-                          onClick={() => handleMoveLink(idx, 1)}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30"
-                          title="Move Down"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingLink(l)}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10"
-                          title="Edit"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = profile.links.filter((item) => item.id !== l.id);
-                            saveProfileToCloud({ ...profile, links: updated });
-                            notify("Link removed.");
-                          }}
-                          className="p-1.5 rounded-lg bg-rose-500/15 text-rose-300"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: PAYMENTS */}
-            {editorTab === "payments" && (
-              <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
-                <h3 className="text-sm font-bold">Payment Accounts & QR Codes</h3>
-                <div className="space-y-2">
-                  <select
-                    value={newPayment.provider}
-                    onChange={(e) => setNewPayment({ ...newPayment, provider: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-zinc-900 border border-white/10"
-                  >
-                    {PAYMENT_PROVIDERS.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="Account Name"
-                    value={newPayment.accountName}
-                    onChange={(e) => setNewPayment({ ...newPayment, accountName: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <input
-                    type="text"
-                    placeholder={
-                      PAYMENT_PROVIDERS.find((p) => p.id === newPayment.provider)?.placeholder || "Account Number"
-                    }
-                    value={newPayment.accountNumber}
-                    onChange={(e) => setNewPayment({ ...newPayment, accountNumber: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
-                  />
-                  <label className="block p-2.5 rounded-xl border border-dashed border-white/20 text-xs text-center cursor-pointer">
-                    {newPayment.qrUrl ? "QR Code Uploaded ✓" : "Upload Bank / E-Wallet QR Image (Optional)"}
+                  <label className="px-3 py-1.5 rounded-full bg-white/10 text-xs font-medium flex items-center gap-1.5 cursor-pointer hover:bg-white/20">
+                    <Upload className="w-3.5 h-3.5" /> Profile Photo
                     <input
                       type="file"
                       accept="image/*"
@@ -1902,145 +1878,594 @@ export default function SmartTapApp() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        notify("Uploading QR image...");
-                        const url = await uploadMediaToCloud(file, "qrs");
-                        if (url) setNewPayment({ ...newPayment, qrUrl: url });
+                        notify("Uploading profile photo...");
+                        const url = await uploadMediaToCloud(file, "avatars");
+                        if (url) saveProfileToCloud({ ...profile, avatarUrl: url });
                       }}
                     />
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const spec = PAYMENT_PROVIDERS.find((p) => p.id === newPayment.provider);
-                      const cleanDigits = newPayment.accountNumber.replace(/\D/g, "");
-                      if (!newPayment.accountName.trim() || !newPayment.accountNumber.trim()) {
-                        notify("Enter account name and number.", "error");
-                        return;
-                      }
-                      if (spec && spec.digits > 0 && cleanDigits.length !== spec.digits) {
-                        notify(`${spec.label} requires exactly ${spec.digits} digits.`, "error");
-                        return;
-                      }
-                      const entry = { ...newPayment, id: `pay-${Date.now()}` };
-                      saveProfileToCloud({ ...profile, payments: [...(profile.payments || []), entry] });
-                      setNewPayment({ provider: "GCash", accountName: "", accountNumber: "", qrUrl: "" });
-                      notify("Payment method added!");
-                    }}
-                    className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}
-                  >
-                    + Add Payment Method
-                  </button>
+                </div>
+              </div>
+
+              {/* Default Theme (9) + Texture (5) + Viewer Lock */}
+              <div className="space-y-2.5 pt-2 border-t border-white/10">
+                <label className="text-xs font-semibold block">Default Card Theme (9)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.values(THEMES).map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => saveProfileToCloud({ ...profile, theme: t.id })}
+                      className={`p-2 rounded-xl border text-left text-xs flex items-center gap-2 ${
+                        profile.theme === t.id ? "border-amber-400 bg-white/10" : "border-white/10 bg-white/5"
+                      }`}
+                    >
+                      <span className={`w-3.5 h-3.5 rounded-full shrink-0 bg-gradient-to-tr ${t.accent}`} />
+                      <span className="truncate">{t.name}</span>
+                    </button>
+                  ))}
                 </div>
 
-                <div className="space-y-2 pt-3 border-t border-white/10">
-                  {(profile.payments || []).map((p) => (
-                    <div key={p.id} className={`p-3 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between`}>
-                      <div>
-                        <p className="text-xs font-bold">{p.provider} — {p.accountName}</p>
-                        <p className="text-[11px] font-mono opacity-70">{p.accountNumber}</p>
-                      </div>
+                <label className="text-xs font-semibold block pt-1">Surface Texture (5)</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.values(TEXTURES).map((tx) => (
+                    <button
+                      key={tx.id}
+                      type="button"
+                      onClick={() => saveProfileToCloud({ ...profile, texture: tx.id })}
+                      className={`px-3 py-1.5 rounded-full text-xs border ${
+                        profile.texture === tx.id
+                          ? "border-amber-400 bg-amber-400/20 text-amber-300"
+                          : "border-white/10 bg-white/5"
+                      }`}
+                    >
+                      {tx.name}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="flex items-center justify-between pt-2 text-xs">
+                  <span>Allow viewers to switch theme & texture on their screen</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(profile.allowViewerThemeSwitch)}
+                    onChange={(e) =>
+                      saveProfileToCloud({ ...profile, allowViewerThemeSwitch: e.target.checked })
+                    }
+                    className="w-4 h-4 accent-amber-400"
+                  />
+                </label>
+              </div>
+
+              {/* Basic Fields (16px font on mobile prevents iOS zoom) */}
+              <div className="space-y-2.5 pt-2 border-t border-white/10">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={profile.fullName}
+                  onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Headline / Role"
+                    value={profile.headline}
+                    onChange={(e) => setProfile({ ...profile, headline: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Company / Business"
+                    value={profile.company}
+                    onChange={(e) => setProfile({ ...profile, company: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Location"
+                  value={profile.location}
+                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <textarea
+                  rows={2}
+                  placeholder="Short Bio"
+                  value={profile.bio}
+                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Mobile Number"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={profile.email}
+                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Website URL (optional)"
+                  value={profile.website || ""}
+                  onChange={(e) => setProfile({ ...profile, website: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Featured Button Label"
+                    value={profile.ctaLabel}
+                    onChange={(e) => setProfile({ ...profile, ctaLabel: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Featured Button URL"
+                    value={profile.ctaUrl}
+                    onChange={(e) => setProfile({ ...profile, ctaUrl: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                </div>
+
+                {/* Section Visibility Toggles */}
+                <div className="space-y-1.5 pt-2 text-xs">
+                  <label className="flex items-center justify-between">
+                    <span>Show Instant Payment Section</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(profile.showPaymentSection)}
+                      onChange={(e) => setProfile({ ...profile, showPaymentSection: e.target.checked })}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span>Show Appointment Booking Section</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(profile.showBookingSection)}
+                      onChange={(e) => setProfile({ ...profile, showBookingSection: e.target.checked })}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span>Show Direct Message Form</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(profile.showContactForm)}
+                      onChange={(e) => setProfile({ ...profile, showContactForm: e.target.checked })}
+                    />
+                  </label>
+                </div>
+
+                {/* Custom Booking Time Slots Manager */}
+                <div className="space-y-2 pt-2 border-t border-white/10">
+                  <label className="text-xs font-semibold block">Booking Time Slots</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(profile.bookingSlots || []).map((slot) => (
+                      <span
+                        key={slot}
+                        className="px-2.5 py-1 rounded-full text-[11px] bg-white/10 flex items-center gap-1"
+                      >
+                        {slot}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setProfile({
+                              ...profile,
+                              bookingSlots: (profile.bookingSlots || []).filter((s) => s !== slot),
+                            })
+                          }
+                          className="text-rose-400 hover:text-rose-300"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add slot (e.g. 05:30 PM)"
+                      value={newSlot}
+                      onChange={(e) => setNewSlot(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newSlot.trim()) return;
+                        const updatedSlots = Array.from(
+                          new Set([...(profile.bookingSlots || []), newSlot.trim()])
+                        );
+                        setProfile({ ...profile, bookingSlots: updatedSlots });
+                        setNewSlot("");
+                      }}
+                      className="px-3 py-2 rounded-xl text-xs bg-white/15 font-semibold"
+                    >
+                      Add Slot
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    saveProfileToCloud(profile);
+                    notify("Profile saved to cloud!");
+                  }}
+                  className={`w-full py-3 rounded-xl text-xs ${activeTheme.button}`}
+                >
+                  Save Profile Changes
+                </button>
+              </div>
+
+              {/* Account Security & Card Serial Info */}
+              <div className="space-y-2.5 pt-3 border-t border-white/10">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="opacity-70">Linked Card Serial:</span>
+                  <span className="font-mono font-bold text-amber-400">{activeCardCode || "DEMO-CARD"}</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    placeholder="New Owner Password (min 4 chars)"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleUpdatePassword}
+                    className="px-3 py-2 rounded-xl text-xs bg-white/15 font-semibold"
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: LINKS & MEDIA */}
+          {editorTab === "links" && (
+            <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
+              <h3 className="text-sm font-bold">Add New Link / Gaming ID / Track</h3>
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <select
+                    value={newLink.category}
+                    onChange={(e) => setNewLink({ ...newLink, category: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-zinc-900 text-white border border-white/10"
+                  >
+                    <option value="social">Social Media</option>
+                    <option value="business">Business / Store</option>
+                    <option value="gaming">Gaming Profile</option>
+                    <option value="music">Music / Audio</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Platform (e.g. TikTok, MLBB)"
+                    value={newLink.platform}
+                    onChange={(e) => setNewLink({ ...newLink, platform: e.target.value })}
+                    className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Display Title"
+                  value={newLink.title}
+                  onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                {newLink.category === "gaming" && (
+                  <input
+                    type="text"
+                    placeholder="Game ID / IGN (e.g. 123456789 (3012))"
+                    value={newLink.gameId}
+                    onChange={(e) => setNewLink({ ...newLink, gameId: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                  />
+                )}
+                <input
+                  type="text"
+                  placeholder="Subtitle / Handle (optional)"
+                  value={newLink.subtitle}
+                  onChange={(e) => setNewLink({ ...newLink, subtitle: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <input
+                  type="text"
+                  placeholder="Destination URL (https://...)"
+                  value={newLink.url}
+                  onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                {newLink.category === "music" && (
+                  <label className="block p-2.5 rounded-xl border border-dashed border-white/20 text-xs text-center cursor-pointer">
+                    {newLink.audioUrl ? "Audio Uploaded ✓" : "Upload MP3 / Audio Preview (Optional)"}
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        notify("Uploading audio...");
+                        const url = await uploadMediaToCloud(file, "audio");
+                        if (url) setNewLink({ ...newLink, audioUrl: url });
+                      }}
+                    />
+                  </label>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newLink.title.trim()) {
+                      notify("Please enter a link title.", "error");
+                      return;
+                    }
+                    const entry = { ...newLink, id: `lnk-${Date.now()}` };
+                    const updated = [...(profile.links || []), entry];
+                    saveProfileToCloud({ ...profile, links: updated });
+                    setNewLink({
+                      category: "social",
+                      platform: "Instagram",
+                      title: "",
+                      subtitle: "",
+                      url: "",
+                      gameId: "",
+                      audioUrl: "",
+                      pinned: false,
+                    });
+                    notify("Link added!");
+                  }}
+                  className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}
+                >
+                  + Add Link Item
+                </button>
+              </div>
+
+              {/* Existing Links List with Reorder, Edit & Delete */}
+              <div className="space-y-2 pt-3 border-t border-white/10">
+                {(profile.links || []).map((l, idx) => (
+                  <div key={l.id} className={`p-3 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between gap-2`}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold truncate">{l.title}</p>
+                      <p className="text-[11px] opacity-60 truncate">
+                        {l.platform} • {l.gameId || l.url || l.subtitle}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => handleMoveLink(idx, -1)}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30"
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === profile.links.length - 1}
+                        onClick={() => handleMoveLink(idx, 1)}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30"
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingLink(l)}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10"
+                        title="Edit"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
-                          saveProfileToCloud({
-                            ...profile,
-                            payments: profile.payments.filter((item) => item.id !== p.id),
-                          });
-                          notify("Payment removed.");
+                          const updated = profile.links.filter((item) => item.id !== l.id);
+                          saveProfileToCloud({ ...profile, links: updated });
+                          notify("Link removed.");
                         }}
                         className="p-1.5 rounded-lg bg-rose-500/15 text-rose-300"
+                        title="Delete"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* TAB 4: INBOX & LEADS */}
-            {editorTab === "inbox" && (
-              <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
-                <h3 className="text-sm font-bold">Messages, Leads, Receipts & Bookings</h3>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold opacity-75">Exchanged Contacts ({exchangedContacts.length})</p>
-                  {exchangedContacts.map((c) => (
-                    <div key={c.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
-                      <p className="font-bold">{c.name}</p>
-                      <p className="opacity-75">{c.phone} {c.email ? `• ${c.email}` : ""}</p>
-                      {c.note && <p className="mt-1 italic opacity-80">"{c.note}"</p>}
-                    </div>
+          {/* TAB 3: PAYMENTS */}
+          {editorTab === "payments" && (
+            <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
+              <h3 className="text-sm font-bold">Payment Accounts & QR Codes</h3>
+              <div className="space-y-2">
+                <select
+                  value={newPayment.provider}
+                  onChange={(e) => setNewPayment({ ...newPayment, provider: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-zinc-900 text-white border border-white/10"
+                >
+                  {PAYMENT_PROVIDERS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
                   ))}
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-white/10">
-                  <p className="text-xs font-semibold opacity-75">Direct Messages ({messages.length})</p>
-                  {messages.map((m) => (
-                    <div key={m.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
-                      <p className="font-bold">{m.sender} <span className="font-normal opacity-60">({m.contact})</span></p>
-                      <p className="mt-1">{m.message}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-white/10">
-                  <p className="text-xs font-semibold opacity-75">Payment Receipts ({paymentReceipts.length})</p>
-                  {paymentReceipts.map((r) => (
-                    <div key={r.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
-                      <p className="font-bold">{r.provider}: {r.senderName} — ₱{r.amount}</p>
-                      <p className="font-mono opacity-75">Ref: {r.referenceNo}</p>
-                      {r.proofUrl && (
-                        <a href={r.proofUrl} target="_blank" rel="noopener noreferrer" className="text-amber-400 underline mt-1 inline-block">
-                          View Receipt Screenshot
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-white/10">
-                  <p className="text-xs font-semibold opacity-75">Bookings ({bookings.length})</p>
-                  {bookings.map((b) => (
-                    <div key={b.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
-                      <p className="font-bold">{b.name} ({b.contact})</p>
-                      <p className="opacity-75">{b.date} at {b.slot}</p>
-                    </div>
-                  ))}
-                </div>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Account Name"
+                  value={newPayment.accountName}
+                  onChange={(e) => setNewPayment({ ...newPayment, accountName: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <input
+                  type="text"
+                  placeholder={
+                    PAYMENT_PROVIDERS.find((p) => p.id === newPayment.provider)?.placeholder || "Account Number"
+                  }
+                  value={newPayment.accountNumber}
+                  onChange={(e) => setNewPayment({ ...newPayment, accountNumber: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
+                />
+                <label className="block p-2.5 rounded-xl border border-dashed border-white/20 text-xs text-center cursor-pointer">
+                  {newPayment.qrUrl ? "QR Code Uploaded ✓" : "Upload Bank / E-Wallet QR Image (Optional)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      notify("Uploading QR image...");
+                      const url = await uploadMediaToCloud(file, "qrs");
+                      if (url) setNewPayment({ ...newPayment, qrUrl: url });
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const spec = PAYMENT_PROVIDERS.find((p) => p.id === newPayment.provider);
+                    const cleanDigits = newPayment.accountNumber.replace(/\D/g, "");
+                    if (!newPayment.accountName.trim() || !newPayment.accountNumber.trim()) {
+                      notify("Enter account name and number.", "error");
+                      return;
+                    }
+                    if (spec && spec.digits > 0 && cleanDigits.length !== spec.digits) {
+                      notify(`${spec.label} requires exactly ${spec.digits} digits.`, "error");
+                      return;
+                    }
+                    const entry = { ...newPayment, id: `pay-${Date.now()}` };
+                    saveProfileToCloud({ ...profile, payments: [...(profile.payments || []), entry] });
+                    setNewPayment({ provider: "GCash", accountName: "", accountNumber: "", qrUrl: "" });
+                    notify("Payment method added!");
+                  }}
+                  className={`w-full py-2.5 rounded-xl text-xs ${activeTheme.button}`}
+                >
+                  + Add Payment Method
+                </button>
               </div>
-            )}
 
-            {/* TAB 5: ANALYTICS */}
-            {editorTab === "analytics" && (
-              <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
-                <h3 className="text-sm font-bold flex items-center gap-2">
-                  <BarChart3 className={`w-4 h-4 ${activeTheme.accentText}`} /> Card Tap & Scan Performance
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: "Today (24h)", val: analytics.taps1d || 0 },
-                    { label: "This Week", val: analytics.taps1w || 0 },
-                    { label: "This Month", val: analytics.taps1m || 0 },
-                    { label: "Lifetime Taps", val: analytics.tapsTotal || 0 },
-                  ].map((stat) => (
-                    <div key={stat.label} className={`p-4 rounded-2xl border ${activeTheme.subCard}`}>
-                      <p className="text-[11px] opacity-60">{stat.label}</p>
-                      <p className="text-2xl font-bold mt-1">{stat.val}</p>
+              <div className="space-y-2 pt-3 border-t border-white/10">
+                {(profile.payments || []).map((p) => (
+                  <div key={p.id} className={`p-3 rounded-2xl border ${activeTheme.subCard} flex items-center justify-between`}>
+                    <div>
+                      <p className="text-xs font-bold">{p.provider} — {p.accountName}</p>
+                      <p className="text-[11px] font-mono opacity-70">{p.accountNumber}</p>
                     </div>
-                  ))}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        saveProfileToCloud({
+                          ...profile,
+                          payments: profile.payments.filter((item) => item.id !== p.id),
+                        });
+                        notify("Payment removed.");
+                      }}
+                      className="p-1.5 rounded-lg bg-rose-500/15 text-rose-300"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
-          </section>
-        )}
-      </main>
+            </div>
+          )}
 
-      {/* ================= MODALS ================= */}
+          {/* TAB 4: INBOX & LEADS */}
+          {editorTab === "inbox" && (
+            <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
+              <h3 className="text-sm font-bold">Messages, Leads, Receipts & Bookings</h3>
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold opacity-75">Exchanged Contacts ({exchangedContacts.length})</p>
+                {exchangedContacts.map((c) => (
+                  <div key={c.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
+                    <p className="font-bold">{c.name}</p>
+                    <p className="opacity-75">{c.phone} {c.email ? `• ${c.email}` : ""}</p>
+                    {c.note && <p className="mt-1 italic opacity-80">"{c.note}"</p>}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <p className="text-xs font-semibold opacity-75">Direct Messages ({messages.length})</p>
+                {messages.map((m) => (
+                  <div key={m.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
+                    <p className="font-bold">{m.sender} <span className="font-normal opacity-60">({m.contact})</span></p>
+                    <p className="mt-1">{m.message}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <p className="text-xs font-semibold opacity-75">Payment Receipts ({paymentReceipts.length})</p>
+                {paymentReceipts.map((r) => (
+                  <div key={r.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
+                    <p className="font-bold">{r.provider}: {r.senderName} — ₱{r.amount}</p>
+                    <p className="font-mono opacity-75">Ref: {r.referenceNo}</p>
+                    {r.proofUrl && (
+                      <a href={r.proofUrl} target="_blank" rel="noopener noreferrer" className="text-amber-400 underline mt-1 inline-block">
+                        View Receipt Screenshot
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <p className="text-xs font-semibold opacity-75">Bookings ({bookings.length})</p>
+                {bookings.map((b) => (
+                  <div key={b.id} className={`p-3 rounded-xl border ${activeTheme.subCard} text-xs`}>
+                    <p className="font-bold">{b.name} ({b.contact})</p>
+                    <p className="opacity-75">{b.date} at {b.slot}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: ANALYTICS (Unified Inside Editor) */}
+          {editorTab === "analytics" && (
+            <div className={`rounded-3xl border ${activeTheme.card} p-5 space-y-4`}>
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <BarChart3 className={`w-4 h-4 ${activeTheme.accentText}`} /> Card Tap & Scan Performance
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Today (24h)", val: analytics.taps1d || 0 },
+                  { label: "This Week", val: analytics.taps1w || 0 },
+                  { label: "This Month", val: analytics.taps1m || 0 },
+                  { label: "Lifetime Taps", val: analytics.tapsTotal || 0 },
+                ].map((stat) => (
+                  <div key={stat.label} className={`p-4 rounded-2xl border ${activeTheme.subCard}`}>
+                    <p className="text-[11px] opacity-60">{stat.label}</p>
+                    <p className="text-2xl font-bold mt-1">{stat.val}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* ================= MODALS (With Inline Error Banners & 16px Inputs) ================= */}
 
       {/* QR Share Modal */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 text-center space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Share SmartTap Profile</h3>
@@ -2069,7 +2494,7 @@ export default function SmartTapApp() {
 
       {/* Exchange Contact Modal */}
       {showExchangeModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Share Your Contact with {profile.fullName}</h3>
@@ -2084,7 +2509,7 @@ export default function SmartTapApp() {
                 placeholder="Your Full Name"
                 value={contactForm.name}
                 onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <input
                 type="text"
@@ -2092,21 +2517,21 @@ export default function SmartTapApp() {
                 placeholder="Mobile Number"
                 value={contactForm.phone}
                 onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <input
                 type="email"
                 placeholder="Email (optional)"
                 value={contactForm.email}
                 onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <input
                 type="text"
                 placeholder="Company / Note (optional)"
                 value={contactForm.note}
                 onChange={(e) => setContactForm({ ...contactForm, note: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <button type="submit" className="w-full py-2.5 rounded-xl text-xs font-semibold bg-amber-400 text-zinc-950">
                 Send My Contact Info
@@ -2118,7 +2543,7 @@ export default function SmartTapApp() {
 
       {/* Payment QR & Receipt Submission Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">{showPaymentModal.provider} Payment</h3>
@@ -2150,7 +2575,7 @@ export default function SmartTapApp() {
                 placeholder="Sender Name"
                 value={receiptForm.senderName}
                 onChange={(e) => setReceiptForm({ ...receiptForm, senderName: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -2159,14 +2584,14 @@ export default function SmartTapApp() {
                   placeholder="Reference No."
                   value={receiptForm.referenceNo}
                   onChange={(e) => setReceiptForm({ ...receiptForm, referenceNo: e.target.value })}
-                  className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                  className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
                 />
                 <input
                   type="text"
                   placeholder="Amount (₱)"
                   value={receiptForm.amount}
                   onChange={(e) => setReceiptForm({ ...receiptForm, amount: e.target.value })}
-                  className="px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                  className="px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
                 />
               </div>
               <label className="block p-2 rounded-xl border border-dashed border-white/20 text-xs text-center cursor-pointer">
@@ -2193,7 +2618,7 @@ export default function SmartTapApp() {
 
       {/* Edit Link Modal */}
       {editingLink && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Edit Link Item</h3>
@@ -2206,14 +2631,14 @@ export default function SmartTapApp() {
               placeholder="Platform"
               value={editingLink.platform}
               onChange={(e) => setEditingLink({ ...editingLink, platform: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+              className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
             />
             <input
               type="text"
               placeholder="Title"
               value={editingLink.title}
               onChange={(e) => setEditingLink({ ...editingLink, title: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+              className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
             />
             {editingLink.category === "gaming" && (
               <input
@@ -2221,7 +2646,7 @@ export default function SmartTapApp() {
                 placeholder="Game ID / IGN"
                 value={editingLink.gameId || ""}
                 onChange={(e) => setEditingLink({ ...editingLink, gameId: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
             )}
             <input
@@ -2229,14 +2654,14 @@ export default function SmartTapApp() {
               placeholder="Subtitle"
               value={editingLink.subtitle || ""}
               onChange={(e) => setEditingLink({ ...editingLink, subtitle: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+              className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
             />
             <input
               type="text"
               placeholder="Destination URL"
               value={editingLink.url || ""}
               onChange={(e) => setEditingLink({ ...editingLink, url: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+              className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
             />
             <label className="flex items-center gap-2 text-xs">
               <input
@@ -2262,63 +2687,101 @@ export default function SmartTapApp() {
         </div>
       )}
 
-      {/* Owner Login Modal */}
+      {/* Owner Login Modal (With Inline Error Banner + Demo Shortcut) */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">Card Owner Login</h3>
-              <button type="button" onClick={() => setShowLoginModal(false)} className="p-1 rounded-full bg-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginError("");
+                  setShowLoginModal(false);
+                }}
+                className="p-1 rounded-full bg-white/10"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <p className="text-xs text-zinc-400">
-              Sign in on your personal phone to edit your SmartTap profile anytime.
+              Sign in with your activated username and password to customize your card.
             </p>
             <form onSubmit={handleOwnerLogin} className="space-y-2.5">
               <input
                 type="text"
                 required
-                placeholder="Username (e.g. juandelacruz)"
+                placeholder="Username"
                 value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10"
+                onChange={(e) => {
+                  setLoginError("");
+                  setLoginUsername(e.target.value);
+                }}
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <input
                 type="password"
                 required
                 placeholder="Password"
                 value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10"
+                onChange={(e) => {
+                  setLoginError("");
+                  setLoginPassword(e.target.value);
+                }}
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
+
+              {loginError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
               <button type="submit" className="w-full py-2.5 rounded-xl text-xs font-semibold bg-amber-400 text-zinc-950">
                 Log In to Editor
               </button>
             </form>
+
+            <div className="pt-2 border-t border-white/10 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginUsername("demo");
+                  setLoginPassword("demo1234");
+                  setLoginError("");
+                }}
+                className="text-[11px] text-amber-400 hover:underline"
+              >
+                Testing? Fill Demo Editor Account (demo / demo1234)
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Activate Physical SmartTap Card Modal (Manual Code Entry Required for Transit Security) */}
+      {/* Activate Physical SmartTap Card Modal (With Inline Error Banner) */}
       {showActivateModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-amber-400/30 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-amber-400" />
                 <h3 className="text-sm font-bold">Activate Your SmartTap Card</h3>
               </div>
-              {!unclaimedCode && (
-                <button type="button" onClick={() => setShowActivateModal(false)} className="p-1 rounded-full bg-white/10">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setActivateError("");
+                  setShowActivateModal(false);
+                }}
+                className="p-1 rounded-full bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              {unclaimedCode
-                ? "This SmartTap card is brand new! Enter the One-Time Activation Code printed on the sealed thank-you insert inside your package to claim it."
-                : "Enter the One-Time Activation Code from your SmartTap package insert to create your digital profile."}
+              Enter the One-Time Activation Code printed on the sealed thank-you insert inside your SmartTap package to claim your card.
             </p>
             <form onSubmit={handleActivateCard} className="space-y-2.5">
               <input
@@ -2326,33 +2789,53 @@ export default function SmartTapApp() {
                 required
                 placeholder="Activation Code (STPH-XXXX-XXXX)"
                 value={actCodeInput}
-                onChange={(e) => setActCodeInput(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2.5 rounded-xl text-xs font-mono uppercase bg-white/5 border border-amber-400/40"
+                onChange={(e) => {
+                  setActivateError("");
+                  setActCodeInput(e.target.value.toUpperCase());
+                }}
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs font-mono uppercase bg-white/5 border border-amber-400/40"
               />
               <input
                 type="text"
                 required
                 placeholder="Your Full Name"
                 value={actFullName}
-                onChange={(e) => setActFullName(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10"
+                onChange={(e) => {
+                  setActivateError("");
+                  setActFullName(e.target.value);
+                }}
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <input
                 type="text"
                 required
                 placeholder="Choose Username (for your custom link)"
                 value={actUsername}
-                onChange={(e) => setActUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ""))}
-                className="w-full px-3 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10"
+                onChange={(e) => {
+                  setActivateError("");
+                  setActUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ""));
+                }}
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
               <input
                 type="password"
                 required
                 placeholder="Create Owner Password (min 4 chars)"
                 value={actPassword}
-                onChange={(e) => setActPassword(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10"
+                onChange={(e) => {
+                  setActivateError("");
+                  setActPassword(e.target.value);
+                }}
+                className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
               />
+
+              {activateError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{activateError}</span>
+                </div>
+              )}
+
               <button type="submit" className="w-full py-2.5 rounded-xl text-xs font-semibold bg-amber-400 text-zinc-950">
                 Activate & Setup My Card
               </button>
@@ -2363,7 +2846,7 @@ export default function SmartTapApp() {
 
       {/* Founder Vault Admin Modal (5-Tap Secret Trigger) */}
       {showFounderModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 text-zinc-100">
           <div className="w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-3xl bg-zinc-900 border border-white/15 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2383,9 +2866,18 @@ export default function SmartTapApp() {
                   required
                   placeholder="Founder Passcode"
                   value={founderPassInput}
-                  onChange={(e) => setFounderPassInput(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-xs bg-white/5 border border-white/10"
+                  onChange={(e) => {
+                    setFounderError("");
+                    setFounderPassInput(e.target.value);
+                  }}
+                  className="w-full px-3 py-2.5 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
                 />
+                {founderError && (
+                  <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{founderError}</span>
+                  </div>
+                )}
                 <button type="submit" className="w-full py-2.5 rounded-xl text-xs font-semibold bg-amber-400 text-zinc-950">
                   Unlock Vault
                 </button>
@@ -2414,14 +2906,14 @@ export default function SmartTapApp() {
                       value={batchQty}
                       onChange={(e) => setBatchQty(e.target.value)}
                       placeholder="Quantity (e.g. 100)"
-                      className="px-3 py-2 rounded-xl text-xs bg-black/40 border border-white/10"
+                      className="px-3 py-2 rounded-xl text-base sm:text-xs bg-black/40 border border-white/10"
                     />
                     <input
                       type="text"
                       value={batchLabel}
                       onChange={(e) => setBatchLabel(e.target.value)}
                       placeholder="Batch Label (e.g. TikTok Batch 1)"
-                      className="px-3 py-2 rounded-xl text-xs bg-black/40 border border-white/10"
+                      className="px-3 py-2 rounded-xl text-base sm:text-xs bg-black/40 border border-white/10"
                     />
                   </div>
                   <button
@@ -2465,7 +2957,7 @@ export default function SmartTapApp() {
                   placeholder="Search code, batch, or username..."
                   value={adminSearch}
                   onChange={(e) => setAdminSearch(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-white/5 border border-white/10"
+                  className="w-full px-3 py-2 rounded-xl text-base sm:text-xs bg-white/5 border border-white/10"
                 />
 
                 {adminTab === "codes" ? (
